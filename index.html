@@ -39,8 +39,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<!-- EmailJS pour l'envoi de mails sans serveur -->
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<!-- Web3Forms utilisé pour l'envoi de mails (pas de CDN requis, API fetch) -->
 <style>
 /* =====================================================
    VARIABLES CSS & RESET
@@ -764,9 +763,21 @@ tr:hover td { background: var(--cream); }
   background: var(--beige);
 }
 .poste-card .poste-icone {
-  font-size: 2rem;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
   margin-bottom: .4rem;
+}
+.poste-card .poste-icone svg {
+  filter: drop-shadow(0 1px 2px rgba(61,43,31,.15));
+  transition: transform .18s ease;
+}
+.poste-card:hover:not(.poste-indisponible) .poste-icone svg {
+  transform: scale(1.08);
+}
+.poste-card.poste-indisponible .poste-icone svg {
+  filter: grayscale(1) opacity(.4);
 }
 .poste-card .poste-nom {
   font-size: .78rem;
@@ -1629,41 +1640,40 @@ window.connexion = async function() {
 };
 
 // =====================================================================
-// CONFIGURATION EMAILJS
-// Créez un compte gratuit sur https://emailjs.com puis :
-// 1. Ajoutez un service email (Gmail, Outlook…) → notez le SERVICE_ID
-// 2. Créez un template avec les variables : {{to_email}}, {{to_name}},
-//    {{subject}}, {{message}} → notez le TEMPLATE_ID
-// 3. Copiez votre clé publique (Account → API Keys) → notez PUBLIC_KEY
+// CONFIGURATION WEB3FORMS
+// Service gratuit d'envoi d'emails sans serveur ni restriction de domaine
+// Clé disponible sur https://web3forms.com
 // =====================================================================
-const EMAILJS_SERVICE_ID  = 'service_bb5tujq';
-const EMAILJS_TEMPLATE_ID = 'template_fw2plxg';
-const EMAILJS_PUBLIC_KEY  = '6ifF18Zc4LI9l2qKK';
+const WEB3FORMS_KEY = '855df4b3-4d43-430f-903a-4585ca492e78';
 
-// Vérifie si EmailJS est configuré
-function emailjsConfigured() {
-  return !EMAILJS_SERVICE_ID.includes('XXXXX') &&
-         !EMAILJS_TEMPLATE_ID.includes('XXXXX') &&
-         !EMAILJS_PUBLIC_KEY.includes('XXXXX');
-}
-
-// Envoi d'un email via EmailJS
+// Envoi d'un email via Web3Forms (fetch simple, aucune dépendance)
 async function envoyerEmail(toEmail, toName, subject, message) {
-  if (!emailjsConfigured()) {
-    console.warn('EmailJS non configuré — email non envoyé à', toEmail);
-    return false;
-  }
   try {
-    emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
-    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-      to_email: toEmail,
-      to_name:  toName,
-      subject:  subject,
-      message:  message,
+    const response = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({
+        access_key: WEB3FORMS_KEY,
+        subject:    subject,
+        from_name:  'Julien Céramiques — Atelier',
+        email:      toEmail,        // destinataire affiché dans le mail
+        name:       toName,
+        message:    message,
+        // Web3Forms envoie toujours à l'adresse liée à la clé (julienceramiques@gmail.com)
+        // Le champ 'replyto' permet de répondre directement à l'adhérent
+        replyto:    toEmail,
+      }),
     });
-    return true;
+    const data = await response.json();
+    if (data.success) {
+      console.log('Email envoyé à', toEmail);
+      return true;
+    } else {
+      console.error('Web3Forms erreur:', data);
+      return false;
+    }
   } catch(e) {
-    console.error('Erreur EmailJS:', e);
+    console.error('Erreur envoi email:', e);
     return false;
   }
 }
@@ -1716,19 +1726,14 @@ window.demanderVerificationEmail = async function(renvoyer = false) {
     // Afficher l'email de destination
     document.getElementById('verif-email-display').textContent = email;
 
-    // Envoyer le code par email si EmailJS est configuré
-    if (emailjsConfigured()) {
-      const ok = await envoyerEmail(email, pseudo,
-        'Votre code de vérification — Julien Céramiques',
-        `Bonjour ${pseudo},\n\nVotre code de vérification pour créer votre compte à l'atelier Julien Céramiques est :\n\n${code}\n\nCe code est valable 10 minutes.\n\nSi vous n'êtes pas à l'origine de cette demande, ignorez ce message.\n\nÀ bientôt à l'atelier !`
-      );
-      if (!ok) {
-        // EmailJS échoue → mode dégradé : afficher le code directement
-        toast(`⚠️ Email non envoyé (EmailJS). Code de test : ${code}`, 'warning', 15000);
-      }
-    } else {
-      // EmailJS non configuré → afficher le code dans un toast pour les tests
-      toast(`📧 EmailJS non configuré. Code de vérification : ${code}`, 'warning', 20000);
+    // Envoyer le code par email via Web3Forms
+    const ok = await envoyerEmail(email, pseudo,
+      'Votre code de vérification — Julien Céramiques',
+      'Bonjour ' + pseudo + ',\n\nVotre code de vérification pour créer votre compte à l\'atelier Julien Céramiques est :\n\n' + code + '\n\nCe code est valable 10 minutes.\n\nSi vous n\'êtes pas à l\'origine de cette demande, ignorez ce message.\n\nÀ bientôt à l\'atelier !'
+    );
+    if (!ok) {
+      // En cas d'échec, afficher le code à l'écran pour ne pas bloquer l'inscription
+      toast('⚠️ Email non envoyé. Code de vérification : ' + code, 'warning');
     }
 
     // Passer à l'étape 2
@@ -2710,11 +2715,38 @@ function clickSurCreneau(dateStr, hDebut, hFin, postesLibres, wrapperId) {
 }
 
 // Icônes par type de poste
+// SVG tour de potier Shimpo (4 pieds)
+const SVG_TOUR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="44" height="44">
+  <ellipse cx="32" cy="16" rx="18" ry="5" fill="#C4622D" opacity=".9"/>
+  <ellipse cx="32" cy="14" rx="18" ry="5" fill="#E8845A"/>
+  <rect x="28" y="18" width="8" height="18" rx="3" fill="#8B6347"/>
+  <rect x="18" y="34" width="28" height="10" rx="4" fill="#5C4033"/>
+  <rect x="14" y="43" width="36" height="4" rx="2" fill="#8B6347"/>
+  <rect x="16" y="47" width="5" height="12" rx="2" fill="#3D2B1F"/>
+  <rect x="24" y="47" width="5" height="12" rx="2" fill="#3D2B1F"/>
+  <rect x="35" y="47" width="5" height="12" rx="2" fill="#3D2B1F"/>
+  <rect x="43" y="47" width="5" height="12" rx="2" fill="#3D2B1F"/>
+  <ellipse cx="32" cy="13" rx="8" ry="3" fill="#D4BFA8" opacity=".7"/>
+</svg>`;
+
+// SVG table de travail argile
+const SVG_TABLE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="44" height="44">
+  <rect x="6" y="20" width="52" height="8" rx="3" fill="#8B6347"/>
+  <rect x="7" y="20" width="50" height="6" rx="2" fill="#B08060"/>
+  <ellipse cx="32" cy="21" rx="14" ry="4" fill="#D4BFA8" opacity=".85"/>
+  <rect x="44" y="18" width="3" height="10" rx="1.5" fill="#5C4033"/>
+  <rect x="10" y="28" width="5" height="22" rx="2" fill="#5C4033"/>
+  <rect x="49" y="28" width="5" height="22" rx="2" fill="#5C4033"/>
+  <rect x="16" y="28" width="4" height="22" rx="2" fill="#3D2B1F"/>
+  <rect x="44" y="28" width="4" height="22" rx="2" fill="#3D2B1F"/>
+  <rect x="10" y="42" width="44" height="3" rx="1.5" fill="#8B6347"/>
+</svg>`;
+
 const POSTES_ICONES = {
-  tour_1:  { icone: '🏺', nom: 'Tour 1', desc: 'Tour de potier' },
-  tour_2:  { icone: '🏺', nom: 'Tour 2', desc: 'Tour de potier' },
-  table_1: { icone: '🪨', nom: 'Table 1', desc: 'Table argile' },
-  table_2: { icone: '🪨', nom: 'Table 2', desc: 'Table argile' },
+  tour_1:  { svg: SVG_TOUR,  nom: 'Tour 1', desc: 'Tour de potier' },
+  tour_2:  { svg: SVG_TOUR,  nom: 'Tour 2', desc: 'Tour de potier' },
+  table_1: { svg: SVG_TABLE, nom: 'Table 1', desc: 'Table argile'  },
+  table_2: { svg: SVG_TABLE, nom: 'Table 2', desc: 'Table argile'  },
 };
 
 let posteSelectionne = null; // poste sélectionné dans la modale
@@ -2761,7 +2793,7 @@ function rafraichirModaleResa() {
     card.className = 'poste-card' + (dispo ? '' : ' poste-indisponible') +
                      (posteSelectionne === id && dispo ? ' poste-selectionne' : '');
     card.innerHTML = `
-      <div class="poste-icone">${info.icone}</div>
+      <div class="poste-icone">${info.svg}</div>
       <div class="poste-nom">${info.nom}</div>
       <div class="poste-dispo">${dispo ? info.desc : 'Non disponible'}</div>`;
     if (dispo) {
