@@ -39,6 +39,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<!-- EmailJS pour l'envoi de mails sans serveur -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <style>
 /* =====================================================
    VARIABLES CSS & RESET
@@ -624,28 +626,7 @@ tr:hover td { background: var(--cream); }
 }
 .modal-close:hover { background: var(--beige-dk); color: var(--earth); }
 
-/* =====================================================
-   TOAST NOTIFICATIONS
-   ===================================================== */
-#toast-container {
-  position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9000;
-  display: flex; flex-direction: column; gap: .6rem;
-}
-.toast {
-  background: var(--earth);
-  color: var(--beige);
-  padding: .85rem 1.25rem;
-  border-radius: var(--radius-md);
-  font-size: .9rem;
-  box-shadow: var(--shadow-lg);
-  max-width: 320px;
-  animation: toastIn .3s ease;
-  border-left: 4px solid var(--terracotta);
-}
-.toast.success { border-left-color: var(--success); }
-.toast.error   { border-left-color: var(--danger); }
-.toast.warning { border-left-color: var(--warning); }
-@keyframes toastIn { from { transform: translateX(100px); opacity: 0; } }
+/* Toast remplacé par modales alertes */
 
 /* =====================================================
    LISTE DES RÉSERVATIONS ADHÉRENT
@@ -729,6 +710,92 @@ tr:hover td { background: var(--cream); }
 .items-center { align-items: center; } .justify-between { justify-content: space-between; }
 .flex-wrap { flex-wrap: wrap; }
 .hidden { display: none !important; }
+
+/* =====================================================
+   MODALE RÉSERVATION — EXTENSIONS HORAIRES & POSTES
+   ===================================================== */
+.btn-slot-extend {
+  background: #fff;
+  border: 1.5px solid var(--beige-dkk);
+  border-radius: var(--radius-sm);
+  padding: .35rem .6rem;
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--clay);
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+  font-family: var(--font-body);
+}
+.btn-slot-extend:hover:not(:disabled) {
+  border-color: var(--terracotta);
+  color: var(--terracotta);
+  background: var(--beige);
+}
+.btn-slot-extend:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+}
+
+.poste-card {
+  border: 2px solid var(--beige-dk);
+  border-radius: var(--radius-md);
+  padding: .8rem .6rem;
+  text-align: center;
+  cursor: pointer;
+  transition: var(--transition);
+  background: #fff;
+  user-select: none;
+}
+.poste-card:hover:not(.poste-indisponible) {
+  border-color: var(--terracotta-lt);
+  background: var(--beige);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+.poste-card.poste-selectionne {
+  border-color: var(--terracotta);
+  background: linear-gradient(135deg, #FEF0E8, #FBF7F2);
+  box-shadow: 0 0 0 3px rgba(196,98,45,.15);
+}
+.poste-card.poste-indisponible {
+  opacity: .4;
+  cursor: not-allowed;
+  background: var(--beige);
+}
+.poste-card .poste-icone {
+  font-size: 2rem;
+  line-height: 1;
+  margin-bottom: .4rem;
+}
+.poste-card .poste-nom {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--earth);
+}
+.poste-card .poste-dispo {
+  font-size: .7rem;
+  color: var(--clay-lt);
+  margin-top: .15rem;
+}
+
+/* =====================================================
+   MODALE ALERTE / CONFIRM UNIVERSELLE
+   ===================================================== */
+#modal-alerte .modal,
+#modal-confirm .modal {
+  animation: alerteIn .22s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes alerteIn {
+  from { transform: scale(.85) translateY(-20px); opacity: 0; }
+  to   { transform: scale(1) translateY(0);       opacity: 1; }
+}
+/* Variantes couleur du bouton OK selon le type */
+#modal-alerte.type-success #alerte-btn-ok { background: var(--success); }
+#modal-alerte.type-error   #alerte-btn-ok { background: var(--danger);  }
+#modal-alerte.type-warning #alerte-btn-ok { background: var(--warning); }
+#modal-alerte.type-info    #alerte-btn-ok { background: var(--info);    }
+#modal-confirm.type-danger #confirm-btn-ok { background: var(--danger); }
 </style>
 </head>
 <body>
@@ -748,12 +815,12 @@ tr:hover td { background: var(--cream); }
     <p class="mt-2">Recherchez le bloc <code>FIREBASE CONFIG</code> dans le fichier <strong>index.html</strong> et remplacez les valeurs vides par celles disponibles sur :</p>
     <p class="mt-1"><strong>console.firebase.google.com → Paramètres du projet → Vos applications</strong></p>
     <pre>const firebaseConfig = {
-  apiKey: "AIzaSyC6xEpKOzBmeM9f7JroC4u6AGA44b-xFUM",
-  authDomain: "syst-resa-atelier.firebaseapp.com",
-  projectId: "syst-resa-atelier",
-  storageBucket: "syst-resa-atelier.firebasestorage.app",
-  messagingSenderId: "255396165813",
-  appId: "1:255396165813:web:5269d7cb8493a02eb766fc"
+  apiKey:            "VOTRE_API_KEY",
+  authDomain:        "VOTRE_PROJET.firebaseapp.com",
+  projectId:         "VOTRE_PROJET_ID",
+  storageBucket:     "VOTRE_PROJET.appspot.com",
+  messagingSenderId: "VOTRE_SENDER_ID",
+  appId:             "VOTRE_APP_ID"
 };</pre>
   </div>
 </div>
@@ -762,7 +829,7 @@ tr:hover td { background: var(--cream); }
 <div id="app">
 
   <!-- Navbar (cachée sur la page auth) -->
-  <nav id="navbar" class="hidden">
+  <nav id="navbar" style="display:none">
     <div class="nav-brand">🏺 <span>Julien</span> Céramiques</div>
     <div class="nav-user">
       <span id="nav-pseudo"></span>
@@ -802,28 +869,47 @@ tr:hover td { background: var(--cream); }
 
           <!-- Inscription -->
           <div id="form-register" class="hidden">
-            <div class="form-group">
-              <label class="form-label">Pseudo (unique)</label>
-              <input class="form-input" id="reg-pseudo" type="text" placeholder="Choisissez un pseudo">
+            <!-- Étape 1 : Formulaire de base -->
+            <div id="reg-step1">
+              <div class="form-group">
+                <label class="form-label">Pseudo (unique)</label>
+                <input class="form-input" id="reg-pseudo" type="text" placeholder="Choisissez un pseudo">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Email</label>
+                <input class="form-input" id="reg-email" type="email" placeholder="votre@email.com">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Mot de passe</label>
+                <input class="form-input" id="reg-mdp" type="password" placeholder="Min. 6 caractères">
+              </div>
+              <div id="reg-error" class="alert alert-danger hidden" style="font-size:.85rem;padding:.6rem .85rem;"></div>
+              <button class="btn btn-primary btn-full mt-2" id="btn-envoyer-code" onclick="demanderVerificationEmail()">Vérifier mon adresse mail →</button>
+              <p class="text-muted text-center mt-2" style="font-size:.8rem;">Un code de vérification sera envoyé à votre adresse mail.</p>
             </div>
-            <div class="form-group">
-              <label class="form-label">Email</label>
-              <input class="form-input" id="reg-email" type="email" placeholder="votre@email.com">
+            <!-- Étape 2 : Saisie du code reçu par mail -->
+            <div id="reg-step2" class="hidden">
+              <div class="alert alert-info" style="margin-bottom:1rem;font-size:.85rem;">
+                📧 Un code à 6 chiffres a été envoyé à <strong id="verif-email-display"></strong>.<br>
+                Vérifiez vos spams si vous ne le recevez pas.
+              </div>
+              <div class="form-group">
+                <label class="form-label">Code de vérification</label>
+                <input class="form-input" id="verif-code-input" type="text" placeholder="123456" maxlength="6"
+                  style="font-size:1.4rem;letter-spacing:.3em;text-align:center;">
+              </div>
+              <div id="verif-error" class="alert alert-danger hidden" style="font-size:.85rem;padding:.6rem .85rem;"></div>
+              <button class="btn btn-primary btn-full mt-2" onclick="verifierCode()">Valider le code</button>
+              <button class="btn btn-ghost btn-full mt-1" onclick="retourEtape1()" style="font-size:.85rem;">← Modifier mes informations</button>
+              <button class="btn btn-ghost btn-full" onclick="demanderVerificationEmail(true)" style="font-size:.82rem;color:var(--clay-lt);">Renvoyer le code</button>
             </div>
-            <div class="form-group">
-              <label class="form-label">Mot de passe</label>
-              <input class="form-input" id="reg-mdp" type="password" placeholder="Min. 6 caractères">
-            </div>
-            <div id="reg-error" class="alert alert-danger hidden" style="font-size:.85rem;padding:.6rem .85rem;"></div>
-            <button class="btn btn-primary btn-full mt-2" onclick="inscription()">Créer mon compte</button>
-            <p class="text-muted text-center mt-2" style="font-size:.8rem;">Votre compte sera activé après validation par l'administrateur.</p>
           </div>
         </div>
       </div>
     </div>
 
     <!-- ===== PAGE ADHÉRENT ===== -->
-    <div id="page-adherent" class="page hidden">
+    <div id="page-adherent" style="display:none">
       <div id="adherent-alerte-adhesion" class="alert alert-warning hidden" style="margin-bottom:1.5rem;">
         ⚠️ <span id="adherent-alerte-txt"></span>
       </div>
@@ -891,7 +977,7 @@ tr:hover td { background: var(--cream); }
     </div>
 
     <!-- ===== PAGE ADMIN ===== -->
-    <div id="page-admin" class="page hidden">
+    <div id="page-admin" style="display:none">
       <div class="tabs-nav">
         <button class="tab-btn active" onclick="showAdminTab('dashboard')">📊 Tableau de bord <span id="admin-badge-wait" class="nav-badge hidden" style="background:var(--danger)"></span></button>
         <button class="tab-btn" onclick="showAdminTab('adherents')">👥 Adhérents</button>
@@ -996,15 +1082,50 @@ tr:hover td { background: var(--cream); }
       <span class="modal-title" id="modal-resa-titre">Réserver un créneau</span>
       <button class="modal-close" onclick="fermerModale('modal-reservation')">✕</button>
     </div>
-    <div id="modal-resa-info" class="alert alert-info" style="margin-bottom:1rem;"></div>
-    <div class="form-group">
-      <label class="form-label">Type de poste</label>
-      <select class="form-select" id="modal-resa-poste"></select>
+
+    <!-- Sélecteur de plage horaire -->
+    <div style="margin-bottom:1.25rem;">
+      <div class="form-label" style="margin-bottom:.6rem;">Plage horaire</div>
+      <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
+        <!-- Boutons étendre vers le début -->
+        <div style="display:flex;flex-direction:column;gap:.3rem;">
+          <button class="btn-slot-extend" id="btn-moins-debut" onclick="etendreDebut(-0.5)" title="Reculer le début de 30 min">
+            ◀ 30min
+          </button>
+          <button class="btn-slot-extend" id="btn-plus-debut" onclick="etendreDebut(0.5)" title="Avancer le début de 30 min">
+            ▶ 30min
+          </button>
+        </div>
+
+        <!-- Affichage créneau -->
+        <div style="flex:1;text-align:center;background:var(--beige);border-radius:var(--radius-md);padding:.9rem 1rem;min-width:140px;">
+          <div style="font-family:var(--font-display);font-size:1.5rem;color:var(--terracotta);line-height:1.1;" id="modal-resa-heures">08h00 – 08h30</div>
+          <div style="font-size:.8rem;color:var(--clay-lt);margin-top:.25rem;" id="modal-resa-duree">30 min</div>
+          <div style="font-size:.8rem;color:var(--earth-lt);margin-top:.1rem;" id="modal-resa-date-display"></div>
+        </div>
+
+        <!-- Boutons étendre vers la fin -->
+        <div style="display:flex;flex-direction:column;gap:.3rem;">
+          <button class="btn-slot-extend" id="btn-moins-fin" onclick="etendreFin(-0.5)" title="Avancer la fin de 30 min">
+            30min ◀
+          </button>
+          <button class="btn-slot-extend" id="btn-plus-fin" onclick="etendreFin(0.5)" title="Reculer la fin de 30 min">
+            30min ▶
+          </button>
+        </div>
+      </div>
     </div>
-    <div id="modal-resa-warning" class="alert alert-warning hidden"></div>
+
+    <!-- Sélecteur de poste par icônes -->
+    <div style="margin-bottom:1rem;">
+      <div class="form-label" style="margin-bottom:.6rem;">Choisissez votre poste</div>
+      <div id="modal-resa-postes" style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;"></div>
+    </div>
+
+    <div id="modal-resa-warning" class="alert alert-warning hidden" style="margin-bottom:.75rem;"></div>
     <div style="display:flex;gap:.75rem;margin-top:1rem;">
       <button class="btn btn-secondary" onclick="fermerModale('modal-reservation')">Annuler</button>
-      <button class="btn btn-primary" id="btn-confirmer-resa" onclick="confirmerReservation()">Confirmer</button>
+      <button class="btn btn-primary" id="btn-confirmer-resa" onclick="confirmerReservation()">Confirmer la réservation</button>
     </div>
   </div>
 </div>
@@ -1061,8 +1182,28 @@ tr:hover td { background: var(--cream); }
   </div>
 </div>
 
-<!-- Toast container -->
-<div id="toast-container"></div>
+<!-- Modale d'alerte universelle (remplace les toasts) -->
+<div id="modal-alerte" class="modal-overlay" style="z-index:9100;">
+  <div class="modal" style="max-width:420px;text-align:center;padding:2rem 2.5rem;">
+    <div id="alerte-icone" style="font-size:3rem;line-height:1;margin-bottom:.75rem;"></div>
+    <div id="alerte-titre" style="font-family:var(--font-display);font-size:1.3rem;color:var(--earth);margin-bottom:.6rem;font-weight:600;"></div>
+    <div id="alerte-message" style="color:var(--earth-lt);font-size:.95rem;line-height:1.55;margin-bottom:1.5rem;"></div>
+    <button id="alerte-btn-ok" class="btn btn-primary" style="min-width:120px;" onclick="fermerAlerte()">OK</button>
+  </div>
+</div>
+
+<!-- Modale de confirmation universelle (remplace les confirm()) -->
+<div id="modal-confirm" class="modal-overlay" style="z-index:9200;">
+  <div class="modal" style="max-width:420px;text-align:center;padding:2rem 2.5rem;">
+    <div id="confirm-icone" style="font-size:3rem;line-height:1;margin-bottom:.75rem;"></div>
+    <div id="confirm-titre" style="font-family:var(--font-display);font-size:1.3rem;color:var(--earth);margin-bottom:.6rem;font-weight:600;"></div>
+    <div id="confirm-message" style="color:var(--earth-lt);font-size:.95rem;line-height:1.55;margin-bottom:1.5rem;"></div>
+    <div style="display:flex;gap:.75rem;justify-content:center;">
+      <button class="btn btn-secondary" style="min-width:100px;" onclick="repondreConfirm(false)">Annuler</button>
+      <button id="confirm-btn-ok" class="btn btn-primary" style="min-width:100px;" onclick="repondreConfirm(true)">Confirmer</button>
+    </div>
+  </div>
+</div>
 
 <!-- ===== SCRIPT PRINCIPAL ===== -->
 <script type="module">
@@ -1073,12 +1214,12 @@ tr:hover td { background: var(--cream); }
 // Paramètres du projet → Vos applications → SDK setup and configuration
 // =====================================================================
 const firebaseConfig = {
-  apiKey: "AIzaSyC6xEpKOzBmeM9f7JroC4u6AGA44b-xFUM",
-  authDomain: "syst-resa-atelier.firebaseapp.com",
-  projectId: "syst-resa-atelier",
-  storageBucket: "syst-resa-atelier.firebasestorage.app",
+  apiKey:            "AIzaSyC6xEpKOzBmeM9f7JroC4u6AGA44b-xFUM",
+  authDomain:        "syst-resa-atelier.firebaseapp.com",
+  projectId:         "syst-resa-atelier",
+  storageBucket:     "syst-resa-atelier.firebasestorage.app",
   messagingSenderId: "255396165813",
-  appId: "1:255396165813:web:5269d7cb8493a02eb766fc"
+  appId:             "1:255396165813:web:5269d7cb8493a02eb766fc"
 };
 
 // Importation du SDK Firebase v9 modulaire via CDN
@@ -1218,16 +1359,82 @@ async function sha256(message) {
 }
 
 // =====================================================================
-// TOASTS
+// SYSTÈME D'ALERTES MODALES (remplace les toasts)
 // =====================================================================
-function toast(msg, type='info', duree=3500) {
-  const c = document.getElementById('toast-container');
-  const t = document.createElement('div');
-  t.className = `toast ${type}`;
-  t.textContent = msg;
-  c.appendChild(t);
-  setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(100px)'; t.style.transition = '.3s'; setTimeout(() => t.remove(), 300); }, duree);
+
+// Icônes selon le type
+const ALERTE_ICONES = {
+  success: '✅',
+  error:   '❌',
+  warning: '⚠️',
+  info:    'ℹ️',
+  danger:  '🗑️',
+};
+
+// Titres par défaut selon le type
+const ALERTE_TITRES = {
+  success: 'Succès',
+  error:   'Erreur',
+  warning: 'Attention',
+  info:    'Information',
+  danger:  'Confirmation',
+};
+
+// Callback pour la modale de confirmation
+let _confirmCallback = null;
+
+// Afficher une alerte modale (remplace toast)
+function toast(msg, type='info', _duree) {
+  // On ignore le paramètre durée — on affiche une modale
+  alerte(msg, type);
 }
+
+function alerte(msg, type='info', titre) {
+  const modal = document.getElementById('modal-alerte');
+  // Retirer les classes de type précédentes
+  modal.className = 'modal-overlay open type-' + type;
+  document.getElementById('alerte-icone').textContent   = ALERTE_ICONES[type]  || 'ℹ️';
+  document.getElementById('alerte-titre').textContent   = titre || ALERTE_TITRES[type] || 'Information';
+  document.getElementById('alerte-message').textContent = msg;
+  // Focus sur le bouton OK pour pouvoir appuyer sur Entrée
+  setTimeout(() => document.getElementById('alerte-btn-ok')?.focus(), 50);
+}
+
+window.fermerAlerte = function() {
+  const modal = document.getElementById('modal-alerte');
+  modal.classList.remove('open');
+};
+
+// Modale de confirmation (remplace confirm())
+// Retourne une Promise<boolean>
+function confirmer(msg, type='danger', titre) {
+  return new Promise(resolve => {
+    const modal = document.getElementById('modal-confirm');
+    modal.className = 'modal-overlay open type-' + type;
+    document.getElementById('confirm-icone').textContent   = type === 'danger' ? '⚠️' : 'ℹ️';
+    document.getElementById('confirm-titre').textContent   = titre || 'Confirmation';
+    document.getElementById('confirm-message').textContent = msg;
+    _confirmCallback = resolve;
+    setTimeout(() => document.getElementById('confirm-btn-ok')?.focus(), 50);
+  });
+}
+
+window.repondreConfirm = function(reponse) {
+  document.getElementById('modal-confirm').classList.remove('open');
+  if (_confirmCallback) { _confirmCallback(reponse); _confirmCallback = null; }
+};
+
+// Fermer les modales avec Echap
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    const alerteOpen = document.getElementById('modal-alerte').classList.contains('open');
+    if (alerteOpen) { window.fermerAlerte(); return; }
+  }
+  if (e.key === 'Enter') {
+    const alerteOpen = document.getElementById('modal-alerte').classList.contains('open');
+    if (alerteOpen) { window.fermerAlerte(); return; }
+  }
+});
 
 // =====================================================================
 // MODALES
@@ -1261,8 +1468,10 @@ async function init() {
 
   // Masquer le splash
   const splash = document.getElementById('splash');
-  splash.style.opacity = '0';
-  setTimeout(() => splash.remove(), 400);
+  if (splash && splash.parentNode) {
+    splash.style.opacity = '0';
+    setTimeout(() => { if(splash.parentNode) splash.remove(); }, 400);
+  }
   document.getElementById('app').style.display = 'block';
 }
 
@@ -1271,21 +1480,38 @@ async function init() {
 // =====================================================================
 async function initAdminDefaut() {
   try {
-    const q = query(collection(db,'utilisateurs'), where('role','==','admin'));
-    const snap = await getDocs(q);
-    if (snap.empty) {
-      const hash = await sha256('admin123');
-      await setDoc(doc(db,'utilisateurs','admin'), {
-        pseudo:          'admin',
-        email:           'julienceramiques@gmail.com',
-        motDePasse:      hash,
-        role:            'admin',
-        statut:          'actif',
-        dateInscription: new Date().toISOString(),
-        premiereConnexion: true,
-      });
+    // Tentative lecture directe du doc 'admin'
+    const adminSnap = await getDoc(doc(db,'utilisateurs','admin'));
+    if (!adminSnap.exists()) {
+      // Vérifier s'il existe un admin avec un autre ID
+      const q    = query(collection(db,'utilisateurs'), where('role','==','admin'));
+      const snap = await getDocs(q);
+      if (snap.empty) {
+        // Créer l'admin par défaut
+        const hash = await sha256('admin123');
+        await setDoc(doc(db,'utilisateurs','admin'), {
+          pseudo:            'admin',
+          email:             'julienceramiques@gmail.com',
+          motDePasse:        hash,
+          role:              'admin',
+          statut:            'actif',
+          dateInscription:   new Date().toISOString(),
+          premiereConnexion: true,
+        });
+        console.log('Admin par défaut créé avec succès.');
+      }
     }
-  } catch(e) { console.error('initAdmin:', e); }
+  } catch(e) {
+    console.error('initAdmin erreur:', e);
+    // Afficher un avertissement visible si les règles Firestore bloquent
+    if (e.code === 'permission-denied') {
+      const errBox = document.getElementById('login-error');
+      if (errBox) {
+        errBox.textContent = '⚠️ Firestore bloque les accès. Allez dans Firebase Console → Firestore → Rules et mettez : allow read, write: if true;';
+        errBox.classList.remove('hidden');
+      }
+    }
+  }
 }
 
 // Recharger les données fraîches de l'utilisateur courant
@@ -1311,6 +1537,26 @@ window.showAuthTab = function(tab) {
   });
 };
 
+// Validation des formulaires au clavier (touche Entrée)
+document.addEventListener('DOMContentLoaded', () => {
+  // Entrée sur les champs de connexion
+  ['login-pseudo','login-mdp'].forEach(id => {
+    document.getElementById(id)?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') window.connexion();
+    });
+  });
+  // Entrée sur les champs d'inscription
+  ['reg-pseudo','reg-email','reg-mdp'].forEach(id => {
+    document.getElementById(id)?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') window.inscription();
+    });
+  });
+  // Entrée sur le champ code de vérification email
+  document.getElementById('verif-code-input')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') window.verifierCode();
+  });
+});
+
 window.connexion = async function() {
   const pseudo = document.getElementById('login-pseudo').value.trim();
   const mdp    = document.getElementById('login-mdp').value;
@@ -1319,26 +1565,119 @@ window.connexion = async function() {
 
   if (!pseudo || !mdp) { showErr(errEl,'Veuillez remplir tous les champs.'); return; }
 
-  try {
-    const q = query(collection(db,'utilisateurs'), where('pseudo','==',pseudo));
-    const snap = await getDocs(q);
-    if (snap.empty) { showErr(errEl,'Pseudo ou mot de passe incorrect.'); return; }
+  const btnLogin = document.querySelector('#form-login .btn-primary');
+  btnLogin.disabled = true;
+  btnLogin.textContent = 'Connexion en cours…';
 
-    const userDoc = snap.docs[0];
-    const userData = userDoc.data();
+  try {
+    let userId   = null;
+    let userData = null;
+
+    // Essai lecture directe du document 'admin' si le pseudo est admin
+    if (pseudo === 'admin') {
+      try {
+        const directSnap = await getDoc(doc(db,'utilisateurs','admin'));
+        if (directSnap.exists()) {
+          userId   = directSnap.id;
+          userData = directSnap.data();
+        }
+      } catch(e2) { /* on tente la requête query en fallback */ }
+    }
+
+    // Requête par pseudo — insensible à la casse
+    if (!userData) {
+      const snap = await getDocs(collection(db,'utilisateurs'));
+      const pseudoLower = pseudo.toLowerCase();
+      const match = snap.docs.find(d => (d.data().pseudo || '').toLowerCase() === pseudoLower);
+      if (!match) {
+        showErr(errEl,'Pseudo ou mot de passe incorrect.');
+        btnLogin.disabled = false; btnLogin.textContent = 'Se connecter'; return;
+      }
+      userId   = match.id;
+      userData = match.data();
+    }
+
     const hash = await sha256(mdp);
 
-    if (hash !== userData.motDePasse) { showErr(errEl,'Pseudo ou mot de passe incorrect.'); return; }
-    if (userData.statut === 'en_attente') { showErr(errEl,'Votre compte est en attente de validation par l\'administrateur.'); return; }
-    if (userData.statut === 'suspendu')   { showErr(errEl,'Votre compte est suspendu. Contactez l\'administrateur.'); return; }
+    if (hash !== userData.motDePasse) {
+      showErr(errEl,'Pseudo ou mot de passe incorrect.');
+      btnLogin.disabled = false; btnLogin.textContent = 'Se connecter'; return;
+    }
+    if (userData.statut === 'en_attente') {
+      showErr(errEl,'Votre compte est en attente de validation.');
+      btnLogin.disabled = false; btnLogin.textContent = 'Se connecter'; return;
+    }
+    if (userData.statut === 'suspendu') {
+      showErr(errEl,'Votre compte est suspendu. Contactez l\'administrateur.');
+      btnLogin.disabled = false; btnLogin.textContent = 'Se connecter'; return;
+    }
 
-    utilisateurCourant = { id: userDoc.id, ...userData };
+    utilisateurCourant = { id: userId, ...userData };
     sessionStorage.setItem('atelierSession', JSON.stringify(utilisateurCourant));
     afficherInterface();
-  } catch(e) { showErr(errEl,'Erreur de connexion : '+e.message); }
+  } catch(e) {
+    console.error('Erreur connexion:', e);
+    if (e.code === 'permission-denied' || (e.message && e.message.includes('permission'))) {
+      showErr(errEl,'❌ Accès refusé par Firestore. Dans la console Firebase : Firestore Database → Rules → remplacez par : allow read, write: if true;');
+    } else if (e.code === 'unavailable' || e.code === 'failed-precondition') {
+      showErr(errEl,'❌ Impossible de joindre Firestore. Vérifiez que la base de données Firestore est bien créée dans votre projet Firebase.');
+    } else {
+      showErr(errEl,'Erreur : '+e.message);
+    }
+    btnLogin.disabled = false; btnLogin.textContent = 'Se connecter';
+  }
 };
 
-window.inscription = async function() {
+// =====================================================================
+// CONFIGURATION EMAILJS
+// Créez un compte gratuit sur https://emailjs.com puis :
+// 1. Ajoutez un service email (Gmail, Outlook…) → notez le SERVICE_ID
+// 2. Créez un template avec les variables : {{to_email}}, {{to_name}},
+//    {{subject}}, {{message}} → notez le TEMPLATE_ID
+// 3. Copiez votre clé publique (Account → API Keys) → notez PUBLIC_KEY
+// =====================================================================
+const EMAILJS_SERVICE_ID  = 'service_bb5tujq';
+const EMAILJS_TEMPLATE_ID = 'template_fw2plxg';
+const EMAILJS_PUBLIC_KEY  = '6ifF18Zc4LI9l2qKK';
+
+// Vérifie si EmailJS est configuré
+function emailjsConfigured() {
+  return !EMAILJS_SERVICE_ID.includes('XXXXX') &&
+         !EMAILJS_TEMPLATE_ID.includes('XXXXX') &&
+         !EMAILJS_PUBLIC_KEY.includes('XXXXX');
+}
+
+// Envoi d'un email via EmailJS
+async function envoyerEmail(toEmail, toName, subject, message) {
+  if (!emailjsConfigured()) {
+    console.warn('EmailJS non configuré — email non envoyé à', toEmail);
+    return false;
+  }
+  try {
+    emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+      to_email: toEmail,
+      to_name:  toName,
+      subject:  subject,
+      message:  message,
+    });
+    return true;
+  } catch(e) {
+    console.error('Erreur EmailJS:', e);
+    return false;
+  }
+}
+
+// Code de vérification temporaire (stocké en mémoire)
+let verifData = null; // { code, email, pseudo, mdpHash, expireAt }
+
+// Valider le format email
+function emailValide(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+}
+
+// Étape 1 : Vérifier les champs et envoyer le code
+window.demanderVerificationEmail = async function(renvoyer = false) {
   const pseudo = document.getElementById('reg-pseudo').value.trim();
   const email  = document.getElementById('reg-email').value.trim();
   const mdp    = document.getElementById('reg-mdp').value;
@@ -1346,34 +1685,129 @@ window.inscription = async function() {
   errEl.classList.add('hidden');
 
   if (!pseudo || !email || !mdp) { showErr(errEl,'Veuillez remplir tous les champs.'); return; }
+  if (!emailValide(email)) { showErr(errEl,'Adresse email invalide. Vérifiez le format (ex: nom@domaine.fr).'); return; }
   if (mdp.length < 6) { showErr(errEl,'Le mot de passe doit contenir au moins 6 caractères.'); return; }
+
+  const btn = document.getElementById('btn-envoyer-code');
+  btn.disabled = true;
+  btn.textContent = 'Envoi du code…';
 
   try {
     // Vérifier unicité du pseudo
     const q = query(collection(db,'utilisateurs'), where('pseudo','==',pseudo));
     const snap = await getDocs(q);
-    if (!snap.empty) { showErr(errEl,'Ce pseudo est déjà utilisé. Choisissez-en un autre.'); return; }
+    if (!snap.empty) {
+      showErr(errEl,'Ce pseudo est déjà utilisé. Choisissez-en un autre.');
+      btn.disabled = false; btn.textContent = 'Vérifier mon adresse mail →'; return;
+    }
+    // Vérifier unicité de l'email
+    const qEmail = query(collection(db,'utilisateurs'), where('email','==',email));
+    const snapEmail = await getDocs(qEmail);
+    if (!snapEmail.empty) {
+      showErr(errEl,'Cette adresse email est déjà utilisée.');
+      btn.disabled = false; btn.textContent = 'Vérifier mon adresse mail →'; return;
+    }
 
-    const hash = await sha256(mdp);
+    // Générer le code à 6 chiffres
+    const code    = String(Math.floor(100000 + Math.random() * 900000));
+    const hash    = await sha256(mdp);
+    verifData     = { code, email, pseudo, mdpHash: hash, expireAt: Date.now() + 10*60*1000 };
+
+    // Afficher l'email de destination
+    document.getElementById('verif-email-display').textContent = email;
+
+    // Envoyer le code par email si EmailJS est configuré
+    if (emailjsConfigured()) {
+      const ok = await envoyerEmail(email, pseudo,
+        'Votre code de vérification — Julien Céramiques',
+        `Bonjour ${pseudo},\n\nVotre code de vérification pour créer votre compte à l'atelier Julien Céramiques est :\n\n${code}\n\nCe code est valable 10 minutes.\n\nSi vous n'êtes pas à l'origine de cette demande, ignorez ce message.\n\nÀ bientôt à l'atelier !`
+      );
+      if (!ok) {
+        // EmailJS échoue → mode dégradé : afficher le code directement
+        toast(`⚠️ Email non envoyé (EmailJS). Code de test : ${code}`, 'warning', 15000);
+      }
+    } else {
+      // EmailJS non configuré → afficher le code dans un toast pour les tests
+      toast(`📧 EmailJS non configuré. Code de vérification : ${code}`, 'warning', 20000);
+    }
+
+    // Passer à l'étape 2
+    document.getElementById('reg-step1').classList.add('hidden');
+    document.getElementById('reg-step2').classList.remove('hidden');
+    document.getElementById('verif-code-input').value = '';
+    document.getElementById('verif-error').classList.add('hidden');
+    if (!renvoyer) setTimeout(() => document.getElementById('verif-code-input')?.focus(), 100);
+
+  } catch(e) {
+    showErr(errEl,'Erreur : '+e.message);
+  }
+  btn.disabled = false; btn.textContent = 'Vérifier mon adresse mail →';
+};
+
+// Retour à l'étape 1
+window.retourEtape1 = function() {
+  document.getElementById('reg-step1').classList.remove('hidden');
+  document.getElementById('reg-step2').classList.add('hidden');
+  verifData = null;
+};
+
+// Étape 2 : Valider le code et créer le compte
+window.verifierCode = async function() {
+  const saisi  = document.getElementById('verif-code-input').value.trim();
+  const errEl  = document.getElementById('verif-error');
+  errEl.classList.add('hidden');
+
+  if (!verifData) { showErr(errEl,'Session expirée. Recommencez.'); return; }
+  if (Date.now() > verifData.expireAt) {
+    showErr(errEl,'Le code a expiré (10 min). Renvoyez un nouveau code.'); return;
+  }
+  if (saisi !== verifData.code) {
+    showErr(errEl,'Code incorrect. Vérifiez le code reçu par email.'); return;
+  }
+
+  const btn = document.querySelector('#reg-step2 .btn-primary');
+  btn.disabled = true; btn.textContent = 'Création du compte…';
+
+  try {
     await addDoc(collection(db,'utilisateurs'), {
-      pseudo, email, motDePasse: hash,
-      role:            'adherent',
-      statut:          'en_attente',
-      dateInscription: new Date().toISOString(),
-      datePaiement:     null,
-      montantPaye:      null,
+      pseudo:            verifData.pseudo,
+      email:             verifData.email,
+      motDePasse:        verifData.mdpHash,
+      role:              'adherent',
+      statut:            'en_attente',
+      emailVerifie:      true,
+      dateInscription:   new Date().toISOString(),
+      datePaiement:      null,
+      montantPaye:       null,
       dateDebutAdhesion: null,
       dateFinAdhesion:   null,
     });
-    toast('Inscription envoyée ! En attente de validation.', 'success', 5000);
+    verifData = null;
+    toast('✅ Inscription envoyée ! En attente de validation par l\'administrateur.', 'success', 6000);
     showAuthTab('login');
-  } catch(e) { showErr(errEl,'Erreur : '+e.message); }
+    // Réinitialiser le formulaire
+    document.getElementById('reg-step1').classList.remove('hidden');
+    document.getElementById('reg-step2').classList.add('hidden');
+    ['reg-pseudo','reg-email','reg-mdp'].forEach(id => document.getElementById(id).value = '');
+  } catch(e) {
+    showErr(errEl,'Erreur lors de la création du compte : '+e.message);
+  }
+  btn.disabled = false; btn.textContent = 'Valider le code';
 };
+
+// Ancienne fonction inscription (gardée pour compatibilité interne)
+window.inscription = window.demanderVerificationEmail;
 
 window.deconnexion = function() {
   utilisateurCourant = null;
   sessionStorage.removeItem('atelierSession');
   allResas = []; allUsers = []; allExceptions = [];
+  // Réinitialiser les formulaires et le bouton de connexion
+  document.getElementById('login-pseudo').value = '';
+  document.getElementById('login-mdp').value = '';
+  document.getElementById('login-error').classList.add('hidden');
+  const btnLogin = document.querySelector('#form-login .btn-primary');
+  if (btnLogin) { btnLogin.disabled = false; btnLogin.textContent = 'Se connecter'; }
   afficherAuth();
 };
 
@@ -1386,25 +1820,25 @@ function showErr(el, msg) {
 // NAVIGATION PRINCIPALE
 // =====================================================================
 function afficherAuth() {
-  document.getElementById('navbar').classList.add('hidden');
+  document.getElementById('navbar').style.display = 'none';
   document.getElementById('page-auth').style.display = 'flex';
-  document.getElementById('page-adherent').classList.add('hidden');
-  document.getElementById('page-admin').classList.add('hidden');
+  document.getElementById('page-adherent').style.display = 'none';
+  document.getElementById('page-admin').style.display = 'none';
 }
 
 function afficherInterface() {
   document.getElementById('page-auth').style.display = 'none';
-  document.getElementById('navbar').classList.remove('hidden');
+  document.getElementById('navbar').style.display = 'flex';
 
   document.getElementById('nav-pseudo').textContent = utilisateurCourant.pseudo;
 
   if (utilisateurCourant.role === 'admin') {
-    document.getElementById('page-adherent').classList.add('hidden');
-    document.getElementById('page-admin').classList.remove('hidden');
+    document.getElementById('page-adherent').style.display = 'none';
+    document.getElementById('page-admin').style.display = 'block';
     chargerAdmin();
   } else {
-    document.getElementById('page-adherent').classList.remove('hidden');
-    document.getElementById('page-admin').classList.add('hidden');
+    document.getElementById('page-adherent').style.display = 'block';
+    document.getElementById('page-admin').style.display = 'none';
     chargerAdherent();
   }
 }
@@ -1517,7 +1951,7 @@ function itemResa(r, avecBoutonAnnuler) {
 }
 
 window.annulerReservation = async function(id) {
-  if (!confirm('Confirmer l\'annulation de cette réservation ?')) return;
+  if (!await confirmer('Êtes-vous sûr de vouloir annuler cette réservation ?', 'danger', 'Annuler la réservation')) return;
   try {
     await deleteDoc(doc(db,'reservations',id));
     allResas = allResas.filter(r => r.id !== id);
@@ -1547,23 +1981,34 @@ window.changerMotDePasse = async function() {
 // ESPACE ADMIN
 // =====================================================================
 async function chargerAdmin() {
-  await Promise.all([chargerReservations(), chargerUtilisateurs(), chargerExceptions()]);
-  afficherDashboardAdmin();
+  // Afficher le dashboard immédiatement (avec données vides)
+  // pour éviter la page blanche pendant le chargement
+  showAdminTab('dashboard');
+
+  try {
+    await Promise.all([chargerReservations(), chargerUtilisateurs(), chargerExceptions()]);
+  } catch(e) {
+    console.error('Erreur chargement admin:', e);
+    toast('Erreur de chargement des données : ' + e.message, 'error');
+  }
 
   calCurrentWeek  = lundiDeLaSemaine(new Date());
   calCurrentMonth = premierDuMois(new Date());
   calView         = 'week';
   calContext      = 'admin';
 
+  // Mettre à jour le dashboard avec les vraies données
+  afficherDashboardAdmin();
+
   // Badge attente
   const enAttente = allUsers.filter(u => u.statut === 'en_attente').length;
-  const badge = document.getElementById('nav-badge');
+  const badge     = document.getElementById('nav-badge');
   const badgeAdmin = document.getElementById('admin-badge-wait');
   if (enAttente > 0) {
-    badge.textContent = enAttente;
-    badge.classList.remove('hidden');
-    badgeAdmin.textContent = enAttente;
-    badgeAdmin.classList.remove('hidden');
+    badge.textContent = enAttente; badge.classList.remove('hidden');
+    badgeAdmin.textContent = enAttente; badgeAdmin.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden'); badgeAdmin.classList.add('hidden');
   }
 
   // Alerte première connexion admin
@@ -1573,12 +2018,21 @@ async function chargerAdmin() {
 }
 
 window.showAdminTab = function(tab) {
+  // Retirer la classe active de tous les boutons
   document.querySelectorAll('#page-admin .tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('#page-admin .tab-content').forEach(c => c.classList.add('hidden'));
+  // Cacher tous les contenus d'onglets admin
+  ['dashboard','adherents','calendrier','exceptions'].forEach(t => {
+    const el = document.getElementById('tab-admin-'+t);
+    if (el) el.classList.add('hidden');
+  });
+  // Activer le bon bouton
   const tabs = ['dashboard','adherents','calendrier','exceptions'];
   const idx  = tabs.indexOf(tab);
-  document.querySelectorAll('#page-admin .tab-btn')[idx]?.classList.add('active');
-  document.getElementById(`tab-admin-${tab}`)?.classList.remove('hidden');
+  const btns = document.querySelectorAll('#page-admin .tab-btn');
+  if (btns[idx]) btns[idx].classList.add('active');
+  // Afficher le bon contenu
+  const contenu = document.getElementById('tab-admin-'+tab);
+  if (contenu) contenu.classList.remove('hidden');
 
   if (tab === 'adherents')  afficherTableauAdherents();
   if (tab === 'calendrier') renderCalendrier('admin-wrap');
@@ -1687,13 +2141,22 @@ window.filtrerAdherents = function() {
 window.validerCompte = async function(id) {
   try {
     await updateDoc(doc(db,'utilisateurs',id), { statut: 'actif' });
+    // Envoyer un email de validation à l'adhérent
+    const u = allUsers.find(x => x.id === id);
+    if (u && u.email) {
+      await envoyerEmail(
+        u.email, u.pseudo,
+        'Votre compte a été validé — Julien Céramiques',
+        `Bonjour ${u.pseudo},\n\nVotre compte à l'atelier Julien Céramiques vient d'être validé par l'administrateur.\n\nVous pouvez maintenant vous connecter avec votre pseudo et votre mot de passe sur l'application.\n\nÀ très bientôt à l'atelier !\n\nL'équipe Julien Céramiques`
+      );
+    }
     await rafraichirUsers();
-    toast('Compte validé.','success');
+    toast('Compte validé. Email envoyé à l\'adhérent.', 'success');
   } catch(e) { toast('Erreur : '+e.message,'error'); }
 };
 
 window.suspendreCompte = async function(id) {
-  if (!confirm('Suspendre cet adhérent ?')) return;
+  if (!await confirmer('Suspendre le compte de cet adhérent ? Il ne pourra plus se connecter.', 'danger', 'Suspendre le compte')) return;
   try {
     await updateDoc(doc(db,'utilisateurs',id), { statut: 'suspendu' });
     await rafraichirUsers();
@@ -1702,8 +2165,20 @@ window.suspendreCompte = async function(id) {
 };
 
 window.supprimerCompte = async function(id, pseudo) {
-  if (!confirm(`Supprimer définitivement le compte de ${pseudo} ?`)) return;
+  const u = allUsers.find(x => x.id === id);
+  const estEnAttente = u && u.statut === 'en_attente';
+  const label   = estEnAttente ? 'Refuser et supprimer' : 'Supprimer définitivement';
+  const msgConf = label + ' le compte de ' + pseudo + ' ? Cette action est irréversible.';
+  if (!await confirmer(msgConf, 'danger', label + ' le compte')) return;
   try {
+    // Envoyer un email de refus si le compte était en attente
+    if (estEnAttente && u.email) {
+      await envoyerEmail(
+        u.email, u.pseudo,
+        'Votre demande d\'adhésion — Julien Céramiques',
+        `Bonjour ${u.pseudo},\n\nNous avons bien reçu votre demande d\'adhésion à l\'atelier Julien Céramiques.\n\nAprès examen de votre dossier, nous ne sommes pas en mesure de donner suite à votre demande pour le moment.\n\nN\'hésitez pas à nous contacter directement pour plus d\'informations.\n\nCordialement,\nL\'équipe Julien Céramiques`
+      );
+    }
     // Supprimer les réservations de cet adhérent
     const q = query(collection(db,'reservations'), where('userId','==',id));
     const snap = await getDocs(q);
@@ -1711,7 +2186,7 @@ window.supprimerCompte = async function(id, pseudo) {
     await deleteDoc(doc(db,'utilisateurs',id));
     await rafraichirUsers();
     await chargerReservations();
-    toast('Compte supprimé.','success');
+    toast(estEnAttente ? 'Demande refusée. Email envoyé.' : 'Compte supprimé.', 'success');
   } catch(e) { toast('Erreur : '+e.message,'error'); }
 };
 
@@ -1798,7 +2273,7 @@ window.enregistrerPaiement = async function(id) {
 };
 
 window.supprimerResa = async function(id) {
-  if (!confirm('Supprimer cette réservation ?')) return;
+  if (!await confirmer('Supprimer définitivement cette réservation ?', 'danger', 'Supprimer la réservation')) return;
   try {
     await deleteDoc(doc(db,'reservations',id));
     allResas = allResas.filter(r => r.id !== id);
@@ -2059,6 +2534,16 @@ function renderSemaine(wrapperId) {
         td.appendChild(slot); tr.appendChild(td); return;
       }
 
+      // Bloquer les créneaux passés
+      const maintenant = new Date();
+      const finCreneau = slotToDate(dateStr, hFin);
+      if (finCreneau <= maintenant) {
+        slot.className += ' slot-out';
+        slot.style.opacity = '0.35';
+        slot.title = 'Créneau passé';
+        td.appendChild(slot); tr.appendChild(td); return;
+      }
+
       const maResa = maResaPour(dateStr, h, hFin);
       const nbPers = personnesPour(dateStr, h, hFin);
       const libres = postesDisponibles(dateStr, h, hFin);
@@ -2224,62 +2709,188 @@ function clickSurCreneau(dateStr, hDebut, hFin, postesLibres, wrapperId) {
   }
 }
 
-function clickCreneauAdherent(dateStr, hDebut, hFin, postesLibres, wrapperId) {
+// Icônes par type de poste
+const POSTES_ICONES = {
+  tour_1:  { icone: '🏺', nom: 'Tour 1', desc: 'Tour de potier' },
+  tour_2:  { icone: '🏺', nom: 'Tour 2', desc: 'Tour de potier' },
+  table_1: { icone: '🪨', nom: 'Table 1', desc: 'Table argile' },
+  table_2: { icone: '🪨', nom: 'Table 2', desc: 'Table argile' },
+};
+
+let posteSelectionne = null; // poste sélectionné dans la modale
+
+function rafraichirModaleResa() {
+  if (!resaEnCours) return;
+  const { dateStr, hDebut, hFin } = resaEnCours;
   const u = utilisateurCourant;
+  const lundi = lundiDeLaSemaine(strToDate(dateStr));
+  const hSem  = heuresSemaine(u.id, lundi);
+  const duree = dureeH(hDebut, hFin);
+
+  // Affichage heures
+  document.getElementById('modal-resa-heures').textContent =
+    heureStr(hDebut) + ' – ' + heureStr(hFin);
+  document.getElementById('modal-resa-duree').textContent =
+    duree >= 1 ? formatHeures(duree) : (duree * 60) + ' min';
+  document.getElementById('modal-resa-date-display').textContent = formatDate(dateStr);
+
+  // Boutons extension : désactiver si hors plage ou fermé
+  const btnMD = document.getElementById('btn-moins-debut');
+  const btnPD = document.getElementById('btn-plus-debut');
+  const btnMF = document.getElementById('btn-moins-fin');
+  const btnPF = document.getElementById('btn-plus-fin');
+
+  // Reculer début : possible si hDebut - 0.5 >= H_DEBUT et le slot est ouvert
+  btnMD.disabled = (hDebut - 0.5 < H_DEBUT) || estOuvert(dateStr, hDebut - 0.5) === 'out' || estOuvert(dateStr, hDebut - 0.5) === 'closed';
+  // Avancer début : possible si hDebut + 0.5 < hFin
+  btnPD.disabled = (hDebut + 0.5 >= hFin);
+  // Avancer fin (raccourcir) : possible si hFin - 0.5 > hDebut
+  btnMF.disabled = (hFin - 0.5 <= hDebut);
+  // Reculer fin (étendre) : possible si hFin + 0.5 <= H_FIN et slot ouvert
+  btnPF.disabled = (hFin + 0.5 > H_FIN) || estOuvert(dateStr, hFin) === 'out' || estOuvert(dateStr, hFin) === 'closed';
+
+  // Postes disponibles pour ce créneau modifié
+  const pris   = postesPris(dateStr, hDebut, hFin).filter(r => r.userId !== u.id).map(r => r.typePoste);
+  const nbPers = new Set(postesPris(dateStr, hDebut, hFin).filter(r => r.userId !== u.id).map(r => r.userId)).size;
+  const grid   = document.getElementById('modal-resa-postes');
+
+  grid.innerHTML = '';
+  Object.entries(POSTES_ICONES).forEach(([id, info]) => {
+    const dispo = !pris.includes(id) && nbPers < MAX_PERSONNES;
+    const card  = document.createElement('div');
+    card.className = 'poste-card' + (dispo ? '' : ' poste-indisponible') +
+                     (posteSelectionne === id && dispo ? ' poste-selectionne' : '');
+    card.innerHTML = `
+      <div class="poste-icone">${info.icone}</div>
+      <div class="poste-nom">${info.nom}</div>
+      <div class="poste-dispo">${dispo ? info.desc : 'Non disponible'}</div>`;
+    if (dispo) {
+      card.onclick = () => {
+        posteSelectionne = id;
+        rafraichirModaleResa();
+      };
+    }
+    grid.appendChild(card);
+  });
+
+  // Si le poste sélectionné n'est plus dispo, le réinitialiser
+  if (posteSelectionne && pris.includes(posteSelectionne)) posteSelectionne = null;
+
+  // Sélectionner automatiquement le premier poste dispo s'il n'y en a pas
+  if (!posteSelectionne) {
+    const premier = Object.keys(POSTES_ICONES).find(id => !pris.includes(id) && nbPers < MAX_PERSONNES);
+    if (premier) { posteSelectionne = premier; rafraichirModaleResa(); return; }
+  }
+
+  // Vérification dépassement du quota heures
+  const warn      = document.getElementById('modal-resa-warning');
+  const btnConfirm = document.getElementById('btn-confirmer-resa');
+  const quotaDepasse = (hSem + duree) > MAX_HEURES_SEM;
+
+  if (quotaDepasse) {
+    warn.innerHTML = '<strong>⛔ Quota hebdomadaire dépassé</strong><br>Cette réservation porterait vos heures à <strong>' +
+      formatHeures(hSem + duree) + '</strong> cette semaine (maximum autorisé : ' + MAX_HEURES_SEM + 'h).<br>' +
+      'Réduisez la durée du créneau ou annulez une réservation existante.';
+    warn.classList.remove('hidden');
+    // Bloquer la confirmation si quota dépassé
+    btnConfirm.disabled = true;
+    btnConfirm.title = 'Quota hebdomadaire atteint';
+    // Désactiver aussi le bouton d\'extension de fin si ça dépasserait le quota
+    if (btnPF) btnPF.disabled = true;
+  } else {
+    warn.classList.add('hidden');
+    // Activer/désactiver le bouton confirmer selon si un poste est sélectionné
+    btnConfirm.disabled = !posteSelectionne;
+    btnConfirm.title = '';
+  }
+}
+
+// Étendre/réduire le début du créneau
+window.etendreDebut = function(delta) {
+  if (!resaEnCours) return;
+  const newDebut = resaEnCours.hDebut + delta;
+  if (newDebut < H_DEBUT || newDebut >= resaEnCours.hFin) return;
+  resaEnCours.hDebut = Math.round(newDebut * 2) / 2;
+  rafraichirModaleResa();
+};
+
+// Étendre/réduire la fin du créneau
+window.etendreFin = function(delta) {
+  if (!resaEnCours) return;
+  const newFin = resaEnCours.hFin + delta;
+  if (newFin > H_FIN || newFin <= resaEnCours.hDebut) return;
+  resaEnCours.hFin = Math.round(newFin * 2) / 2;
+  rafraichirModaleResa();
+};
+
+function clickCreneauAdherent(dateStr, hDebut, hFin, postesLibres, wrapperId) {
+  const u   = utilisateurCourant;
+  const now = new Date();
+
+  // Vérifier que le créneau n'est pas dans le passé
+  const debutCreneau = slotToDate(dateStr, hDebut);
+  if (debutCreneau <= now) {
+    toast('Impossible de réserver un créneau déjà passé.', 'warning');
+    return;
+  }
 
   // Vérifier adhésion active
-  if (u.statut !== 'actif') { toast('Votre compte n\'est pas actif.','warning'); return; }
+  if (u.statut !== 'actif') { toast('Votre compte n\'est pas actif.', 'warning'); return; }
 
   // Vérifier date fin adhésion
   if (u.dateFinAdhesion) {
-    const fin = strToDate(u.dateFinAdhesion);
-    const dateCreneau = strToDate(dateStr);
-    if (dateCreneau > fin) { toast('Ce créneau dépasse la date de fin de votre adhésion.','warning'); return; }
+    const finAdh = strToDate(u.dateFinAdhesion);
+    if (strToDate(dateStr) > finAdh) {
+      toast('Ce créneau dépasse la date de fin de votre adhésion.', 'warning'); return;
+    }
   }
 
-  // Règle 6h/semaine
-  const lundi    = lundiDeLaSemaine(strToDate(dateStr));
-  const hSem     = heuresSemaine(u.id, lundi);
-  const duree    = dureeH(hDebut, hFin);
-  const now      = new Date();
-  const dCreneau = slotToDate(dateStr, hDebut);
-  const dans7j   = new Date(now); dans7j.setDate(dans7j.getDate()+7);
+  // Règle 6h/semaine : bloquer complètement si quota atteint ET hors 7 jours
+  const lundi  = lundiDeLaSemaine(strToDate(dateStr));
+  const hSem   = heuresSemaine(u.id, lundi);
+  const dans7j = new Date(now); dans7j.setDate(dans7j.getDate() + 7);
 
-  if (hSem >= MAX_HEURES_SEM && dCreneau > dans7j) {
-    toast(`Vous avez déjà ${formatHeures(hSem)} réservées cette semaine. Au-delà de ${MAX_HEURES_SEM}h, réservation possible uniquement dans les 7 prochains jours.`,'warning');
+  if (hSem >= MAX_HEURES_SEM && debutCreneau > dans7j) {
+    toast('Vous avez déjà ' + formatHeures(hSem) + ' réservées cette semaine. Au-delà de ' + MAX_HEURES_SEM + 'h, réservation possible uniquement dans les 7 prochains jours.', 'warning');
     return;
   }
 
   // Préparer la modale
+  posteSelectionne = null;
   resaEnCours = { dateStr, hDebut, hFin, postesLibres, wrapperId };
 
-  document.getElementById('modal-resa-titre').textContent = `Réserver — ${formatDate(dateStr)}`;
-  document.getElementById('modal-resa-info').innerHTML =
-    `<strong>${heureStr(hDebut)} – ${heureStr(hFin)}</strong> · ${formatDate(dateStr)}<br>Durée : ${formatHeures(duree)}`;
-
-  const sel = document.getElementById('modal-resa-poste');
-  sel.innerHTML = postesLibres.map(p => `<option value="${p}">${POSTES[p]}</option>`).join('');
-
-  const warn = document.getElementById('modal-resa-warning');
-  if (hSem + duree > MAX_HEURES_SEM) {
-    warn.textContent = `⚠️ Cette réservation portera vos heures à ${formatHeures(hSem+duree)} cette semaine (max ${MAX_HEURES_SEM}h).`;
-    warn.classList.remove('hidden');
-  } else {
-    warn.classList.add('hidden');
-  }
-
+  document.getElementById('modal-resa-titre').textContent = 'Réserver — ' + formatDate(dateStr);
+  rafraichirModaleResa();
   ouvrirModale('modal-reservation');
 }
 
 window.confirmerReservation = async function() {
   if (!resaEnCours) return;
   const { dateStr, hDebut, hFin, wrapperId } = resaEnCours;
-  const poste = document.getElementById('modal-resa-poste').value;
+  const poste = posteSelectionne;
+
+  if (!poste) { toast('Veuillez sélectionner un poste.', 'warning'); return; }
+
+  // Vérifier que le créneau n'est pas passé (sécurité finale)
+  if (slotToDate(dateStr, hDebut) <= new Date()) {
+    toast('Ce créneau est déjà passé, réservation impossible.', 'error');
+    fermerModale('modal-reservation');
+    return;
+  }
+
+  // Vérifier le quota d'heures (sécurité finale)
+  const lundi = lundiDeLaSemaine(strToDate(dateStr));
+  const hSem  = heuresSemaine(utilisateurCourant.id, lundi);
+  const duree = dureeH(hDebut, hFin);
+  if (hSem + duree > MAX_HEURES_SEM) {
+    toast('Quota de ' + MAX_HEURES_SEM + 'h par semaine dépassé. Réservation refusée.', 'error');
+    return;
+  }
 
   // Double vérification disponibilité
   const libres = postesDisponibles(dateStr, hDebut, hFin);
-  if (!libres.includes(poste)) { toast('Ce poste vient d\'être pris. Veuillez choisir un autre.','warning'); return; }
-  if (personnesPour(dateStr, hDebut, hFin) >= MAX_PERSONNES) { toast('Ce créneau est complet.','warning'); return; }
+  if (!libres.includes(poste)) { toast('Ce poste vient d\'être pris. Veuillez en choisir un autre.', 'warning'); rafraichirModaleResa(); return; }
+  if (personnesPour(dateStr, hDebut, hFin) >= MAX_PERSONNES) { toast('Ce créneau est complet.', 'warning'); return; }
 
   try {
     const newResa = {
@@ -2296,6 +2907,7 @@ window.confirmerReservation = async function() {
     toast('Réservation confirmée !','success');
     fermerModale('modal-reservation');
     resaEnCours = null;
+    posteSelectionne = null;
     renderCalendrier(wrapperId);
     afficherDashboardAdherent();
   } catch(e) { toast('Erreur : '+e.message,'error'); }
@@ -2345,13 +2957,14 @@ window.confirmerResaAdmin = async function() {
   } catch(e) { toast('Erreur : '+e.message,'error'); }
 };
 
-function confirmerSuppressionResa(id) {
-  if (!confirm('Supprimer cette réservation ?')) return;
-  deleteDoc(doc(db,'reservations',id)).then(() => {
+async function confirmerSuppressionResa(id) {
+  if (!await confirmer('Supprimer définitivement cette réservation ?', 'danger', 'Supprimer la réservation')) return;
+  try {
+    await deleteDoc(doc(db,'reservations',id));
     allResas = allResas.filter(r => r.id !== id);
-    toast('Réservation supprimée.','success');
+    toast('Réservation supprimée.', 'success');
     renderCalendrier('admin-wrap');
-  }).catch(e => toast('Erreur : '+e.message,'error'));
+  } catch(e) { toast('Erreur : ' + e.message, 'error'); }
 }
 
 // =====================================================================
@@ -2399,7 +3012,7 @@ function afficherExceptions() {
 }
 
 window.supprimerException = async function(id) {
-  if (!confirm('Supprimer cette exception ?')) return;
+  if (!await confirmer('Supprimer cette exception horaire ?', 'danger', 'Supprimer l\'exception')) return;
   try {
     await deleteDoc(doc(db,'exceptions',id));
     allExceptions = allExceptions.filter(e => e.id !== id);
