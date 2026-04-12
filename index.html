@@ -1,3084 +1,542 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<!--
-=======================================================================
-  ATELIER DE POTERIE - Application de gestion complète
-  Développée pour : julienceramiques@gmail.com
-=======================================================================
-
-  CONFIGURATION FIREBASE - INSTRUCTIONS :
-  ----------------------------------------
-  1. Allez sur https://console.firebase.google.com
-  2. Créez un nouveau projet (ex : "julien-ceramiques")
-  3. Dans le projet, allez dans "Firestore Database" → Créer une base
-     → Démarrer en mode test (règles permissives pour commencer)
-  4. Dans les paramètres du projet (⚙️) → "Vos applications" → Ajouter une
-     app Web → Enregistrez et copiez l'objet firebaseConfig
-  5. Collez les valeurs dans le bloc FIREBASE CONFIG ci-dessous
-  6. Dans Firestore → Rules, remplacez les règles par :
-     rules_version = '2';
-     service cloud.firestore {
-       match /databases/{database}/documents {
-         match /{document=**} {
-           allow read, write: if true;
-         }
-       }
-     }
-     (Affinez ces règles en production !)
-
-  COLLECTIONS FIRESTORE créées automatiquement :
-  - utilisateurs   (comptes admin + adhérents)
-  - reservations   (créneaux réservés)
-  - exceptions     (créneaux modifiés ponctuellement)
-=======================================================================
--->
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Julien Céramiques — Atelier de Poterie</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<!-- Web3Forms utilisé pour l'envoi de mails (pas de CDN requis, API fetch) -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ffffff">
+<title>Cuisson Céramique</title>
 <style>
-/* =====================================================
-   VARIABLES CSS & RESET
-   ===================================================== */
-:root {
-  --terracotta:     #C4622D;
-  --terracotta-dk:  #A04E22;
-  --terracotta-lt:  #E8845A;
-  --beige:          #F5EDE3;
-  --beige-dk:       #E8D9C8;
-  --beige-dkk:      #D4BFA8;
-  --clay:           #8B6347;
-  --clay-lt:        #B08060;
-  --earth:          #3D2B1F;
-  --earth-lt:       #5C4033;
-  --cream:          #FBF7F2;
-  --sage:           #7A8C6A;
-  --sage-lt:        #9EAD8E;
-
-  --success:        #4A7C59;
-  --warning:        #C49A2D;
-  --danger:         #B84040;
-  --info:           #3A6B8A;
-
-  --shadow-sm:  0 1px 3px rgba(61,43,31,.10);
-  --shadow-md:  0 4px 16px rgba(61,43,31,.13);
-  --shadow-lg:  0 8px 32px rgba(61,43,31,.18);
-
-  --radius-sm: 6px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
-
-  --font-display: 'Playfair Display', Georgia, serif;
-  --font-body:    'DM Sans', system-ui, sans-serif;
-
-  --transition: .18s cubic-bezier(.4,0,.2,1);
-}
-
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-html { font-size: 16px; scroll-behavior: smooth; }
-
-body {
-  font-family: var(--font-body);
-  background: var(--cream);
-  color: var(--earth);
-  min-height: 100vh;
-  line-height: 1.6;
-}
-
-/* =====================================================
-   TYPOGRAPHIE
-   ===================================================== */
-h1,h2,h3,h4 { font-family: var(--font-display); font-weight: 600; line-height: 1.25; }
-h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); }
-h2 { font-size: clamp(1.3rem, 3vw, 1.9rem); }
-h3 { font-size: 1.15rem; }
-p  { color: var(--earth-lt); }
-
-/* =====================================================
-   ÉCRAN DE CHARGEMENT / ERREUR CONFIG
-   ===================================================== */
-#splash {
-  position: fixed; inset: 0; z-index: 9999;
-  background: var(--beige);
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 1rem;
-  transition: opacity .4s;
-}
-#splash .logo-splash {
-  font-family: var(--font-display);
-  font-size: 2.5rem;
-  color: var(--terracotta);
-  letter-spacing: -.02em;
-}
-#splash .loader {
-  width: 48px; height: 48px;
-  border: 4px solid var(--beige-dk);
-  border-top-color: var(--terracotta);
-  border-radius: 50%;
-  animation: spin .8s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-#config-error {
-  display: none;
-  position: fixed; inset: 0; z-index: 9998;
-  background: var(--beige);
-  align-items: center; justify-content: center; padding: 2rem;
-}
-#config-error .error-box {
-  background: #fff;
-  border: 2px solid var(--terracotta);
-  border-radius: var(--radius-lg);
-  padding: 2.5rem;
-  max-width: 600px;
-  box-shadow: var(--shadow-lg);
-}
-#config-error h2 { color: var(--terracotta); margin-bottom: 1rem; }
-#config-error pre {
-  background: var(--beige);
-  padding: 1rem;
-  border-radius: var(--radius-sm);
-  font-size: .82rem;
-  overflow-x: auto;
-  margin-top: .75rem;
-}
-
-/* =====================================================
-   LAYOUT PRINCIPAL
-   ===================================================== */
-#app { display: none; min-height: 100vh; }
-
-/* Navbar */
-nav#navbar {
-  position: sticky; top: 0; z-index: 100;
-  background: var(--earth);
-  padding: .75rem 1.5rem;
-  display: flex; align-items: center; gap: 1rem;
-  box-shadow: 0 2px 12px rgba(0,0,0,.25);
-}
-.nav-brand {
-  font-family: var(--font-display);
-  font-size: 1.35rem;
-  color: var(--beige);
-  letter-spacing: -.01em;
-  flex: 1;
-}
-.nav-brand span { color: var(--terracotta-lt); }
-.nav-user {
-  color: var(--beige-dk);
-  font-size: .875rem;
-  display: flex; align-items: center; gap: .75rem;
-}
-.nav-badge {
-  background: var(--terracotta);
-  color: #fff;
-  border-radius: 999px;
-  padding: 2px 8px;
-  font-size: .75rem;
-  font-weight: 600;
-}
-.btn-logout {
-  background: transparent;
-  border: 1px solid rgba(255,255,255,.25);
-  color: var(--beige);
-  border-radius: var(--radius-sm);
-  padding: .35rem .85rem;
-  font-size: .85rem;
-  cursor: pointer;
-  transition: var(--transition);
-  font-family: var(--font-body);
-}
-.btn-logout:hover { background: rgba(255,255,255,.1); }
-
-/* Contenu principal */
-main#main {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem 1.5rem;
-}
-
-/* =====================================================
-   PAGES / ÉCRANS
-   ===================================================== */
-.page { display: none; }
-.page.active { display: block; animation: fadeIn .25s ease; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-
-/* =====================================================
-   PAGE CONNEXION / INSCRIPTION
-   ===================================================== */
-#page-auth {
-  min-height: 100vh;
-  display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(135deg, var(--earth) 0%, var(--earth-lt) 50%, var(--clay) 100%);
-  padding: 2rem;
-}
-.auth-wrapper {
-  width: 100%; max-width: 420px;
-}
-.auth-logo {
-  text-align: center;
-  margin-bottom: 2rem;
-}
-.auth-logo h1 {
-  color: var(--beige);
-  font-size: 2.2rem;
-  letter-spacing: -.02em;
-}
-.auth-logo p { color: var(--beige-dk); margin-top: .25rem; font-size: .95rem; }
-
-.auth-card {
-  background: #fff;
-  border-radius: var(--radius-lg);
-  padding: 2rem;
-  box-shadow: var(--shadow-lg);
-}
-.auth-tabs {
-  display: flex;
-  background: var(--beige);
-  border-radius: var(--radius-sm);
-  padding: 4px;
-  margin-bottom: 1.75rem;
-}
-.auth-tab {
-  flex: 1; text-align: center;
-  padding: .5rem;
-  border-radius: calc(var(--radius-sm) - 2px);
-  cursor: pointer;
-  font-size: .9rem;
-  font-weight: 500;
-  color: var(--clay);
-  transition: var(--transition);
-  border: none; background: transparent;
-  font-family: var(--font-body);
-}
-.auth-tab.active {
-  background: #fff;
-  color: var(--terracotta);
-  box-shadow: var(--shadow-sm);
-}
-
-/* =====================================================
-   FORMULAIRES
-   ===================================================== */
-.form-group { margin-bottom: 1.1rem; }
-.form-label {
-  display: block;
-  font-size: .85rem;
-  font-weight: 500;
-  color: var(--earth-lt);
-  margin-bottom: .4rem;
-}
-.form-input, .form-select, .form-textarea {
-  width: 100%;
-  padding: .65rem .9rem;
-  border: 1.5px solid var(--beige-dk);
-  border-radius: var(--radius-sm);
-  font-family: var(--font-body);
-  font-size: .95rem;
-  color: var(--earth);
-  background: var(--cream);
-  transition: var(--transition);
-  outline: none;
-}
-.form-input:focus, .form-select:focus, .form-textarea:focus {
-  border-color: var(--terracotta);
-  background: #fff;
-  box-shadow: 0 0 0 3px rgba(196,98,45,.12);
-}
-.form-textarea { resize: vertical; min-height: 80px; }
-
-/* =====================================================
-   BOUTONS
-   ===================================================== */
-.btn {
-  display: inline-flex; align-items: center; gap: .45rem;
-  padding: .6rem 1.2rem;
-  border-radius: var(--radius-sm);
-  font-family: var(--font-body);
-  font-size: .9rem;
-  font-weight: 500;
-  cursor: pointer;
-  border: none;
-  transition: var(--transition);
-  text-decoration: none;
-  white-space: nowrap;
-}
-.btn:disabled { opacity: .55; cursor: not-allowed; }
-.btn-primary   { background: var(--terracotta); color: #fff; }
-.btn-primary:hover:not(:disabled) { background: var(--terracotta-dk); transform: translateY(-1px); box-shadow: var(--shadow-md); }
-.btn-secondary { background: var(--beige-dk); color: var(--earth); }
-.btn-secondary:hover:not(:disabled) { background: var(--beige-dkk); }
-.btn-success   { background: var(--success); color: #fff; }
-.btn-success:hover:not(:disabled) { filter: brightness(1.1); }
-.btn-danger    { background: var(--danger); color: #fff; }
-.btn-danger:hover:not(:disabled)  { filter: brightness(1.1); }
-.btn-warning   { background: var(--warning); color: #fff; }
-.btn-warning:hover:not(:disabled) { filter: brightness(1.1); }
-.btn-info      { background: var(--info); color: #fff; }
-.btn-info:hover:not(:disabled)    { filter: brightness(1.1); }
-.btn-outline   { background: transparent; border: 1.5px solid var(--terracotta); color: var(--terracotta); }
-.btn-outline:hover:not(:disabled) { background: var(--terracotta); color: #fff; }
-.btn-ghost     { background: transparent; color: var(--clay); }
-.btn-ghost:hover:not(:disabled)   { background: var(--beige); }
-.btn-sm        { padding: .35rem .75rem; font-size: .82rem; }
-.btn-full      { width: 100%; justify-content: center; }
-.btn-icon      { padding: .5rem; }
-
-/* =====================================================
-   CARTES
-   ===================================================== */
-.card {
-  background: #fff;
-  border-radius: var(--radius-md);
-  padding: 1.5rem;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--beige-dk);
-}
-.card-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 1.25rem;
-  padding-bottom: .75rem;
-  border-bottom: 1.5px solid var(--beige);
-}
-.card-header h2, .card-header h3 { margin: 0; }
-
-/* =====================================================
-   ONGLETS DE NAVIGATION ADMIN
-   ===================================================== */
-.tabs-nav {
-  display: flex; gap: .5rem;
-  background: var(--beige);
-  border-radius: var(--radius-md);
-  padding: .4rem;
-  margin-bottom: 1.75rem;
-  flex-wrap: wrap;
-}
-.tab-btn {
-  flex: 1; min-width: 120px;
-  padding: .55rem 1rem;
-  border: none; background: transparent;
-  border-radius: calc(var(--radius-md) - 4px);
-  font-family: var(--font-body);
-  font-size: .88rem;
-  font-weight: 500;
-  color: var(--clay);
-  cursor: pointer;
-  transition: var(--transition);
-  display: flex; align-items: center; justify-content: center; gap: .4rem;
-}
-.tab-btn.active {
-  background: #fff;
-  color: var(--terracotta);
-  box-shadow: var(--shadow-sm);
-}
-.tab-btn:hover:not(.active) { background: rgba(255,255,255,.6); }
-
-/* =====================================================
-   ALERTES / BADGES
-   ===================================================== */
-.alert {
-  padding: .85rem 1.1rem;
-  border-radius: var(--radius-sm);
-  font-size: .9rem;
-  margin-bottom: 1rem;
-  display: flex; align-items: flex-start; gap: .6rem;
-}
-.alert-warning { background: #FFF8E1; border-left: 3px solid var(--warning); color: #7A5F1A; }
-.alert-danger  { background: #FDECEA; border-left: 3px solid var(--danger); color: #7A2020; }
-.alert-success { background: #E8F5ED; border-left: 3px solid var(--success); color: #1E4D30; }
-.alert-info    { background: #E3F0F7; border-left: 3px solid var(--info); color: #1A3D54; }
-
-.badge {
-  display: inline-flex; align-items: center;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: .75rem;
-  font-weight: 600;
-}
-.badge-success  { background: #E8F5ED; color: var(--success); }
-.badge-warning  { background: #FFF8E1; color: var(--warning); }
-.badge-danger   { background: #FDECEA; color: var(--danger); }
-.badge-info     { background: #E3F0F7; color: var(--info); }
-.badge-neutral  { background: var(--beige-dk); color: var(--clay); }
-
-/* =====================================================
-   TABLEAU
-   ===================================================== */
-.table-wrap { overflow-x: auto; }
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: .88rem;
-}
-th {
-  background: var(--beige);
-  color: var(--earth-lt);
-  font-weight: 600;
-  text-align: left;
-  padding: .65rem .9rem;
-  white-space: nowrap;
-}
-td {
-  padding: .65rem .9rem;
-  border-bottom: 1px solid var(--beige);
-  vertical-align: middle;
-}
-tr:hover td { background: var(--cream); }
-.actions-cell { display: flex; gap: .4rem; flex-wrap: wrap; }
-
-/* =====================================================
-   STATISTIQUES / KPI
-   ===================================================== */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-.stat-card {
-  background: #fff;
-  border-radius: var(--radius-md);
-  padding: 1.25rem;
-  border: 1px solid var(--beige-dk);
-  box-shadow: var(--shadow-sm);
-}
-.stat-card .stat-label {
-  font-size: .8rem;
-  color: var(--clay-lt);
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: .05em;
-  margin-bottom: .4rem;
-}
-.stat-card .stat-value {
-  font-family: var(--font-display);
-  font-size: 2rem;
-  color: var(--terracotta);
-  line-height: 1;
-}
-.stat-card .stat-sub { font-size: .78rem; color: var(--clay-lt); margin-top: .3rem; }
-
-/* =====================================================
-   CALENDRIER
-   ===================================================== */
-.calendar-controls {
-  display: flex; align-items: center; gap: 1rem;
-  margin-bottom: 1.25rem;
-  flex-wrap: wrap;
-}
-.calendar-controls h3 {
-  flex: 1;
-  min-width: 160px;
-  color: var(--earth);
-}
-.view-toggle {
-  display: flex;
-  background: var(--beige);
-  border-radius: var(--radius-sm);
-  padding: 3px;
-  gap: 3px;
-}
-.view-btn {
-  padding: .35rem .8rem;
-  border: none;
-  background: transparent;
-  border-radius: calc(var(--radius-sm) - 2px);
-  font-family: var(--font-body);
-  font-size: .84rem;
-  font-weight: 500;
-  cursor: pointer;
-  color: var(--clay);
-  transition: var(--transition);
-}
-.view-btn.active {
-  background: #fff;
-  color: var(--terracotta);
-  box-shadow: var(--shadow-sm);
-}
-
-/* Vue Semaine */
-.week-grid { overflow-x: auto; }
-.week-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: .8rem;
-  min-width: 700px;
-}
-.week-table th {
-  background: var(--earth);
-  color: var(--beige);
-  text-align: center;
-  padding: .6rem .3rem;
-  font-weight: 500;
-}
-.week-table th.time-col { background: var(--beige-dk); color: var(--earth-lt); width: 56px; }
-.week-table td { padding: 2px 3px; border: 1px solid var(--beige-dk); vertical-align: top; }
-.time-label {
-  font-size: .75rem;
-  color: var(--clay-lt);
-  text-align: right;
-  padding-right: .4rem !important;
-  white-space: nowrap;
-  background: var(--beige);
-}
-.slot {
-  min-height: 28px;
-  border-radius: 4px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: .72rem;
-  cursor: pointer;
-  transition: var(--transition);
-  padding: 2px 4px;
-  text-align: center;
-  line-height: 1.2;
-}
-.slot-free       { background: #EAF4EC; color: var(--success); border: 1px dashed #9ECBAB; }
-.slot-free:hover { background: var(--success); color: #fff; }
-.slot-mine       { background: #DBE9F5; color: var(--info); border: 1px solid #9CBFE0; }
-.slot-mine:hover { background: #c5dff0; }
-.slot-other      { background: #FDEFD6; color: #8A5C10; border: 1px solid #F0C87A; cursor: default; }
-.slot-full       { background: #EEEEEE; color: #999; border: 1px solid #DDD; cursor: not-allowed; }
-.slot-closed     { background: #FDECEA; color: var(--danger); border: 1px solid #F0BFBF; cursor: not-allowed; font-style: italic; }
-.slot-exception-open { background: #F3ECFD; color: #6B3FA0; border: 1px solid #C9A9E8; }
-.slot-out        { background: var(--beige); cursor: default; }
-
-/* Vue Mois */
-.month-grid {
-  display: grid;
-  grid-template-columns: repeat(7,1fr);
-  gap: 4px;
-}
-.month-header {
-  text-align: center;
-  font-size: .78rem;
-  font-weight: 600;
-  color: var(--earth-lt);
-  padding: .4rem 0;
-}
-.month-day {
-  background: #fff;
-  border: 1px solid var(--beige-dk);
-  border-radius: var(--radius-sm);
-  padding: .5rem .4rem;
-  min-height: 70px;
-  cursor: pointer;
-  transition: var(--transition);
-  position: relative;
-}
-.month-day:hover:not(.other-month):not(.closed-day) { border-color: var(--terracotta); box-shadow: var(--shadow-sm); }
-.month-day.other-month { opacity: .38; cursor: default; }
-.month-day.closed-day  { background: var(--beige); cursor: default; }
-.month-day.today       { border-color: var(--terracotta); border-width: 2px; }
-.month-day-num {
-  font-size: .8rem;
-  font-weight: 600;
-  color: var(--earth);
-  margin-bottom: .3rem;
-}
-.month-day-info { font-size: .7rem; text-align: center; }
-.dot-avail { color: var(--success); font-size: 1rem; }
-.dot-full  { color: var(--danger);  font-size: 1rem; }
-.dot-none  { color: var(--clay-lt); font-size: 1rem; }
-
-/* =====================================================
-   MODALE
-   ===================================================== */
-.modal-overlay {
-  display: none;
-  position: fixed; inset: 0; z-index: 500;
-  background: rgba(0,0,0,.45);
-  align-items: center; justify-content: center; padding: 1rem;
-  backdrop-filter: blur(2px);
-}
-.modal-overlay.open { display: flex; }
-.modal {
-  background: #fff;
-  border-radius: var(--radius-lg);
-  padding: 2rem;
-  width: 100%; max-width: 520px;
-  box-shadow: var(--shadow-lg);
-  max-height: 90vh; overflow-y: auto;
-  animation: slideUp .2s ease;
-}
-@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } }
-.modal-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 1.5rem;
-}
-.modal-title { font-family: var(--font-display); font-size: 1.3rem; color: var(--earth); }
-.modal-close {
-  background: var(--beige);
-  border: none;
-  border-radius: 50%;
-  width: 32px; height: 32px;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.1rem;
-  color: var(--clay);
-  transition: var(--transition);
-}
-.modal-close:hover { background: var(--beige-dk); color: var(--earth); }
-
-/* Toast remplacé par modales alertes */
-
-/* =====================================================
-   LISTE DES RÉSERVATIONS ADHÉRENT
-   ===================================================== */
-.resa-list { display: flex; flex-direction: column; gap: .75rem; }
-.resa-item {
-  background: var(--cream);
-  border: 1px solid var(--beige-dk);
-  border-radius: var(--radius-sm);
-  padding: .9rem 1.1rem;
-  display: flex; align-items: center; gap: 1rem;
-  flex-wrap: wrap;
-}
-.resa-item .resa-date {
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  color: var(--terracotta);
-  min-width: 80px;
-}
-.resa-item .resa-details { flex: 1; min-width: 150px; }
-.resa-item .resa-details strong { color: var(--earth); font-size: .9rem; display: block; }
-.resa-item .resa-details span  { color: var(--clay-lt); font-size: .8rem; }
-
-/* =====================================================
-   GRILLE PROFIL
-   ===================================================== */
-.profile-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-.profile-info-card {
-  background: var(--beige);
-  border-radius: var(--radius-md);
-  padding: 1.2rem;
-}
-.profile-info-card .pil { font-size: .78rem; color: var(--clay-lt); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; }
-.profile-info-card .pval { font-family: var(--font-display); font-size: 1.2rem; color: var(--earth); margin-top: .2rem; }
-
-/* =====================================================
-   HEURES SEMAINE INDICATEUR
-   ===================================================== */
-.hours-bar-wrap { margin: .75rem 0; }
-.hours-bar-label {
-  display: flex; justify-content: space-between;
-  font-size: .82rem; color: var(--clay); margin-bottom: .35rem;
-}
-.hours-bar-bg {
-  height: 8px; background: var(--beige-dk);
-  border-radius: 999px; overflow: hidden;
-}
-.hours-bar-fill {
-  height: 100%;
-  background: linear-gradient(to right, var(--sage), var(--terracotta));
-  border-radius: 999px;
-  transition: width .5s ease;
-}
-
-/* =====================================================
-   RESPONSIVE
-   ===================================================== */
-@media (max-width: 640px) {
-  main#main { padding: 1rem; }
-  .card { padding: 1rem; }
-  .modal { padding: 1.25rem; }
-  .stats-grid { grid-template-columns: repeat(2,1fr); }
-  .tabs-nav { gap: .25rem; }
-  .tab-btn { font-size: .78rem; padding: .45rem .6rem; min-width: 90px; }
-}
-
-/* =====================================================
-   DIVERS
-   ===================================================== */
-.separator { border: none; border-top: 1.5px solid var(--beige-dk); margin: 1.5rem 0; }
-.text-muted { color: var(--clay-lt); font-size: .85rem; }
-.text-center { text-align: center; }
-.mt-1 { margin-top: .5rem; }  .mt-2 { margin-top: 1rem; }  .mt-3 { margin-top: 1.5rem; }
-.mb-1 { margin-bottom: .5rem; } .mb-2 { margin-bottom: 1rem; }
-.flex { display: flex; } .gap-1 { gap: .5rem; } .gap-2 { gap: 1rem; }
-.items-center { align-items: center; } .justify-between { justify-content: space-between; }
-.flex-wrap { flex-wrap: wrap; }
-.hidden { display: none !important; }
-
-/* =====================================================
-   MODALE RÉSERVATION — EXTENSIONS HORAIRES & POSTES
-   ===================================================== */
-.btn-slot-extend {
-  background: #fff;
-  border: 1.5px solid var(--beige-dkk);
-  border-radius: var(--radius-sm);
-  padding: .35rem .6rem;
-  font-size: .75rem;
-  font-weight: 600;
-  color: var(--clay);
-  cursor: pointer;
-  transition: var(--transition);
-  white-space: nowrap;
-  font-family: var(--font-body);
-}
-.btn-slot-extend:hover:not(:disabled) {
-  border-color: var(--terracotta);
-  color: var(--terracotta);
-  background: var(--beige);
-}
-.btn-slot-extend:disabled {
-  opacity: .35;
-  cursor: not-allowed;
-}
-
-.poste-card {
-  border: 2px solid var(--beige-dk);
-  border-radius: var(--radius-md);
-  padding: .8rem .6rem;
-  text-align: center;
-  cursor: pointer;
-  transition: var(--transition);
-  background: #fff;
-  user-select: none;
-}
-.poste-card:hover:not(.poste-indisponible) {
-  border-color: var(--terracotta-lt);
-  background: var(--beige);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-sm);
-}
-.poste-card.poste-selectionne {
-  border-color: var(--terracotta);
-  background: linear-gradient(135deg, #FEF0E8, #FBF7F2);
-  box-shadow: 0 0 0 3px rgba(196,98,45,.15);
-}
-.poste-card.poste-indisponible {
-  opacity: .4;
-  cursor: not-allowed;
-  background: var(--beige);
-}
-.poste-card .poste-icone {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 48px;
-  margin-bottom: .4rem;
-}
-.poste-card .poste-icone svg {
-  filter: drop-shadow(0 1px 2px rgba(61,43,31,.15));
-  transition: transform .18s ease;
-}
-.poste-card:hover:not(.poste-indisponible) .poste-icone svg {
-  transform: scale(1.08);
-}
-.poste-card.poste-indisponible .poste-icone svg {
-  filter: grayscale(1) opacity(.4);
-}
-.poste-card .poste-nom {
-  font-size: .78rem;
-  font-weight: 600;
-  color: var(--earth);
-}
-.poste-card .poste-dispo {
-  font-size: .7rem;
-  color: var(--clay-lt);
-  margin-top: .15rem;
-}
-
-/* =====================================================
-   MODALE ALERTE / CONFIRM UNIVERSELLE
-   ===================================================== */
-#modal-alerte .modal,
-#modal-confirm .modal {
-  animation: alerteIn .22s cubic-bezier(.34,1.56,.64,1);
-}
-@keyframes alerteIn {
-  from { transform: scale(.85) translateY(-20px); opacity: 0; }
-  to   { transform: scale(1) translateY(0);       opacity: 1; }
-}
-/* Variantes couleur du bouton OK selon le type */
-#modal-alerte.type-success #alerte-btn-ok { background: var(--success); }
-#modal-alerte.type-error   #alerte-btn-ok { background: var(--danger);  }
-#modal-alerte.type-warning #alerte-btn-ok { background: var(--warning); }
-#modal-alerte.type-info    #alerte-btn-ok { background: var(--info);    }
-#modal-confirm.type-danger #confirm-btn-ok { background: var(--danger); }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --orange: #D85A30; --orange-bg: #FAECE7;
+    --blue: #185FA5; --blue-bg: #E6F1FB;
+    --green: #3B6D11; --green-bg: #EAF3DE;
+    --red: #A32D2D; --red-bg: #FCEBEB;
+    --amber: #BA7517; --amber-bg: #FAEEDA;
+    --border: rgba(0,0,0,0.12); --surface: #f5f4f1; --card: #ffffff;
+    --text: #1a1a18; --text2: #5F5E5A;
+    --radius: 12px; --radius-sm: 8px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --orange: #F0997B; --orange-bg: #4A1B0C;
+      --blue: #85B7EB; --blue-bg: #042C53;
+      --green: #97C459; --green-bg: #173404;
+      --red: #F09595; --red-bg: #501313;
+      --amber: #EF9F27; --amber-bg: #412402;
+      --border: rgba(255,255,255,0.12); --surface: #1a1a18; --card: #2a2a28;
+      --text: #f0ede8; --text2: #B4B2A9;
+    }
+  }
+  html, body { background: var(--surface); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 16px; line-height: 1.5; min-height: 100vh; }
+  body { padding: 0 0 40px 0; }
+ 
+  .top-bar { background: var(--card); border-bottom: 0.5px solid var(--border); padding: 14px 16px 12px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .top-bar h1 { font-size: 17px; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
+ 
+  .section { padding: 0 14px; margin-top: 14px; }
+ 
+  .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .metric { background: var(--card); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+  .metric-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+  .metric-val { font-size: 26px; font-weight: 600; color: var(--text); line-height: 1; }
+  .metric-unit { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .metric.orange .metric-val { color: var(--orange); }
+  .metric.blue .metric-val { color: var(--blue); }
+ 
+  .chart-card { background: var(--card); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 14px 10px 10px; }
+  .chart-legend { display: flex; gap: 16px; margin-bottom: 10px; padding: 0 4px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .chart-wrap { position: relative; width: 100%; height: 220px; }
+ 
+  .input-card { background: var(--card); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 16px; }
+ 
+  .mode-tabs { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 16px; border: 0.5px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+  .mode-tab { padding: 10px 8px; font-size: 14px; font-weight: 500; text-align: center; cursor: pointer; background: var(--surface); color: var(--text2); border: none; font-family: inherit; -webkit-tap-highlight-color: transparent; }
+  .mode-tab.active { background: var(--card); color: var(--text); }
+  .mode-tab:first-child { border-right: 0.5px solid var(--border); }
+ 
+  .chrono-block { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 4px 0 8px; }
+  .chrono-display { font-size: 52px; font-weight: 700; letter-spacing: -2px; color: var(--text); font-variant-numeric: tabular-nums; line-height: 1; }
+  .chrono-display.running { color: var(--orange); }
+  .chrono-display.paused { color: var(--amber); }
+  .chrono-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+  .btn-chrono-start { background: var(--orange); color: #fff; border: none; border-radius: var(--radius-sm); padding: 14px; font-size: 16px; font-weight: 600; cursor: pointer; font-family: inherit; -webkit-tap-highlight-color: transparent; }
+  .btn-chrono-start:active { opacity: 0.85; transform: scale(0.98); }
+  .btn-chrono-start.running { background: var(--amber); }
+  .btn-chrono-reset { background: var(--surface); color: var(--text2); border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 14px; font-size: 16px; font-weight: 500; cursor: pointer; font-family: inherit; -webkit-tap-highlight-color: transparent; }
+  .btn-chrono-reset:active { opacity: 0.7; }
+  .chrono-sep { width: 100%; height: 0.5px; background: var(--border); }
+  .chrono-temp-label { font-size: 12px; color: var(--text2); font-weight: 500; text-align: center; width: 100%; }
+  .chrono-temp-input { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 14px 10px; font-size: 28px; color: var(--text); width: 100%; font-family: inherit; -webkit-appearance: none; appearance: none; outline: none; text-align: center; font-weight: 600; }
+  .chrono-temp-input:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(216,90,48,0.15); }
+  .chrono-temp-input::placeholder { font-size: 18px; font-weight: 400; opacity: 0.4; }
+  .btn-capture { width: 100%; background: var(--orange); color: #fff; border: none; border-radius: var(--radius-sm); padding: 16px; font-size: 17px; font-weight: 700; cursor: pointer; font-family: inherit; -webkit-tap-highlight-color: transparent; }
+  .btn-capture:active { opacity: 0.85; transform: scale(0.98); }
+  .btn-capture:disabled { opacity: 0.32; }
+ 
+  .manual-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 12px; color: var(--text2); font-weight: 500; }
+  .field input { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 10px; font-size: 18px; color: var(--text); width: 100%; font-family: inherit; -webkit-appearance: none; appearance: none; outline: none; text-align: center; font-weight: 500; }
+  .field input:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(216,90,48,0.15); }
+  .field input::placeholder { color: var(--text2); opacity: 0.5; font-size: 14px; font-weight: 400; }
+  .btn-add { width: 100%; background: var(--orange); color: #fff; border: none; border-radius: var(--radius-sm); padding: 15px; font-size: 16px; font-weight: 600; cursor: pointer; font-family: inherit; -webkit-tap-highlight-color: transparent; }
+  .btn-add:active { opacity: 0.85; transform: scale(0.98); }
+ 
+  .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .btn-secondary { background: var(--surface); color: var(--text); border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 12px; font-size: 14px; font-weight: 500; cursor: pointer; font-family: inherit; -webkit-tap-highlight-color: transparent; text-align: center; }
+  .btn-secondary:active { opacity: 0.7; }
+  .btn-pdf { background: var(--green-bg); color: var(--green); border: 0.5px solid rgba(59,109,17,0.25); }
+ 
+  .table-card { background: var(--card); border: 0.5px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .table-header { display: grid; grid-template-columns: 26px 1fr 52px 52px 32px; gap: 0; padding: 9px 10px; background: var(--surface); border-bottom: 0.5px solid var(--border); }
+  .table-header span { font-size: 11px; color: var(--text2); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .table-row { display: grid; grid-template-columns: 26px 1fr 52px 52px 32px; gap: 0; padding: 11px 10px; border-bottom: 0.5px solid var(--border); align-items: center; }
+  .table-row:last-child { border-bottom: none; }
+  .table-row span { font-size: 14px; color: var(--text); }
+  .num { color: var(--text2); font-size: 12px; }
+  .spd-up { color: var(--green); font-weight: 600; }
+  .spd-dn { color: var(--red); font-weight: 600; }
+  .spd-na { color: var(--text2); }
+  .src-badge { font-size: 10px; display: inline-block; vertical-align: middle; margin-left: 3px; opacity: 0.7; }
+  .btn-del { background: none; border: none; cursor: pointer; color: var(--text2); font-size: 18px; padding: 0; line-height: 1; -webkit-tap-highlight-color: transparent; width: 28px; text-align: center; }
+  .btn-del:active { color: var(--red); }
+  .no-data { padding: 28px 16px; text-align: center; color: var(--text2); font-size: 14px; }
+ 
+  .divider { height: 0.5px; background: var(--border); margin: 14px 0 0; }
+ 
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1a1a18; color: #fff; border-radius: 20px; padding: 10px 20px; font-size: 14px; font-weight: 500; opacity: 0; transition: opacity 0.25s; z-index: 100; white-space: nowrap; pointer-events: none; }
+  .toast.show { opacity: 1; }
 </style>
 </head>
 <body>
-
-<!-- ===== ÉCRAN CHARGEMENT ===== -->
-<div id="splash">
-  <div class="logo-splash">🏺 Julien Céramiques</div>
-  <div class="loader"></div>
-  <p style="color:var(--clay-lt);font-size:.9rem">Connexion à Firebase…</p>
+ 
+<div class="top-bar">
+  <h1>Cuisson céramique 🔥</h1>
 </div>
-
-<!-- ===== ERREUR CONFIG FIREBASE ===== -->
-<div id="config-error" style="display:none;position:fixed;inset:0;z-index:9998;background:var(--beige);align-items:center;justify-content:center;padding:2rem;">
-  <div class="error-box">
-    <h2>⚠️ Configuration Firebase manquante</h2>
-    <p>Veuillez renseigner votre configuration Firebase dans le code source de ce fichier.</p>
-    <p class="mt-2">Recherchez le bloc <code>FIREBASE CONFIG</code> dans le fichier <strong>index.html</strong> et remplacez les valeurs vides par celles disponibles sur :</p>
-    <p class="mt-1"><strong>console.firebase.google.com → Paramètres du projet → Vos applications</strong></p>
-    <pre>const firebaseConfig = {
-  apiKey:            "VOTRE_API_KEY",
-  authDomain:        "VOTRE_PROJET.firebaseapp.com",
-  projectId:         "VOTRE_PROJET_ID",
-  storageBucket:     "VOTRE_PROJET.appspot.com",
-  messagingSenderId: "VOTRE_SENDER_ID",
-  appId:             "VOTRE_APP_ID"
-};</pre>
-  </div>
-</div>
-
-<!-- ===== APPLICATION PRINCIPALE ===== -->
-<div id="app">
-
-  <!-- Navbar (cachée sur la page auth) -->
-  <nav id="navbar" style="display:none">
-    <div class="nav-brand">🏺 <span>Julien</span> Céramiques</div>
-    <div class="nav-user">
-      <span id="nav-pseudo"></span>
-      <span id="nav-badge" class="nav-badge hidden"></span>
-      <button class="btn-logout" onclick="deconnexion()">Déconnexion</button>
+ 
+<div class="section">
+  <div class="metrics">
+    <div class="metric orange">
+      <div class="metric-label">Température</div>
+      <div class="metric-val" id="m-temp">—</div>
+      <div class="metric-unit">°C dernier relevé</div>
     </div>
-  </nav>
-
-  <main id="main">
-
-    <!-- ===== PAGE AUTH ===== -->
-    <div id="page-auth" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--earth) 0%,var(--earth-lt) 50%,var(--clay) 100%);padding:2rem;margin:-2rem -1.5rem;">
-      <div class="auth-wrapper">
-        <div class="auth-logo">
-          <h1>🏺 Julien Céramiques</h1>
-          <p>Atelier de poterie — Espace membres</p>
-        </div>
-        <div class="auth-card">
-          <div class="auth-tabs">
-            <button class="auth-tab active" onclick="showAuthTab('login')">Connexion</button>
-            <button class="auth-tab" onclick="showAuthTab('register')">Inscription</button>
-          </div>
-
-          <!-- Connexion -->
-          <div id="form-login">
-            <div class="form-group">
-              <label class="form-label">Pseudo</label>
-              <input class="form-input" id="login-pseudo" type="text" placeholder="Votre pseudo" autocomplete="username">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Mot de passe</label>
-              <input class="form-input" id="login-mdp" type="password" placeholder="••••••••" autocomplete="current-password">
-            </div>
-            <div id="login-error" class="alert alert-danger hidden" style="font-size:.85rem;padding:.6rem .85rem;"></div>
-            <button class="btn btn-primary btn-full mt-2" onclick="connexion()">Se connecter</button>
-          </div>
-
-          <!-- Inscription -->
-          <div id="form-register" class="hidden">
-            <!-- Étape 1 : Formulaire de base -->
-            <div id="reg-step1">
-              <div class="form-group">
-                <label class="form-label">Pseudo (unique)</label>
-                <input class="form-input" id="reg-pseudo" type="text" placeholder="Choisissez un pseudo">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Email</label>
-                <input class="form-input" id="reg-email" type="email" placeholder="votre@email.com">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Mot de passe</label>
-                <input class="form-input" id="reg-mdp" type="password" placeholder="Min. 6 caractères">
-              </div>
-              <div id="reg-error" class="alert alert-danger hidden" style="font-size:.85rem;padding:.6rem .85rem;"></div>
-              <button class="btn btn-primary btn-full mt-2" id="btn-envoyer-code" onclick="demanderVerificationEmail()">Vérifier mon adresse mail →</button>
-              <p class="text-muted text-center mt-2" style="font-size:.8rem;">Un code de vérification sera envoyé à votre adresse mail.</p>
-            </div>
-            <!-- Étape 2 : Saisie du code reçu par mail -->
-            <div id="reg-step2" class="hidden">
-              <div class="alert alert-info" style="margin-bottom:1rem;font-size:.85rem;">
-                📧 Un code à 6 chiffres a été envoyé à <strong id="verif-email-display"></strong>.<br>
-                Vérifiez vos spams si vous ne le recevez pas.
-              </div>
-              <div class="form-group">
-                <label class="form-label">Code de vérification</label>
-                <input class="form-input" id="verif-code-input" type="text" placeholder="123456" maxlength="6"
-                  style="font-size:1.4rem;letter-spacing:.3em;text-align:center;">
-              </div>
-              <div id="verif-error" class="alert alert-danger hidden" style="font-size:.85rem;padding:.6rem .85rem;"></div>
-              <button class="btn btn-primary btn-full mt-2" onclick="verifierCode()">Valider le code</button>
-              <button class="btn btn-ghost btn-full mt-1" onclick="retourEtape1()" style="font-size:.85rem;">← Modifier mes informations</button>
-              <button class="btn btn-ghost btn-full" onclick="demanderVerificationEmail(true)" style="font-size:.82rem;color:var(--clay-lt);">Renvoyer le code</button>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div class="metric">
+      <div class="metric-label">Chrono</div>
+      <div class="metric-val" id="m-chrono">0:00</div>
+      <div class="metric-unit" id="m-chrono-lbl">en attente</div>
     </div>
-
-    <!-- ===== PAGE ADHÉRENT ===== -->
-    <div id="page-adherent" style="display:none">
-      <div id="adherent-alerte-adhesion" class="alert alert-warning hidden" style="margin-bottom:1.5rem;">
-        ⚠️ <span id="adherent-alerte-txt"></span>
-      </div>
-
-      <div class="tabs-nav">
-        <button class="tab-btn active" onclick="showAdherentTab('dashboard')">🏠 Tableau de bord</button>
-        <button class="tab-btn" onclick="showAdherentTab('calendrier')">📅 Calendrier</button>
-        <button class="tab-btn" onclick="showAdherentTab('mes-reservations')">📋 Mes réservations</button>
-        <button class="tab-btn" onclick="showAdherentTab('mon-compte')">👤 Mon compte</button>
-      </div>
-
-      <!-- Dashboard adhérent -->
-      <div id="tab-adh-dashboard" class="tab-content">
-        <h2 style="margin-bottom:1rem;">Bonjour, <span id="adh-pseudo-display" style="color:var(--terracotta)"></span> 👋</h2>
-        <div class="profile-grid" id="adh-profile-grid"></div>
-        <div class="card">
-          <div class="card-header"><h3>Heures réservées cette semaine</h3></div>
-          <div class="hours-bar-wrap">
-            <div class="hours-bar-label">
-              <span id="adh-heures-val">0h00</span>
-              <span>6h max</span>
-            </div>
-            <div class="hours-bar-bg"><div class="hours-bar-fill" id="adh-heures-bar" style="width:0%"></div></div>
-          </div>
-        </div>
-        <div class="card mt-2">
-          <div class="card-header"><h3>Prochains créneaux</h3></div>
-          <div id="adh-prochains-resas" class="resa-list"></div>
-        </div>
-      </div>
-
-      <!-- Calendrier adhérent -->
-      <div id="tab-adh-calendrier" class="tab-content hidden">
-        <div class="card">
-          <div id="calendrier-adherent-wrap"></div>
-        </div>
-      </div>
-
-      <!-- Mes réservations -->
-      <div id="tab-adh-mes-reservations" class="tab-content hidden">
-        <div class="card">
-          <div class="card-header">
-            <h2>Mes réservations</h2>
-          </div>
-          <div id="liste-mes-reservations" class="resa-list"></div>
-        </div>
-      </div>
-
-      <!-- Mon compte -->
-      <div id="tab-adh-mon-compte" class="tab-content hidden">
-        <div class="card">
-          <div class="card-header"><h2>Mon compte</h2></div>
-          <h3 style="margin-bottom:1rem;">Changer mon mot de passe</h3>
-          <div class="form-group" style="max-width:360px">
-            <label class="form-label">Nouveau mot de passe</label>
-            <input class="form-input" id="adh-new-mdp" type="password" placeholder="Min. 6 caractères">
-          </div>
-          <div class="form-group" style="max-width:360px">
-            <label class="form-label">Confirmer</label>
-            <input class="form-input" id="adh-new-mdp2" type="password" placeholder="Répétez le mot de passe">
-          </div>
-          <button class="btn btn-primary" onclick="changerMotDePasse()">Modifier le mot de passe</button>
-        </div>
-      </div>
+    <div class="metric blue">
+      <div class="metric-label">Vitesse</div>
+      <div class="metric-val" id="m-speed">—</div>
+      <div class="metric-unit">°C/h</div>
     </div>
-
-    <!-- ===== PAGE ADMIN ===== -->
-    <div id="page-admin" style="display:none">
-      <div class="tabs-nav">
-        <button class="tab-btn active" onclick="showAdminTab('dashboard')">📊 Tableau de bord <span id="admin-badge-wait" class="nav-badge hidden" style="background:var(--danger)"></span></button>
-        <button class="tab-btn" onclick="showAdminTab('adherents')">👥 Adhérents</button>
-        <button class="tab-btn" onclick="showAdminTab('calendrier')">📅 Calendrier</button>
-        <button class="tab-btn" onclick="showAdminTab('exceptions')">⚙️ Exceptions</button>
-      </div>
-
-      <!-- Dashboard admin -->
-      <div id="tab-admin-dashboard" class="tab-content">
-        <div id="admin-attente-section" class="hidden">
-          <h3 style="margin-bottom:.75rem;color:var(--danger)">⏳ Comptes en attente de validation</h3>
-          <div id="admin-attente-list" class="resa-list mb-2"></div>
-          <hr class="separator">
-        </div>
-        <div id="admin-expiration-section" class="hidden">
-          <h3 style="margin-bottom:.75rem;color:var(--warning)">⚠️ Adhésions expirant dans moins de 15 jours</h3>
-          <div id="admin-expiration-list" class="resa-list mb-2"></div>
-          <hr class="separator">
-        </div>
-        <h3 style="margin-bottom:.75rem;">📈 Statistiques globales</h3>
-        <div class="stats-grid" id="admin-stats-grid"></div>
-      </div>
-
-      <!-- Gestion adhérents -->
-      <div id="tab-admin-adherents" class="tab-content hidden">
-        <div class="card">
-          <div class="card-header">
-            <h2>Gestion des adhérents</h2>
-            <div class="flex gap-1">
-              <input class="form-input" id="search-adherents" type="search" placeholder="Rechercher…" style="width:200px;padding:.4rem .75rem;" oninput="filtrerAdherents()">
-            </div>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Pseudo</th><th>Email</th><th>Statut</th>
-                  <th>Fin adhésion</th><th>H/sem</th><th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="tbody-adherents"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- Calendrier admin -->
-      <div id="tab-admin-calendrier" class="tab-content hidden">
-        <div class="card">
-          <div id="calendrier-admin-wrap"></div>
-        </div>
-      </div>
-
-      <!-- Exceptions -->
-      <div id="tab-admin-exceptions" class="tab-content hidden">
-        <div class="card mb-2">
-          <div class="card-header"><h2>Ajouter une exception horaire</h2></div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;">
-            <div class="form-group">
-              <label class="form-label">Date</label>
-              <input class="form-input" id="exc-date" type="date">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Heure début</label>
-              <select class="form-select" id="exc-debut"></select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Heure fin</label>
-              <select class="form-select" id="exc-fin"></select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Type</label>
-              <select class="form-select" id="exc-type">
-                <option value="ferme">Fermer ce créneau</option>
-                <option value="ouvert">Ouvrir ce créneau</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Motif (facultatif)</label>
-            <input class="form-input" id="exc-motif" type="text" placeholder="Ex : Maintenance, Atelier spécial…">
-          </div>
-          <button class="btn btn-primary" onclick="ajouterException()">Ajouter l'exception</button>
-        </div>
-        <div class="card">
-          <div class="card-header"><h2>Exceptions existantes</h2></div>
-          <div id="liste-exceptions"></div>
-        </div>
-      </div>
-
-    </div><!-- /page-admin -->
-
-  </main><!-- /main -->
-</div><!-- /app -->
-
-<!-- ===== MODALES ===== -->
-
-<!-- Modale réservation -->
-<div id="modal-reservation" class="modal-overlay">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title" id="modal-resa-titre">Réserver un créneau</span>
-      <button class="modal-close" onclick="fermerModale('modal-reservation')">✕</button>
-    </div>
-
-    <!-- Sélecteur de plage horaire -->
-    <div style="margin-bottom:1.25rem;">
-      <div class="form-label" style="margin-bottom:.6rem;">Plage horaire</div>
-      <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
-        <!-- Boutons étendre vers le début -->
-        <div style="display:flex;flex-direction:column;gap:.3rem;">
-          <button class="btn-slot-extend" id="btn-moins-debut" onclick="etendreDebut(-0.5)" title="Reculer le début de 30 min">
-            ◀ 30min
-          </button>
-          <button class="btn-slot-extend" id="btn-plus-debut" onclick="etendreDebut(0.5)" title="Avancer le début de 30 min">
-            ▶ 30min
-          </button>
-        </div>
-
-        <!-- Affichage créneau -->
-        <div style="flex:1;text-align:center;background:var(--beige);border-radius:var(--radius-md);padding:.9rem 1rem;min-width:140px;">
-          <div style="font-family:var(--font-display);font-size:1.5rem;color:var(--terracotta);line-height:1.1;" id="modal-resa-heures">08h00 – 08h30</div>
-          <div style="font-size:.8rem;color:var(--clay-lt);margin-top:.25rem;" id="modal-resa-duree">30 min</div>
-          <div style="font-size:.8rem;color:var(--earth-lt);margin-top:.1rem;" id="modal-resa-date-display"></div>
-        </div>
-
-        <!-- Boutons étendre vers la fin -->
-        <div style="display:flex;flex-direction:column;gap:.3rem;">
-          <button class="btn-slot-extend" id="btn-moins-fin" onclick="etendreFin(-0.5)" title="Avancer la fin de 30 min">
-            30min ◀
-          </button>
-          <button class="btn-slot-extend" id="btn-plus-fin" onclick="etendreFin(0.5)" title="Reculer la fin de 30 min">
-            30min ▶
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Sélecteur de poste par icônes -->
-    <div style="margin-bottom:1rem;">
-      <div class="form-label" style="margin-bottom:.6rem;">Choisissez votre poste</div>
-      <div id="modal-resa-postes" style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;"></div>
-    </div>
-
-    <div id="modal-resa-warning" class="alert alert-warning hidden" style="margin-bottom:.75rem;"></div>
-    <div style="display:flex;gap:.75rem;margin-top:1rem;">
-      <button class="btn btn-secondary" onclick="fermerModale('modal-reservation')">Annuler</button>
-      <button class="btn btn-primary" id="btn-confirmer-resa" onclick="confirmerReservation()">Confirmer la réservation</button>
+    <div class="metric">
+      <div class="metric-label">Relevés</div>
+      <div class="metric-val" id="m-count">0</div>
+      <div class="metric-unit">enregistrés</div>
     </div>
   </div>
 </div>
-
-<!-- Modale adhérent (admin) -->
-<div id="modal-adherent" class="modal-overlay">
-  <div class="modal" style="max-width:620px;">
-    <div class="modal-header">
-      <span class="modal-title" id="modal-adh-titre">Fiche adhérent</span>
-      <button class="modal-close" onclick="fermerModale('modal-adherent')">✕</button>
+ 
+<div class="section">
+  <div class="chart-card">
+    <div class="chart-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#D85A30"></div>Température (°C)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#185FA5;opacity:0.7"></div>Vitesse (°C/h)</div>
     </div>
-    <div id="modal-adh-contenu"></div>
+    <div class="chart-wrap">
+      <canvas id="myChart" role="img" aria-label="Courbe de cuisson céramique"></canvas>
+    </div>
   </div>
 </div>
-
-<!-- Modale réservation admin (ajout manuel) -->
-<div id="modal-resa-admin" class="modal-overlay">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title">Ajouter une réservation</span>
-      <button class="modal-close" onclick="fermerModale('modal-resa-admin')">✕</button>
+ 
+<div class="section">
+  <div class="input-card">
+ 
+    <div class="mode-tabs">
+      <button class="mode-tab active" id="tab-chrono" onclick="switchMode('chrono')">⏱ Chronomètre</button>
+      <button class="mode-tab" id="tab-manual" onclick="switchMode('manual')">✏️ Saisie manuelle</button>
     </div>
-    <div class="form-group">
-      <label class="form-label">Adhérent</label>
-      <select class="form-select" id="madmin-adherent"></select>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;">
-      <div class="form-group">
-        <label class="form-label">Date</label>
-        <input class="form-input" id="madmin-date" type="date">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Heure début</label>
-        <select class="form-select" id="madmin-debut"></select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Heure fin</label>
-        <select class="form-select" id="madmin-fin"></select>
+ 
+    <div id="panel-chrono">
+      <div class="chrono-block">
+        <div class="chrono-display" id="chrono-disp">0:00:00</div>
+        <div class="chrono-btns">
+          <button class="btn-chrono-start" id="btn-start" onclick="toggleChrono()">Démarrer</button>
+          <button class="btn-chrono-reset" onclick="resetChrono()">Réinitialiser</button>
+        </div>
+        <div class="chrono-sep"></div>
+        <div class="chrono-temp-label">Saisir la température puis appuyer sur Enregistrer</div>
+        <input type="number" class="chrono-temp-input" id="chrono-temp" inputmode="numeric" placeholder="Température °C" min="0" max="1400" autocomplete="off" />
+        <button class="btn-capture" id="btn-capture" onclick="capturePoint()" disabled>Enregistrer ce relevé</button>
       </div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Type de poste</label>
-      <select class="form-select" id="madmin-poste">
-        <option value="tour_1">Tour de potier 1</option>
-        <option value="tour_2">Tour de potier 2</option>
-        <option value="table_1">Table argile 1</option>
-        <option value="table_2">Table argile 2</option>
-      </select>
+ 
+    <div id="panel-manual" style="display:none">
+      <div class="manual-fields">
+        <div class="field">
+          <label for="inp-time">Temps (h:mm ou 1.5)</label>
+          <input type="text" id="inp-time" inputmode="decimal" placeholder="0:00" autocomplete="off" autocorrect="off" spellcheck="false" />
+        </div>
+        <div class="field">
+          <label for="inp-temp">Température (°C)</label>
+          <input type="number" id="inp-temp" inputmode="numeric" placeholder="0" min="0" max="1400" autocomplete="off" />
+        </div>
+      </div>
+      <button class="btn-add" onclick="addManualPoint()">Enregistrer le relevé</button>
     </div>
-    <div style="display:flex;gap:.75rem;margin-top:1rem;">
-      <button class="btn btn-secondary" onclick="fermerModale('modal-resa-admin')">Annuler</button>
-      <button class="btn btn-primary" onclick="confirmerResaAdmin()">Confirmer</button>
+ 
+    <div class="divider"></div>
+    <div class="btn-row">
+      <button class="btn-secondary btn-pdf" onclick="exportPDF()">Exporter PDF</button>
+      <button class="btn-secondary" onclick="clearAll()">Tout effacer</button>
     </div>
+ 
   </div>
 </div>
-
-<!-- Modale d'alerte universelle (remplace les toasts) -->
-<div id="modal-alerte" class="modal-overlay" style="z-index:9100;">
-  <div class="modal" style="max-width:420px;text-align:center;padding:2rem 2.5rem;">
-    <div id="alerte-icone" style="font-size:3rem;line-height:1;margin-bottom:.75rem;"></div>
-    <div id="alerte-titre" style="font-family:var(--font-display);font-size:1.3rem;color:var(--earth);margin-bottom:.6rem;font-weight:600;"></div>
-    <div id="alerte-message" style="color:var(--earth-lt);font-size:.95rem;line-height:1.55;margin-bottom:1.5rem;"></div>
-    <button id="alerte-btn-ok" class="btn btn-primary" style="min-width:120px;" onclick="fermerAlerte()">OK</button>
+ 
+<div class="section" style="margin-top:14px">
+  <div class="table-card" id="table-wrap">
+    <div class="no-data">Aucun relevé pour l'instant</div>
   </div>
 </div>
-
-<!-- Modale de confirmation universelle (remplace les confirm()) -->
-<div id="modal-confirm" class="modal-overlay" style="z-index:9200;">
-  <div class="modal" style="max-width:420px;text-align:center;padding:2rem 2.5rem;">
-    <div id="confirm-icone" style="font-size:3rem;line-height:1;margin-bottom:.75rem;"></div>
-    <div id="confirm-titre" style="font-family:var(--font-display);font-size:1.3rem;color:var(--earth);margin-bottom:.6rem;font-weight:600;"></div>
-    <div id="confirm-message" style="color:var(--earth-lt);font-size:.95rem;line-height:1.55;margin-bottom:1.5rem;"></div>
-    <div style="display:flex;gap:.75rem;justify-content:center;">
-      <button class="btn btn-secondary" style="min-width:100px;" onclick="repondreConfirm(false)">Annuler</button>
-      <button id="confirm-btn-ok" class="btn btn-primary" style="min-width:100px;" onclick="repondreConfirm(true)">Confirmer</button>
-    </div>
-  </div>
-</div>
-
-<!-- ===== SCRIPT PRINCIPAL ===== -->
-<script type="module">
-// =====================================================================
-// FIREBASE CONFIG
-// Remplacez les valeurs ci-dessous par votre configuration Firebase
-// disponible dans console.firebase.google.com →
-// Paramètres du projet → Vos applications → SDK setup and configuration
-// =====================================================================
-const firebaseConfig = {
-  apiKey:            "AIzaSyC6xEpKOzBmeM9f7JroC4u6AGA44b-xFUM",
-  authDomain:        "syst-resa-atelier.firebaseapp.com",
-  projectId:         "syst-resa-atelier",
-  storageBucket:     "syst-resa-atelier.firebasestorage.app",
-  messagingSenderId: "255396165813",
-  appId:             "1:255396165813:web:5269d7cb8493a02eb766fc"
-};
-
-// Importation du SDK Firebase v9 modulaire via CDN
-import { initializeApp }                                  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {
-  getFirestore, collection, doc, getDoc, getDocs, setDoc,
-  addDoc, updateDoc, deleteDoc, query, where, orderBy, Timestamp
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-// =====================================================================
-// VÉRIFICATION CONFIG
-// =====================================================================
-const configVide = !firebaseConfig.apiKey || !firebaseConfig.projectId;
-if (configVide) {
-  document.getElementById('splash').style.display = 'none';
-  document.getElementById('config-error').style.display = 'flex';
-  throw new Error('Firebase non configuré');
-}
-
-// Initialisation Firebase
-const app = initializeApp(firebaseConfig);
-const db  = getFirestore(app);
-
-// =====================================================================
-// CONSTANTES
-// =====================================================================
-const POSTES = {
-  tour_1:  'Tour de potier 1',
-  tour_2:  'Tour de potier 2',
-  table_1: 'Table argile 1',
-  table_2: 'Table argile 2',
-};
-const MAX_PERSONNES   = 3;    // max simultané
-const MAX_HEURES_SEM  = 6;    // quota hebdo
-const DELAI_ANNUL_H   = 48;   // heures min avant annulation
-const JOURS_EXPIRE    = 15;   // alerte renouvellement
-const DUREE_ADH_MOIS  = 3;    // durée standard adhésion
-
-// Jours ouverts par défaut : 1=Lun … 6=Sam (0=Dim fermé)
-const JOURS_OUVERTS = [1,2,3,4,5,6];
-const H_DEBUT = 8;   // 8h00
-const H_FIN   = 19;  // 19h00
-
-// =====================================================================
-// ÉTAT GLOBAL
-// =====================================================================
-let utilisateurCourant = null;  // objet utilisateur connecté
-let allResas = [];              // cache réservations
-let allUsers = [];              // cache adhérents (admin)
-let allExceptions = [];         // cache exceptions
-let calCurrentWeek  = null;     // date lundi courant (semaine)
-let calCurrentMonth = null;     // date 1er du mois courant
-let calView = 'week';           // 'week' | 'month'
-let calContext = 'adherent';    // 'adherent' | 'admin'
-let resaEnCours = null;         // données de la réservation en cours de création
-let adherentsCache = [];        // cache complet pour le tri
-
-// =====================================================================
-// UTILITAIRES DATE
-// =====================================================================
-const pad = n => String(n).padStart(2,'0');
-const dateToStr = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-const strToDate = s => { const [y,m,j] = s.split('-'); return new Date(y, m-1, j); };
-const joursNoms = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
-const moisNoms  = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-
-function lundiDeLaSemaine(d) {
-  const j = new Date(d);
-  const dow = j.getDay();
-  j.setDate(j.getDate() - (dow === 0 ? 6 : dow - 1));
-  j.setHours(0,0,0,0);
-  return j;
-}
-
-function premierDuMois(d) {
-  return new Date(d.getFullYear(), d.getMonth(), 1);
-}
-
-function diffH(d1, d2) { return (d2 - d1) / 3600000; }
-
-function formatDate(d) {
-  if (!d) return '—';
-  if (typeof d === 'string') d = strToDate(d);
-  return `${pad(d.getDate())} ${moisNoms[d.getMonth()]} ${d.getFullYear()}`;
-}
-
-function formatHeure(h, m=0) { return `${pad(h)}h${pad(m)}`; }
-
-function slotToDate(dateStr, heure) {
-  const d = strToDate(dateStr);
-  const h = Math.floor(heure);
-  const m = (heure % 1) * 60;
-  d.setHours(h, m, 0, 0);
-  return d;
-}
-
-// Durée d'un créneau en heures
-function dureeH(debut, fin) {
-  const deb = parseFloat(debut);
-  const fn  = parseFloat(fin);
-  return fn - deb;
-}
-
-// Génère les créneaux horaires (pas de 30 min)
-function creneaux() {
-  const r = [];
-  for (let h = H_DEBUT; h < H_FIN; h++) {
-    r.push(h, h + 0.5);
-  }
-  return r;
-}
-
-function heureStr(v) {
-  const h = Math.floor(v);
-  const m = (v % 1) * 60;
-  return `${pad(h)}:${pad(m)}`;
-}
-
-function populateHeureSelect(sel, debut=H_DEBUT, fin=H_FIN) {
-  sel.innerHTML = '';
-  for (let h = debut; h <= fin; h += 0.5) {
-    const o = document.createElement('option');
-    o.value = h;
-    o.textContent = heureStr(h);
-    sel.appendChild(o);
-  }
-}
-
-// =====================================================================
-// SHA-256 via Web Crypto API native
-// =====================================================================
-async function sha256(message) {
-  const msgBuffer = new TextEncoder().encode(message);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-  const hashArray  = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2,'0')).join('');
-}
-
-// =====================================================================
-// SYSTÈME D'ALERTES MODALES (remplace les toasts)
-// =====================================================================
-
-// Icônes selon le type
-const ALERTE_ICONES = {
-  success: '✅',
-  error:   '❌',
-  warning: '⚠️',
-  info:    'ℹ️',
-  danger:  '🗑️',
-};
-
-// Titres par défaut selon le type
-const ALERTE_TITRES = {
-  success: 'Succès',
-  error:   'Erreur',
-  warning: 'Attention',
-  info:    'Information',
-  danger:  'Confirmation',
-};
-
-// Callback pour la modale de confirmation
-let _confirmCallback = null;
-
-// Afficher une alerte modale (remplace toast)
-function toast(msg, type='info', _duree) {
-  // On ignore le paramètre durée — on affiche une modale
-  alerte(msg, type);
-}
-
-function alerte(msg, type='info', titre) {
-  const modal = document.getElementById('modal-alerte');
-  // Retirer les classes de type précédentes
-  modal.className = 'modal-overlay open type-' + type;
-  document.getElementById('alerte-icone').textContent   = ALERTE_ICONES[type]  || 'ℹ️';
-  document.getElementById('alerte-titre').textContent   = titre || ALERTE_TITRES[type] || 'Information';
-  document.getElementById('alerte-message').textContent = msg;
-  // Focus sur le bouton OK pour pouvoir appuyer sur Entrée
-  setTimeout(() => document.getElementById('alerte-btn-ok')?.focus(), 50);
-}
-
-window.fermerAlerte = function() {
-  const modal = document.getElementById('modal-alerte');
-  modal.classList.remove('open');
-};
-
-// Modale de confirmation (remplace confirm())
-// Retourne une Promise<boolean>
-function confirmer(msg, type='danger', titre) {
-  return new Promise(resolve => {
-    const modal = document.getElementById('modal-confirm');
-    modal.className = 'modal-overlay open type-' + type;
-    document.getElementById('confirm-icone').textContent   = type === 'danger' ? '⚠️' : 'ℹ️';
-    document.getElementById('confirm-titre').textContent   = titre || 'Confirmation';
-    document.getElementById('confirm-message').textContent = msg;
-    _confirmCallback = resolve;
-    setTimeout(() => document.getElementById('confirm-btn-ok')?.focus(), 50);
-  });
-}
-
-window.repondreConfirm = function(reponse) {
-  document.getElementById('modal-confirm').classList.remove('open');
-  if (_confirmCallback) { _confirmCallback(reponse); _confirmCallback = null; }
-};
-
-// Fermer les modales avec Echap
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    const alerteOpen = document.getElementById('modal-alerte').classList.contains('open');
-    if (alerteOpen) { window.fermerAlerte(); return; }
-  }
-  if (e.key === 'Enter') {
-    const alerteOpen = document.getElementById('modal-alerte').classList.contains('open');
-    if (alerteOpen) { window.fermerAlerte(); return; }
-  }
-});
-
-// =====================================================================
-// MODALES
-// =====================================================================
-function ouvrirModale(id) { document.getElementById(id).classList.add('open'); }
-function fermerModale(id) { document.getElementById(id).classList.remove('open'); }
-window.fermerModale = fermerModale;
-
-// =====================================================================
-// INITIALISATION DE L'APPLICATION
-// =====================================================================
-async function init() {
-  // Vérifier/créer l'admin par défaut
-  await initAdminDefaut();
-
-  // Peupler les selects d'heures
-  populateHeureSelect(document.getElementById('exc-debut'));
-  populateHeureSelect(document.getElementById('exc-fin'));
-  populateHeureSelect(document.getElementById('madmin-debut'));
-  populateHeureSelect(document.getElementById('madmin-fin'));
-
-  // Restaurer session
-  const sessionData = sessionStorage.getItem('atelierSession');
-  if (sessionData) {
-    utilisateurCourant = JSON.parse(sessionData);
-    await actualiserUtilisateur();
-    afficherInterface();
-  } else {
-    afficherAuth();
-  }
-
-  // Masquer le splash
-  const splash = document.getElementById('splash');
-  if (splash && splash.parentNode) {
-    splash.style.opacity = '0';
-    setTimeout(() => { if(splash.parentNode) splash.remove(); }, 400);
-  }
-  document.getElementById('app').style.display = 'block';
-}
-
-// =====================================================================
-// CRÉATION ADMIN PAR DÉFAUT
-// =====================================================================
-async function initAdminDefaut() {
+ 
+<div class="toast" id="toast"></div>
+ 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+const STORAGE_KEY = 'ceramique_v2';
+let points = [];
+let chart = null;
+let tooltipHideTimer = null;
+let chronoRunning = false;
+let chronoStartMs = null;
+let chronoAccumMs = 0;
+let rafId = null;
+ 
+function loadStorage() {
   try {
-    // Tentative lecture directe du doc 'admin'
-    const adminSnap = await getDoc(doc(db,'utilisateurs','admin'));
-    if (!adminSnap.exists()) {
-      // Vérifier s'il existe un admin avec un autre ID
-      const q    = query(collection(db,'utilisateurs'), where('role','==','admin'));
-      const snap = await getDocs(q);
-      if (snap.empty) {
-        // Créer l'admin par défaut
-        const hash = await sha256('admin123');
-        await setDoc(doc(db,'utilisateurs','admin'), {
-          pseudo:            'admin',
-          email:             'julienceramiques@gmail.com',
-          motDePasse:        hash,
-          role:              'admin',
-          statut:            'actif',
-          dateInscription:   new Date().toISOString(),
-          premiereConnexion: true,
-        });
-        console.log('Admin par défaut créé avec succès.');
-      }
-    }
-  } catch(e) {
-    console.error('initAdmin erreur:', e);
-    // Afficher un avertissement visible si les règles Firestore bloquent
-    if (e.code === 'permission-denied') {
-      const errBox = document.getElementById('login-error');
-      if (errBox) {
-        errBox.textContent = '⚠️ Firestore bloque les accès. Allez dans Firebase Console → Firestore → Rules et mettez : allow read, write: if true;';
-        errBox.classList.remove('hidden');
-      }
-    }
-  }
-}
-
-// Recharger les données fraîches de l'utilisateur courant
-async function actualiserUtilisateur() {
-  if (!utilisateurCourant) return;
-  try {
-    const snap = await getDoc(doc(db,'utilisateurs', utilisateurCourant.id));
-    if (snap.exists()) {
-      utilisateurCourant = { id: snap.id, ...snap.data() };
-      sessionStorage.setItem('atelierSession', JSON.stringify(utilisateurCourant));
-    }
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    points = d.points || [];
+    chronoAccumMs = d.accumMs || 0;
+    if (d.running && d.startMs) { chronoStartMs = d.startMs; chronoRunning = true; }
   } catch(e) {}
 }
-
-// =====================================================================
-// CONNEXION / DÉCONNEXION / INSCRIPTION
-// =====================================================================
-window.showAuthTab = function(tab) {
-  document.getElementById('form-login').classList.toggle('hidden', tab !== 'login');
-  document.getElementById('form-register').classList.toggle('hidden', tab !== 'register');
-  document.querySelectorAll('.auth-tab').forEach((b,i) => {
-    b.classList.toggle('active', (i===0 && tab==='login') || (i===1 && tab==='register'));
-  });
-};
-
-// Validation des formulaires au clavier (touche Entrée)
-document.addEventListener('DOMContentLoaded', () => {
-  // Entrée sur les champs de connexion
-  ['login-pseudo','login-mdp'].forEach(id => {
-    document.getElementById(id)?.addEventListener('keydown', e => {
-      if (e.key === 'Enter') window.connexion();
-    });
-  });
-  // Entrée sur les champs d'inscription
-  ['reg-pseudo','reg-email','reg-mdp'].forEach(id => {
-    document.getElementById(id)?.addEventListener('keydown', e => {
-      if (e.key === 'Enter') window.inscription();
-    });
-  });
-  // Entrée sur le champ code de vérification email
-  document.getElementById('verif-code-input')?.addEventListener('keydown', e => {
-    if (e.key === 'Enter') window.verifierCode();
-  });
-});
-
-window.connexion = async function() {
-  const pseudo = document.getElementById('login-pseudo').value.trim();
-  const mdp    = document.getElementById('login-mdp').value;
-  const errEl  = document.getElementById('login-error');
-  errEl.classList.add('hidden');
-
-  if (!pseudo || !mdp) { showErr(errEl,'Veuillez remplir tous les champs.'); return; }
-
-  const btnLogin = document.querySelector('#form-login .btn-primary');
-  btnLogin.disabled = true;
-  btnLogin.textContent = 'Connexion en cours…';
-
+ 
+function saveStorage() {
   try {
-    let userId   = null;
-    let userData = null;
-
-    // Essai lecture directe du document 'admin' si le pseudo est admin
-    if (pseudo === 'admin') {
-      try {
-        const directSnap = await getDoc(doc(db,'utilisateurs','admin'));
-        if (directSnap.exists()) {
-          userId   = directSnap.id;
-          userData = directSnap.data();
-        }
-      } catch(e2) { /* on tente la requête query en fallback */ }
-    }
-
-    // Requête par pseudo — insensible à la casse
-    if (!userData) {
-      const snap = await getDocs(collection(db,'utilisateurs'));
-      const pseudoLower = pseudo.toLowerCase();
-      const match = snap.docs.find(d => (d.data().pseudo || '').toLowerCase() === pseudoLower);
-      if (!match) {
-        showErr(errEl,'Pseudo ou mot de passe incorrect.');
-        btnLogin.disabled = false; btnLogin.textContent = 'Se connecter'; return;
-      }
-      userId   = match.id;
-      userData = match.data();
-    }
-
-    const hash = await sha256(mdp);
-
-    if (hash !== userData.motDePasse) {
-      showErr(errEl,'Pseudo ou mot de passe incorrect.');
-      btnLogin.disabled = false; btnLogin.textContent = 'Se connecter'; return;
-    }
-    if (userData.statut === 'en_attente') {
-      showErr(errEl,'Votre compte est en attente de validation.');
-      btnLogin.disabled = false; btnLogin.textContent = 'Se connecter'; return;
-    }
-    if (userData.statut === 'suspendu') {
-      showErr(errEl,'Votre compte est suspendu. Contactez l\'administrateur.');
-      btnLogin.disabled = false; btnLogin.textContent = 'Se connecter'; return;
-    }
-
-    utilisateurCourant = { id: userId, ...userData };
-    sessionStorage.setItem('atelierSession', JSON.stringify(utilisateurCourant));
-    afficherInterface();
-  } catch(e) {
-    console.error('Erreur connexion:', e);
-    if (e.code === 'permission-denied' || (e.message && e.message.includes('permission'))) {
-      showErr(errEl,'❌ Accès refusé par Firestore. Dans la console Firebase : Firestore Database → Rules → remplacez par : allow read, write: if true;');
-    } else if (e.code === 'unavailable' || e.code === 'failed-precondition') {
-      showErr(errEl,'❌ Impossible de joindre Firestore. Vérifiez que la base de données Firestore est bien créée dans votre projet Firebase.');
-    } else {
-      showErr(errEl,'Erreur : '+e.message);
-    }
-    btnLogin.disabled = false; btnLogin.textContent = 'Se connecter';
-  }
-};
-
-// =====================================================================
-// CONFIGURATION WEB3FORMS
-// Service gratuit d'envoi d'emails sans serveur ni restriction de domaine
-// Clé disponible sur https://web3forms.com
-// =====================================================================
-const WEB3FORMS_KEY = '855df4b3-4d43-430f-903a-4585ca492e78';
-
-// Envoi d'un email via Web3Forms (fetch simple, aucune dépendance)
-async function envoyerEmail(toEmail, toName, subject, message) {
-  try {
-    const response = await fetch('https://api.web3forms.com/submit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({
-        access_key: WEB3FORMS_KEY,
-        subject:    subject,
-        from_name:  'Julien Céramiques — Atelier',
-        email:      toEmail,        // destinataire affiché dans le mail
-        name:       toName,
-        message:    message,
-        // Web3Forms envoie toujours à l'adresse liée à la clé (julienceramiques@gmail.com)
-        // Le champ 'replyto' permet de répondre directement à l'adhérent
-        replyto:    toEmail,
-      }),
-    });
-    const data = await response.json();
-    if (data.success) {
-      console.log('Email envoyé à', toEmail);
-      return true;
-    } else {
-      console.error('Web3Forms erreur:', data);
-      return false;
-    }
-  } catch(e) {
-    console.error('Erreur envoi email:', e);
-    return false;
-  }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ points, running: chronoRunning, startMs: chronoStartMs, accumMs: chronoAccumMs }));
+  } catch(e) {}
 }
-
-// Code de vérification temporaire (stocké en mémoire)
-let verifData = null; // { code, email, pseudo, mdpHash, expireAt }
-
-// Valider le format email
-function emailValide(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+ 
+function elapsedMs() {
+  return chronoRunning ? chronoAccumMs + (Date.now() - chronoStartMs) : chronoAccumMs;
 }
-
-// Étape 1 : Vérifier les champs et envoyer le code
-window.demanderVerificationEmail = async function(renvoyer = false) {
-  const pseudo = document.getElementById('reg-pseudo').value.trim();
-  const email  = document.getElementById('reg-email').value.trim();
-  const mdp    = document.getElementById('reg-mdp').value;
-  const errEl  = document.getElementById('reg-error');
-  errEl.classList.add('hidden');
-
-  if (!pseudo || !email || !mdp) { showErr(errEl,'Veuillez remplir tous les champs.'); return; }
-  if (!emailValide(email)) { showErr(errEl,'Adresse email invalide. Vérifiez le format (ex: nom@domaine.fr).'); return; }
-  if (mdp.length < 6) { showErr(errEl,'Le mot de passe doit contenir au moins 6 caractères.'); return; }
-
-  const btn = document.getElementById('btn-envoyer-code');
-  btn.disabled = true;
-  btn.textContent = 'Envoi du code…';
-
-  try {
-    // Vérifier unicité du pseudo
-    const q = query(collection(db,'utilisateurs'), where('pseudo','==',pseudo));
-    const snap = await getDocs(q);
-    if (!snap.empty) {
-      showErr(errEl,'Ce pseudo est déjà utilisé. Choisissez-en un autre.');
-      btn.disabled = false; btn.textContent = 'Vérifier mon adresse mail →'; return;
-    }
-    // Vérifier unicité de l'email
-    const qEmail = query(collection(db,'utilisateurs'), where('email','==',email));
-    const snapEmail = await getDocs(qEmail);
-    if (!snapEmail.empty) {
-      showErr(errEl,'Cette adresse email est déjà utilisée.');
-      btn.disabled = false; btn.textContent = 'Vérifier mon adresse mail →'; return;
-    }
-
-    // Générer le code à 6 chiffres
-    const code    = String(Math.floor(100000 + Math.random() * 900000));
-    const hash    = await sha256(mdp);
-    verifData     = { code, email, pseudo, mdpHash: hash, expireAt: Date.now() + 10*60*1000 };
-
-    // Afficher l'email de destination
-    document.getElementById('verif-email-display').textContent = email;
-
-    // Envoyer le code par email via Web3Forms
-    const ok = await envoyerEmail(email, pseudo,
-      'Votre code de vérification — Julien Céramiques',
-      'Bonjour ' + pseudo + ',\n\nVotre code de vérification pour créer votre compte à l\'atelier Julien Céramiques est :\n\n' + code + '\n\nCe code est valable 10 minutes.\n\nSi vous n\'êtes pas à l\'origine de cette demande, ignorez ce message.\n\nÀ bientôt à l\'atelier !'
-    );
-    if (!ok) {
-      // En cas d'échec, afficher le code à l'écran pour ne pas bloquer l'inscription
-      toast('⚠️ Email non envoyé. Code de vérification : ' + code, 'warning');
-    }
-
-    // Passer à l'étape 2
-    document.getElementById('reg-step1').classList.add('hidden');
-    document.getElementById('reg-step2').classList.remove('hidden');
-    document.getElementById('verif-code-input').value = '';
-    document.getElementById('verif-error').classList.add('hidden');
-    if (!renvoyer) setTimeout(() => document.getElementById('verif-code-input')?.focus(), 100);
-
-  } catch(e) {
-    showErr(errEl,'Erreur : '+e.message);
+ 
+function elapsedH() { return elapsedMs() / 3600000; }
+ 
+function fmtMs(ms) {
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sc = s % 60;
+  return h + ':' + String(m).padStart(2,'0') + ':' + String(sc).padStart(2,'0');
+}
+ 
+function formatTime(h) {
+  const hr = Math.floor(h);
+  const mn = Math.round((h - hr) * 60);
+  return hr + 'h' + String(mn).padStart(2,'0');
+}
+ 
+function parseTime(str) {
+  str = (str || '').trim();
+  if (str.includes(':')) {
+    const p = str.split(':');
+    const h = parseFloat(p[0]), m = parseFloat(p[1] || '0');
+    return (isNaN(h) || isNaN(m)) ? null : h + m / 60;
   }
-  btn.disabled = false; btn.textContent = 'Vérifier mon adresse mail →';
-};
-
-// Retour à l'étape 1
-window.retourEtape1 = function() {
-  document.getElementById('reg-step1').classList.remove('hidden');
-  document.getElementById('reg-step2').classList.add('hidden');
-  verifData = null;
-};
-
-// Étape 2 : Valider le code et créer le compte
-window.verifierCode = async function() {
-  const saisi  = document.getElementById('verif-code-input').value.trim();
-  const errEl  = document.getElementById('verif-error');
-  errEl.classList.add('hidden');
-
-  if (!verifData) { showErr(errEl,'Session expirée. Recommencez.'); return; }
-  if (Date.now() > verifData.expireAt) {
-    showErr(errEl,'Le code a expiré (10 min). Renvoyez un nouveau code.'); return;
-  }
-  if (saisi !== verifData.code) {
-    showErr(errEl,'Code incorrect. Vérifiez le code reçu par email.'); return;
-  }
-
-  const btn = document.querySelector('#reg-step2 .btn-primary');
-  btn.disabled = true; btn.textContent = 'Création du compte…';
-
-  try {
-    await addDoc(collection(db,'utilisateurs'), {
-      pseudo:            verifData.pseudo,
-      email:             verifData.email,
-      motDePasse:        verifData.mdpHash,
-      role:              'adherent',
-      statut:            'en_attente',
-      emailVerifie:      true,
-      dateInscription:   new Date().toISOString(),
-      datePaiement:      null,
-      montantPaye:       null,
-      dateDebutAdhesion: null,
-      dateFinAdhesion:   null,
-    });
-    verifData = null;
-    toast('✅ Inscription envoyée ! En attente de validation par l\'administrateur.', 'success', 6000);
-    showAuthTab('login');
-    // Réinitialiser le formulaire
-    document.getElementById('reg-step1').classList.remove('hidden');
-    document.getElementById('reg-step2').classList.add('hidden');
-    ['reg-pseudo','reg-email','reg-mdp'].forEach(id => document.getElementById(id).value = '');
-  } catch(e) {
-    showErr(errEl,'Erreur lors de la création du compte : '+e.message);
-  }
-  btn.disabled = false; btn.textContent = 'Valider le code';
-};
-
-// Ancienne fonction inscription (gardée pour compatibilité interne)
-window.inscription = window.demanderVerificationEmail;
-
-window.deconnexion = function() {
-  utilisateurCourant = null;
-  sessionStorage.removeItem('atelierSession');
-  allResas = []; allUsers = []; allExceptions = [];
-  // Réinitialiser les formulaires et le bouton de connexion
-  document.getElementById('login-pseudo').value = '';
-  document.getElementById('login-mdp').value = '';
-  document.getElementById('login-error').classList.add('hidden');
-  const btnLogin = document.querySelector('#form-login .btn-primary');
-  if (btnLogin) { btnLogin.disabled = false; btnLogin.textContent = 'Se connecter'; }
-  afficherAuth();
-};
-
-function showErr(el, msg) {
+  const v = parseFloat(str.replace(',', '.'));
+  return isNaN(v) ? null : v;
+}
+ 
+function calcSpeed(i) {
+  if (i === 0 || i >= points.length) return null;
+  const dt = points[i].time - points[i-1].time;
+  return dt <= 0 ? null : (points[i].temp - points[i-1].temp) / dt;
+}
+ 
+function toast(msg) {
+  const el = document.getElementById('toast');
   el.textContent = msg;
-  el.classList.remove('hidden');
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 2400);
 }
-
-// =====================================================================
-// NAVIGATION PRINCIPALE
-// =====================================================================
-function afficherAuth() {
-  document.getElementById('navbar').style.display = 'none';
-  document.getElementById('page-auth').style.display = 'flex';
-  document.getElementById('page-adherent').style.display = 'none';
-  document.getElementById('page-admin').style.display = 'none';
-}
-
-function afficherInterface() {
-  document.getElementById('page-auth').style.display = 'none';
-  document.getElementById('navbar').style.display = 'flex';
-
-  document.getElementById('nav-pseudo').textContent = utilisateurCourant.pseudo;
-
-  if (utilisateurCourant.role === 'admin') {
-    document.getElementById('page-adherent').style.display = 'none';
-    document.getElementById('page-admin').style.display = 'block';
-    chargerAdmin();
+ 
+function toggleChrono() {
+  if (chronoRunning) {
+    chronoAccumMs += Date.now() - chronoStartMs;
+    chronoStartMs = null;
+    chronoRunning = false;
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    document.getElementById('btn-start').textContent = 'Reprendre';
+    document.getElementById('btn-start').classList.remove('running');
+    document.getElementById('chrono-disp').className = 'chrono-display paused';
+    document.getElementById('m-chrono-lbl').textContent = 'en pause';
   } else {
-    document.getElementById('page-adherent').style.display = 'block';
-    document.getElementById('page-admin').style.display = 'none';
-    chargerAdherent();
+    chronoStartMs = Date.now();
+    chronoRunning = true;
+    document.getElementById('btn-start').textContent = 'Pause';
+    document.getElementById('btn-start').classList.add('running');
+    document.getElementById('chrono-disp').className = 'chrono-display running';
+    document.getElementById('m-chrono-lbl').textContent = 'en cours';
+    tick();
   }
+  updateCaptureBtn();
+  saveStorage();
 }
-
-// =====================================================================
-// ESPACE ADHÉRENT
-// =====================================================================
-async function chargerAdherent() {
-  await chargerReservations();
-  afficherDashboardAdherent();
-  afficherAlerteAdhesion();
-
-  // Alerte première connexion admin (ne s'applique pas ici, mais on le prévoit)
-  calCurrentWeek  = lundiDeLaSemaine(new Date());
-  calCurrentMonth = premierDuMois(new Date());
-  calView   = 'week';
-  calContext = 'adherent';
+ 
+function tick() {
+  if (!chronoRunning) return;
+  const ms = elapsedMs();
+  document.getElementById('chrono-disp').textContent = fmtMs(ms);
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  document.getElementById('m-chrono').textContent = h + ':' + String(m).padStart(2,'0');
+  rafId = requestAnimationFrame(tick);
 }
-
-window.showAdherentTab = function(tab) {
-  document.querySelectorAll('#page-adherent .tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('#page-adherent .tab-content').forEach(c => c.classList.add('hidden'));
-  const idx = ['dashboard','calendrier','mes-reservations','mon-compte'].indexOf(tab);
-  document.querySelectorAll('#page-adherent .tab-btn')[idx]?.classList.add('active');
-  document.getElementById(`tab-adh-${tab}`)?.classList.remove('hidden');
-
-  if (tab === 'calendrier') {
-    renderCalendrier('adherent-wrap');
-  } else if (tab === 'mes-reservations') {
-    afficherMesReservations();
+ 
+function resetChrono() {
+  if (chronoRunning || chronoAccumMs > 0) {
+    if (!confirm('Réinitialiser le chronomètre ? Les relevés ne seront pas effacés.')) return;
   }
-};
-
-function afficherAlerteAdhesion() {
-  const u = utilisateurCourant;
-  const alertEl = document.getElementById('adherent-alerte-adhesion');
-  if (!u.dateFinAdhesion) { alertEl.classList.add('hidden'); return; }
-  const fin   = strToDate(u.dateFinAdhesion);
-  const today = new Date();
-  today.setHours(0,0,0,0);
-  const diff  = Math.ceil((fin - today) / 86400000);
-  if (diff <= JOURS_EXPIRE && diff >= 0) {
-    document.getElementById('adherent-alerte-txt').textContent =
-      `Votre adhésion expire le ${formatDate(fin)} (dans ${diff} jour${diff>1?'s':''}). Contactez l'administrateur pour renouveler.`;
-    alertEl.classList.remove('hidden');
-  } else {
-    alertEl.classList.add('hidden');
-  }
+  chronoRunning = false; chronoStartMs = null; chronoAccumMs = 0;
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  document.getElementById('chrono-disp').textContent = '0:00:00';
+  document.getElementById('chrono-disp').className = 'chrono-display';
+  document.getElementById('btn-start').textContent = 'Démarrer';
+  document.getElementById('btn-start').classList.remove('running');
+  document.getElementById('m-chrono').textContent = '0:00';
+  document.getElementById('m-chrono-lbl').textContent = 'en attente';
+  updateCaptureBtn();
+  saveStorage();
+  toast('Chronomètre réinitialisé');
 }
-
-function afficherDashboardAdherent() {
-  const u = utilisateurCourant;
-  document.getElementById('adh-pseudo-display').textContent = u.pseudo;
-
-  // Profil
-  const grid = document.getElementById('adh-profile-grid');
-  grid.innerHTML = `
-    <div class="profile-info-card"><div class="pil">Membre depuis</div><div class="pval">${formatDate(u.dateDebutAdhesion) || '—'}</div></div>
-    <div class="profile-info-card"><div class="pil">Fin d'adhésion</div><div class="pval">${formatDate(u.dateFinAdhesion) || '—'}</div></div>
-    <div class="profile-info-card"><div class="pil">Statut</div><div class="pval">${badgeStatut(u.statut)}</div></div>
-    <div class="profile-info-card"><div class="pil">Email</div><div class="pval" style="font-size:.95rem">${u.email||'—'}</div></div>
-  `;
-
-  // Heures semaine
-  const heures = heuresSemaineCourante(utilisateurCourant.id);
-  const pct    = Math.min((heures / MAX_HEURES_SEM) * 100, 100);
-  document.getElementById('adh-heures-val').textContent = formatHeures(heures);
-  document.getElementById('adh-heures-bar').style.width = pct + '%';
-
-  // Prochains créneaux
-  const now = new Date();
-  const prochains = allResas
-    .filter(r => r.userId === utilisateurCourant.id && slotToDate(r.date, r.heureDebut) > now)
-    .sort((a,b) => slotToDate(a.date,a.heureDebut) - slotToDate(b.date,b.heureDebut))
-    .slice(0,5);
-
-  const el = document.getElementById('adh-prochains-resas');
-  if (prochains.length === 0) {
-    el.innerHTML = '<p class="text-muted">Aucune réservation à venir.</p>';
-  } else {
-    el.innerHTML = prochains.map(r => itemResa(r, false)).join('');
-  }
+ 
+function updateCaptureBtn() {
+  const hasTemp = document.getElementById('chrono-temp').value !== '';
+  const hasTime = elapsedMs() >= 100;
+  document.getElementById('btn-capture').disabled = !(hasTemp && hasTime);
 }
-
-function afficherMesReservations() {
-  const now = new Date();
-  const resas = allResas
-    .filter(r => r.userId === utilisateurCourant.id && slotToDate(r.date, r.heureDebut) > now)
-    .sort((a,b) => slotToDate(a.date,a.heureDebut) - slotToDate(b.date,b.heureDebut));
-  const el = document.getElementById('liste-mes-reservations');
-  if (resas.length === 0) {
-    el.innerHTML = '<p class="text-muted">Aucune réservation à venir.</p>';
-  } else {
-    el.innerHTML = resas.map(r => itemResa(r, true)).join('');
-  }
+ 
+function capturePoint() {
+  const temp = parseFloat(document.getElementById('chrono-temp').value);
+  if (isNaN(temp) || temp < 0 || temp > 1400) { toast('Température invalide (0–1400 °C)'); return; }
+  const t = elapsedH();
+  if (t < 0.0001) { toast('Démarrez le chronomètre d\'abord'); return; }
+  if (points.find(p => Math.abs(p.time - t) < 0.001)) { toast('Relevé trop proche du précédent'); return; }
+  points.push({ time: t, temp, src: 'chrono' });
+  points.sort((a, b) => a.time - b.time);
+  saveStorage();
+  document.getElementById('chrono-temp').value = '';
+  updateCaptureBtn();
+  render();
+  toast('Relevé capturé — ' + formatTime(t) + ' → ' + Math.round(temp) + ' °C');
 }
-
-function itemResa(r, avecBoutonAnnuler) {
-  const debut     = slotToDate(r.date, r.heureDebut);
-  const fin       = slotToDate(r.date, r.heureFin);
-  const canCancel = avecBoutonAnnuler && (debut - new Date()) > DELAI_ANNUL_H * 3600000;
-  return `<div class="resa-item">
-    <div class="resa-date">${pad(debut.getDate())} ${moisNoms[debut.getMonth()].substring(0,3)}</div>
-    <div class="resa-details">
-      <strong>${heureStr(r.heureDebut)} – ${heureStr(r.heureFin)}</strong>
-      <span>${POSTES[r.typePoste]||r.typePoste}</span>
-    </div>
-    ${canCancel ? `<button class="btn btn-danger btn-sm" onclick="annulerReservation('${r.id}')">Annuler</button>` : ''}
-  </div>`;
+ 
+function addManualPoint() {
+  const tStr = document.getElementById('inp-time').value;
+  const temp = parseFloat(document.getElementById('inp-temp').value);
+  const t = parseTime(tStr);
+  if (t === null || isNaN(t) || t < 0) { toast('Temps invalide (ex : 1:30 ou 1.5)'); return; }
+  if (isNaN(temp) || temp < 0 || temp > 1400) { toast('Température invalide (0–1400 °C)'); return; }
+  if (points.find(p => Math.abs(p.time - t) < 0.001)) { toast('Un relevé existe déjà à ce temps'); return; }
+  points.push({ time: t, temp, src: 'manual' });
+  points.sort((a, b) => a.time - b.time);
+  saveStorage();
+  document.getElementById('inp-time').value = '';
+  document.getElementById('inp-temp').value = '';
+  render();
+  toast('Relevé ajouté — ' + formatTime(t) + ' → ' + Math.round(temp) + ' °C');
 }
-
-window.annulerReservation = async function(id) {
-  if (!await confirmer('Êtes-vous sûr de vouloir annuler cette réservation ?', 'danger', 'Annuler la réservation')) return;
-  try {
-    await deleteDoc(doc(db,'reservations',id));
-    allResas = allResas.filter(r => r.id !== id);
-    toast('Réservation annulée.', 'success');
-    afficherMesReservations();
-    afficherDashboardAdherent();
-    renderCalendrier(calContext === 'admin' ? 'admin-wrap' : 'adherent-wrap');
-  } catch(e) { toast('Erreur : '+e.message, 'error'); }
-};
-
-window.changerMotDePasse = async function() {
-  const mdp  = document.getElementById('adh-new-mdp').value;
-  const mdp2 = document.getElementById('adh-new-mdp2').value;
-  if (!mdp || !mdp2) { toast('Veuillez remplir les deux champs.','warning'); return; }
-  if (mdp !== mdp2)  { toast('Les mots de passe ne correspondent pas.','warning'); return; }
-  if (mdp.length < 6){ toast('Minimum 6 caractères.','warning'); return; }
-  try {
-    const hash = await sha256(mdp);
-    await updateDoc(doc(db,'utilisateurs',utilisateurCourant.id), { motDePasse: hash, premiereConnexion: false });
-    toast('Mot de passe modifié avec succès.','success');
-    document.getElementById('adh-new-mdp').value  = '';
-    document.getElementById('adh-new-mdp2').value = '';
-  } catch(e) { toast('Erreur : '+e.message,'error'); }
-};
-
-// =====================================================================
-// ESPACE ADMIN
-// =====================================================================
-async function chargerAdmin() {
-  // Afficher le dashboard immédiatement (avec données vides)
-  // pour éviter la page blanche pendant le chargement
-  showAdminTab('dashboard');
-
-  try {
-    await Promise.all([chargerReservations(), chargerUtilisateurs(), chargerExceptions()]);
-  } catch(e) {
-    console.error('Erreur chargement admin:', e);
-    toast('Erreur de chargement des données : ' + e.message, 'error');
-  }
-
-  calCurrentWeek  = lundiDeLaSemaine(new Date());
-  calCurrentMonth = premierDuMois(new Date());
-  calView         = 'week';
-  calContext      = 'admin';
-
-  // Mettre à jour le dashboard avec les vraies données
-  afficherDashboardAdmin();
-
-  // Badge attente
-  const enAttente = allUsers.filter(u => u.statut === 'en_attente').length;
-  const badge     = document.getElementById('nav-badge');
-  const badgeAdmin = document.getElementById('admin-badge-wait');
-  if (enAttente > 0) {
-    badge.textContent = enAttente; badge.classList.remove('hidden');
-    badgeAdmin.textContent = enAttente; badgeAdmin.classList.remove('hidden');
-  } else {
-    badge.classList.add('hidden'); badgeAdmin.classList.add('hidden');
-  }
-
-  // Alerte première connexion admin
-  if (utilisateurCourant.premiereConnexion) {
-    toast('⚠️ Bienvenue ! Pensez à changer votre mot de passe admin.', 'warning', 7000);
-  }
+ 
+function deletePoint(i) {
+  points.splice(i, 1);
+  saveStorage(); render(); toast('Relevé supprimé');
 }
-
-window.showAdminTab = function(tab) {
-  // Retirer la classe active de tous les boutons
-  document.querySelectorAll('#page-admin .tab-btn').forEach(b => b.classList.remove('active'));
-  // Cacher tous les contenus d'onglets admin
-  ['dashboard','adherents','calendrier','exceptions'].forEach(t => {
-    const el = document.getElementById('tab-admin-'+t);
-    if (el) el.classList.add('hidden');
-  });
-  // Activer le bon bouton
-  const tabs = ['dashboard','adherents','calendrier','exceptions'];
-  const idx  = tabs.indexOf(tab);
-  const btns = document.querySelectorAll('#page-admin .tab-btn');
-  if (btns[idx]) btns[idx].classList.add('active');
-  // Afficher le bon contenu
-  const contenu = document.getElementById('tab-admin-'+tab);
-  if (contenu) contenu.classList.remove('hidden');
-
-  if (tab === 'adherents')  afficherTableauAdherents();
-  if (tab === 'calendrier') renderCalendrier('admin-wrap');
-  if (tab === 'exceptions') afficherExceptions();
-};
-
-function afficherDashboardAdmin() {
-  const actifs   = allUsers.filter(u => u.role==='adherent' && u.statut==='actif').length;
-  const attente  = allUsers.filter(u => u.statut==='en_attente');
-  const today    = new Date(); today.setHours(0,0,0,0);
-  const fin15    = new Date(today); fin15.setDate(fin15.getDate()+15);
-  const expire15 = allUsers.filter(u =>
-    u.role==='adherent' && u.dateFinAdhesion &&
-    strToDate(u.dateFinAdhesion) <= fin15 &&
-    strToDate(u.dateFinAdhesion) >= today
-  );
-
-  // Section attente
-  const secAtt = document.getElementById('admin-attente-section');
-  const listAtt = document.getElementById('admin-attente-list');
-  if (attente.length > 0) {
-    secAtt.classList.remove('hidden');
-    listAtt.innerHTML = attente.map(u => `
-      <div class="resa-item">
-        <div class="resa-date" style="font-size:1rem">${u.pseudo}</div>
-        <div class="resa-details"><strong>${u.email||'—'}</strong><span>Inscrit le ${formatDate(u.dateInscription?.substring(0,10))}</span></div>
-        <button class="btn btn-success btn-sm" onclick="validerCompte('${u.id}')">Valider</button>
-        <button class="btn btn-danger btn-sm"  onclick="supprimerCompte('${u.id}','${u.pseudo}')">Refuser</button>
-      </div>`).join('');
-  } else { secAtt.classList.add('hidden'); }
-
-  // Section expiration
-  const secExp = document.getElementById('admin-expiration-section');
-  const listExp = document.getElementById('admin-expiration-list');
-  if (expire15.length > 0) {
-    secExp.classList.remove('hidden');
-    listExp.innerHTML = expire15.map(u => {
-      const fin = strToDate(u.dateFinAdhesion);
-      const diff = Math.ceil((fin - today)/86400000);
-      return `<div class="resa-item">
-        <div class="resa-date" style="font-size:1rem">${u.pseudo}</div>
-        <div class="resa-details"><strong>Expire le ${formatDate(u.dateFinAdhesion)}</strong><span>Dans ${diff} jour${diff>1?'s':''}</span></div>
-        <button class="btn btn-info btn-sm" onclick="ouvrirFicheAdherent('${u.id}')">Voir la fiche</button>
-      </div>`;
-    }).join('');
-  } else { secExp.classList.add('hidden'); }
-
-  // Statistiques
-  const resasSem = resasDeLaSemaine();
-  document.getElementById('admin-stats-grid').innerHTML = `
-    <div class="stat-card"><div class="stat-label">Adhérents actifs</div><div class="stat-value">${actifs}</div></div>
-    <div class="stat-card"><div class="stat-label">En attente</div><div class="stat-value" style="color:var(--danger)">${attente.length}</div></div>
-    <div class="stat-card"><div class="stat-label">Réservations cette semaine</div><div class="stat-value">${resasSem.length}</div></div>
-    <div class="stat-card"><div class="stat-label">Expirent sous 15 j</div><div class="stat-value" style="color:var(--warning)">${expire15.length}</div></div>
-  `;
+ 
+function clearAll() {
+  if (!points.length) return;
+  if (!confirm('Effacer tous les relevés ?')) return;
+  points = []; saveStorage(); render(); toast('Données effacées');
 }
-
-function resasDeLaSemaine() {
-  const lundi = lundiDeLaSemaine(new Date());
-  const dim   = new Date(lundi); dim.setDate(dim.getDate()+6); dim.setHours(23,59,59);
-  return allResas.filter(r => {
-    const d = slotToDate(r.date, r.heureDebut);
-    return d >= lundi && d <= dim;
-  });
+ 
+function switchMode(m) {
+  document.getElementById('tab-chrono').classList.toggle('active', m === 'chrono');
+  document.getElementById('tab-manual').classList.toggle('active', m === 'manual');
+  document.getElementById('panel-chrono').style.display = m === 'chrono' ? '' : 'none';
+  document.getElementById('panel-manual').style.display = m === 'manual' ? '' : 'none';
 }
-
-// =====================================================================
-// GESTION DES ADHÉRENTS (admin)
-// =====================================================================
-async function chargerUtilisateurs() {
-  try {
-    const snap = await getDocs(collection(db,'utilisateurs'));
-    allUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    adherentsCache = [...allUsers];
-  } catch(e) { console.error(e); }
+ 
+function render() { renderMetrics(); renderChart(); renderTable(); }
+ 
+function renderMetrics() {
+  const n = points.length;
+  document.getElementById('m-count').textContent = n;
+  if (!n) { document.getElementById('m-temp').textContent = '—'; document.getElementById('m-speed').textContent = '—'; return; }
+  const last = points[n-1];
+  document.getElementById('m-temp').textContent = Math.round(last.temp);
+  const spd = calcSpeed(n-1);
+  document.getElementById('m-speed').textContent = spd !== null ? Math.round(spd) : '—';
 }
-
-function afficherTableauAdherents(liste) {
-  const tbody = document.getElementById('tbody-adherents');
-  const users = (liste || allUsers).filter(u => u.role !== 'admin');
-  tbody.innerHTML = users.map(u => {
-    const heures = heuresSemaineCourante(u.id);
-    return `<tr>
-      <td><strong>${u.pseudo}</strong></td>
-      <td>${u.email||'—'}</td>
-      <td>${badgeStatut(u.statut)}</td>
-      <td>${u.dateFinAdhesion ? formatDate(u.dateFinAdhesion) : '—'}</td>
-      <td>${formatHeures(heures)}</td>
-      <td><div class="actions-cell">
-        <button class="btn btn-info btn-sm" onclick="ouvrirFicheAdherent('${u.id}')">Fiche</button>
-        ${u.statut==='en_attente' ? `<button class="btn btn-success btn-sm" onclick="validerCompte('${u.id}')">Valider</button>` : ''}
-        ${u.statut==='actif'      ? `<button class="btn btn-warning btn-sm" onclick="suspendreCompte('${u.id}')">Suspendre</button>` : ''}
-        ${u.statut==='suspendu'   ? `<button class="btn btn-success btn-sm" onclick="validerCompte('${u.id}')">Réactiver</button>` : ''}
-        <button class="btn btn-danger btn-sm" onclick="supprimerCompte('${u.id}','${u.pseudo}')">✕</button>
-      </div></td>
-    </tr>`;
-  }).join('') || '<tr><td colspan="6" class="text-muted text-center">Aucun adhérent.</td></tr>';
-}
-
-window.filtrerAdherents = function() {
-  const q = document.getElementById('search-adherents').value.toLowerCase();
-  const f = allUsers.filter(u => u.role!=='admin' && (u.pseudo.toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q)));
-  afficherTableauAdherents(f);
-};
-
-window.validerCompte = async function(id) {
-  try {
-    await updateDoc(doc(db,'utilisateurs',id), { statut: 'actif' });
-    // Envoyer un email de validation à l'adhérent
-    const u = allUsers.find(x => x.id === id);
-    if (u && u.email) {
-      await envoyerEmail(
-        u.email, u.pseudo,
-        'Votre compte a été validé — Julien Céramiques',
-        `Bonjour ${u.pseudo},\n\nVotre compte à l'atelier Julien Céramiques vient d'être validé par l'administrateur.\n\nVous pouvez maintenant vous connecter avec votre pseudo et votre mot de passe sur l'application.\n\nÀ très bientôt à l'atelier !\n\nL'équipe Julien Céramiques`
-      );
-    }
-    await rafraichirUsers();
-    toast('Compte validé. Email envoyé à l\'adhérent.', 'success');
-  } catch(e) { toast('Erreur : '+e.message,'error'); }
-};
-
-window.suspendreCompte = async function(id) {
-  if (!await confirmer('Suspendre le compte de cet adhérent ? Il ne pourra plus se connecter.', 'danger', 'Suspendre le compte')) return;
-  try {
-    await updateDoc(doc(db,'utilisateurs',id), { statut: 'suspendu' });
-    await rafraichirUsers();
-    toast('Compte suspendu.','warning');
-  } catch(e) { toast('Erreur : '+e.message,'error'); }
-};
-
-window.supprimerCompte = async function(id, pseudo) {
-  const u = allUsers.find(x => x.id === id);
-  const estEnAttente = u && u.statut === 'en_attente';
-  const label   = estEnAttente ? 'Refuser et supprimer' : 'Supprimer définitivement';
-  const msgConf = label + ' le compte de ' + pseudo + ' ? Cette action est irréversible.';
-  if (!await confirmer(msgConf, 'danger', label + ' le compte')) return;
-  try {
-    // Envoyer un email de refus si le compte était en attente
-    if (estEnAttente && u.email) {
-      await envoyerEmail(
-        u.email, u.pseudo,
-        'Votre demande d\'adhésion — Julien Céramiques',
-        `Bonjour ${u.pseudo},\n\nNous avons bien reçu votre demande d\'adhésion à l\'atelier Julien Céramiques.\n\nAprès examen de votre dossier, nous ne sommes pas en mesure de donner suite à votre demande pour le moment.\n\nN\'hésitez pas à nous contacter directement pour plus d\'informations.\n\nCordialement,\nL\'équipe Julien Céramiques`
-      );
-    }
-    // Supprimer les réservations de cet adhérent
-    const q = query(collection(db,'reservations'), where('userId','==',id));
-    const snap = await getDocs(q);
-    await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
-    await deleteDoc(doc(db,'utilisateurs',id));
-    await rafraichirUsers();
-    await chargerReservations();
-    toast(estEnAttente ? 'Demande refusée. Email envoyé.' : 'Compte supprimé.', 'success');
-  } catch(e) { toast('Erreur : '+e.message,'error'); }
-};
-
-window.ouvrirFicheAdherent = function(id) {
-  const u = allUsers.find(x => x.id === id);
-  if (!u) return;
-  const heures = heuresSemaineCourante(id);
-  const resasUser = allResas.filter(r => r.userId === id).sort((a,b) => slotToDate(a.date,a.heureDebut)-slotToDate(b.date,b.heureDebut));
-
-  document.getElementById('modal-adh-titre').textContent = `Fiche — ${u.pseudo}`;
-  document.getElementById('modal-adh-contenu').innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1.25rem;">
-      <div class="profile-info-card"><div class="pil">Statut</div><div class="pval">${badgeStatut(u.statut)}</div></div>
-      <div class="profile-info-card"><div class="pil">H/semaine</div><div class="pval">${formatHeures(heures)}</div></div>
-      <div class="profile-info-card"><div class="pil">Début adhésion</div><div class="pval" style="font-size:1rem">${formatDate(u.dateDebutAdhesion)||'—'}</div></div>
-      <div class="profile-info-card"><div class="pil">Fin adhésion</div><div class="pval" style="font-size:1rem">${formatDate(u.dateFinAdhesion)||'—'}</div></div>
-      <div class="profile-info-card"><div class="pil">Dernier paiement</div><div class="pval" style="font-size:1rem">${formatDate(u.datePaiement)||'—'}</div></div>
-      <div class="profile-info-card"><div class="pil">Montant payé</div><div class="pval" style="font-size:1rem">${u.montantPaye ? u.montantPaye+'€' : '—'}</div></div>
-    </div>
-
-    <hr class="separator">
-    <h3 style="margin-bottom:.75rem">Enregistrer un paiement / renouveler</h3>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;margin-bottom:.75rem;">
-      <div class="form-group">
-        <label class="form-label">Date paiement</label>
-        <input class="form-input" id="fiche-datepai" type="date" value="${u.datePaiement||''}">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Montant (€)</label>
-        <input class="form-input" id="fiche-montant" type="number" value="${u.montantPaye||''}" min="0">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Fin adhésion</label>
-        <input class="form-input" id="fiche-fin" type="date" value="${u.dateFinAdhesion||''}">
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Début adhésion</label>
-      <input class="form-input" id="fiche-debut" type="date" value="${u.dateDebutAdhesion||''}" style="max-width:200px">
-    </div>
-    <button class="btn btn-primary btn-sm" onclick="enregistrerPaiement('${id}')">Enregistrer</button>
-
-    <hr class="separator">
-    <h3 style="margin-bottom:.75rem">Réservations (${resasUser.length})</h3>
-    <div class="resa-list" style="max-height:250px;overflow-y:auto;">
-      ${resasUser.length === 0 ? '<p class="text-muted">Aucune réservation.</p>' :
-        resasUser.map(r => `
-          <div class="resa-item">
-            <div class="resa-date" style="font-size:.95rem">${formatDate(r.date)}</div>
-            <div class="resa-details"><strong>${heureStr(r.heureDebut)} – ${heureStr(r.heureFin)}</strong><span>${POSTES[r.typePoste]||r.typePoste}</span></div>
-            <button class="btn btn-danger btn-sm" onclick="supprimerResa('${r.id}')">✕</button>
-          </div>`).join('')}
-    </div>
-  `;
-  ouvrirModale('modal-adherent');
-};
-
-window.enregistrerPaiement = async function(id) {
-  const datePai = document.getElementById('fiche-datepai').value;
-  const montant = document.getElementById('fiche-montant').value;
-  const fin     = document.getElementById('fiche-fin').value;
-  const debut   = document.getElementById('fiche-debut').value;
-
-  // Calculer fin automatique si non fourni
-  let dateFinCal = fin;
-  if (!dateFinCal && debut) {
-    const d = strToDate(debut);
-    d.setMonth(d.getMonth() + DUREE_ADH_MOIS);
-    dateFinCal = dateToStr(d);
-  }
-
-  try {
-    await updateDoc(doc(db,'utilisateurs',id), {
-      datePaiement:     datePai  || null,
-      montantPaye:      montant  ? parseFloat(montant) : null,
-      dateDebutAdhesion: debut   || null,
-      dateFinAdhesion:  dateFinCal || null,
-      statut:           'actif',
-    });
-    await rafraichirUsers();
-    toast('Paiement enregistré.','success');
-    fermerModale('modal-adherent');
-  } catch(e) { toast('Erreur : '+e.message,'error'); }
-};
-
-window.supprimerResa = async function(id) {
-  if (!await confirmer('Supprimer définitivement cette réservation ?', 'danger', 'Supprimer la réservation')) return;
-  try {
-    await deleteDoc(doc(db,'reservations',id));
-    allResas = allResas.filter(r => r.id !== id);
-    toast('Réservation supprimée.','success');
-    fermerModale('modal-adherent');
-    renderCalendrier('admin-wrap');
-  } catch(e) { toast('Erreur : '+e.message,'error'); }
-};
-
-async function rafraichirUsers() {
-  await chargerUtilisateurs();
-  afficherDashboardAdmin();
-  afficherTableauAdherents();
-  const enAttente = allUsers.filter(u => u.statut==='en_attente').length;
-  const badge = document.getElementById('nav-badge');
-  const badgeAdmin = document.getElementById('admin-badge-wait');
-  if (enAttente > 0) {
-    badge.textContent = enAttente; badge.classList.remove('hidden');
-    badgeAdmin.textContent = enAttente; badgeAdmin.classList.remove('hidden');
-  } else {
-    badge.classList.add('hidden'); badgeAdmin.classList.add('hidden');
-  }
-}
-
-// =====================================================================
-// RÉSERVATIONS
-// =====================================================================
-async function chargerReservations() {
-  try {
-    const snap = await getDocs(collection(db,'reservations'));
-    allResas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  } catch(e) { console.error(e); }
-}
-
-async function chargerExceptions() {
-  try {
-    const snap = await getDocs(collection(db,'exceptions'));
-    allExceptions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  } catch(e) { console.error(e); }
-}
-
-// Heures réservées semaine courante pour un utilisateur
-function heuresSemaineCourante(userId) {
-  const lundi = lundiDeLaSemaine(new Date());
-  const dim   = new Date(lundi); dim.setDate(dim.getDate()+6); dim.setHours(23,59,59);
-  return allResas
-    .filter(r => r.userId === userId)
-    .filter(r => { const d = slotToDate(r.date, r.heureDebut); return d >= lundi && d <= dim; })
-    .reduce((s,r) => s + dureeH(r.heureDebut, r.heureFin), 0);
-}
-
-// Heures réservées une semaine donnée pour un utilisateur
-function heuresSemaine(userId, lundi) {
-  const dim = new Date(lundi); dim.setDate(dim.getDate()+6); dim.setHours(23,59,59);
-  return allResas
-    .filter(r => r.userId === userId)
-    .filter(r => { const d = slotToDate(r.date, r.heureDebut); return d >= lundi && d <= dim; })
-    .reduce((s,r) => s + dureeH(r.heureDebut, r.heureFin), 0);
-}
-
-function formatHeures(h) {
-  const hh = Math.floor(h);
-  const mm  = Math.round((h - hh) * 60);
-  return `${hh}h${mm > 0 ? pad(mm) : '00'}`;
-}
-
-// =====================================================================
-// CALENDRIER — MOTEUR
-// =====================================================================
-function estOuvert(dateStr, h) {
-  // Vérifier d'abord les exceptions
-  for (const exc of allExceptions) {
-    if (exc.date === dateStr && h >= exc.heureDebut && h < exc.heureFin) {
-      return exc.type === 'ouvert' ? 'exception-open' : 'closed';
+ 
+Chart.register({
+  id: 'autoHideTooltip',
+  afterEvent(ch, args) {
+    const evt = args.event;
+    if (evt.type === 'click' || evt.type === 'touchstart') {
+      clearTimeout(tooltipHideTimer);
+      tooltipHideTimer = setTimeout(() => {
+        ch.tooltip.setActiveElements([], { x: 0, y: 0 });
+        ch.update('none');
+      }, 4000);
     }
   }
-  const d = strToDate(dateStr);
-  const dow = d.getDay(); // 0=Dim
-  if (!JOURS_OUVERTS.includes(dow)) return 'out'; // Dimanche ou autre
-  if (h < H_DEBUT || h >= H_FIN) return 'out';
-  return 'open';
-}
-
-function postesPris(dateStr, hDebut, hFin) {
-  return allResas.filter(r =>
-    r.date === dateStr &&
-    parseFloat(r.heureDebut) < hFin &&
-    parseFloat(r.heureFin)   > hDebut
-  );
-}
-
-function personnesPour(dateStr, hDebut, hFin) {
-  return new Set(postesPris(dateStr, hDebut, hFin).map(r => r.userId)).size;
-}
-
-function postesDisponibles(dateStr, hDebut, hFin) {
-  const pris  = postesPris(dateStr, hDebut, hFin).map(r => r.typePoste);
-  return Object.keys(POSTES).filter(p => !pris.includes(p));
-}
-
-function maResaPour(dateStr, hDebut, hFin) {
-  return allResas.find(r =>
-    r.date === dateStr &&
-    r.userId === utilisateurCourant.id &&
-    parseFloat(r.heureDebut) < hFin &&
-    parseFloat(r.heureFin)   > hDebut
-  );
-}
-
-// =====================================================================
-// CALENDRIER — RENDU
-// =====================================================================
-function renderCalendrier(wrapperId) {
-  const wrap = document.getElementById(`calendrier-${wrapperId}`);
-  if (!wrap) return;
-  wrap.innerHTML = '';
-
-  // Contrôles
-  const ctrl = document.createElement('div');
-  ctrl.className = 'calendar-controls';
-
-  const btnPrev = document.createElement('button');
-  btnPrev.className = 'btn btn-ghost btn-icon';
-  btnPrev.innerHTML = '‹';
-  btnPrev.onclick = () => { naviguerCal(-1); renderCalendrier(wrapperId); };
-
-  const btnNext = document.createElement('button');
-  btnNext.className = 'btn btn-ghost btn-icon';
-  btnNext.innerHTML = '›';
-  btnNext.onclick = () => { naviguerCal(1); renderCalendrier(wrapperId); };
-
-  const titre = document.createElement('h3');
-  titre.textContent = titreCal();
-
-  const toggleView = document.createElement('div');
-  toggleView.className = 'view-toggle';
-  ['Semaine','Mois'].forEach((label, i) => {
-    const b = document.createElement('button');
-    b.className = 'view-btn' + (calView === (i===0?'week':'month') ? ' active' : '');
-    b.textContent = label;
-    b.onclick = () => { calView = i===0?'week':'month'; renderCalendrier(wrapperId); };
-    toggleView.appendChild(b);
-  });
-
-  // Bouton ajout (admin uniquement)
-  if (calContext === 'admin') {
-    const btnAdd = document.createElement('button');
-    btnAdd.className = 'btn btn-primary btn-sm';
-    btnAdd.textContent = '+ Réservation';
-    btnAdd.onclick = ouvrirModaleResaAdmin;
-    ctrl.append(btnPrev, titre, btnNext, toggleView, btnAdd);
-  } else {
-    ctrl.append(btnPrev, titre, btnNext, toggleView);
-  }
-
-  wrap.appendChild(ctrl);
-
-  // Légende
-  const legend = document.createElement('div');
-  legend.style.cssText = 'display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem;font-size:.75rem;';
-  const legendItems = [
-    ['#EAF4EC','var(--success)','Libre'],
-    ['#DBE9F5','var(--info)','Ma réservation'],
-    ...(calContext==='admin'?[['#FDEFD6','#8A5C10','Autre adhérent']]:[]),
-    ['#EEEEEE','#999','Complet'],
-    ['#FDECEA','var(--danger)','Fermé (exception)'],
-    ['#F3ECFD','#6B3FA0','Ouvert exceptionnellement'],
-  ];
-  legend.innerHTML = legendItems.map(([bg,color,label]) =>
-    `<span style="display:flex;align-items:center;gap:.3rem;"><span style="width:14px;height:14px;border-radius:3px;background:${bg};border:1px solid ${color};display:inline-block;"></span>${label}</span>`
-  ).join('');
-  wrap.appendChild(legend);
-
-  // Grille
-  if (calView === 'week') {
-    wrap.appendChild(renderSemaine(wrapperId));
-  } else {
-    wrap.appendChild(renderMois(wrapperId));
-  }
-}
-
-function naviguerCal(dir) {
-  if (calView === 'week') {
-    calCurrentWeek = new Date(calCurrentWeek);
-    calCurrentWeek.setDate(calCurrentWeek.getDate() + dir * 7);
-  } else {
-    calCurrentMonth = new Date(calCurrentMonth.getFullYear(), calCurrentMonth.getMonth() + dir, 1);
-  }
-}
-
-function titreCal() {
-  if (calView === 'week') {
-    const dim = new Date(calCurrentWeek); dim.setDate(dim.getDate()+6);
-    return `${pad(calCurrentWeek.getDate())} ${moisNoms[calCurrentWeek.getMonth()].substring(0,3)} – ${pad(dim.getDate())} ${moisNoms[dim.getMonth()].substring(0,3)} ${dim.getFullYear()}`;
-  } else {
-    return `${moisNoms[calCurrentMonth.getMonth()]} ${calCurrentMonth.getFullYear()}`;
-  }
-}
-
-function renderSemaine(wrapperId) {
-  const wrap = document.createElement('div');
-  wrap.className = 'week-grid';
-
-  const table = document.createElement('table');
-  table.className = 'week-table';
-
-  // En-tête
-  const thead = document.createElement('thead');
-  const trHead = document.createElement('tr');
-  const thTime = document.createElement('th');
-  thTime.className = 'time-col';
-  thTime.textContent = 'Heure';
-  trHead.appendChild(thTime);
-
-  const joursNomsCourts = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
-  const days = [];
-  for (let i=0;i<7;i++) {
-    const d = new Date(calCurrentWeek); d.setDate(d.getDate()+i);
-    days.push(d);
-    const th = document.createElement('th');
-    const dateStr = dateToStr(d);
-    const today = dateToStr(new Date());
-    th.innerHTML = `${joursNomsCourts[i]}<br><span style="font-size:.85rem;font-weight:600;color:${dateStr===today?'var(--terracotta-lt)':'var(--beige)'}">${pad(d.getDate())}</span>`;
-    trHead.appendChild(th);
-  }
-  thead.appendChild(trHead);
-  table.appendChild(thead);
-
-  // Corps
-  const tbody = document.createElement('tbody');
-  const slots = creneaux();
-
-  for (let si=0; si<slots.length; si++) {
-    const h = slots[si];
-    const hFin = h + 0.5;
-    const tr = document.createElement('tr');
-
-    // Cellule heure
-    const tdH = document.createElement('td');
-    tdH.className = 'time-label';
-    if (h % 1 === 0) tdH.textContent = heureStr(h);
-    tr.appendChild(tdH);
-
-    days.forEach((day,di) => {
-      const dateStr = dateToStr(day);
-      const td = document.createElement('td');
-      const statut = estOuvert(dateStr, h);
-      const slot   = document.createElement('div');
-      slot.className = 'slot';
-
-      if (statut === 'out') {
-        slot.className += ' slot-out';
-        td.appendChild(slot); tr.appendChild(td); return;
-      }
-      if (statut === 'closed') {
-        slot.className += ' slot-closed';
-        slot.textContent = 'Fermé';
-        td.appendChild(slot); tr.appendChild(td); return;
-      }
-
-      // Bloquer les créneaux passés
-      const maintenant = new Date();
-      const finCreneau = slotToDate(dateStr, hFin);
-      if (finCreneau <= maintenant) {
-        slot.className += ' slot-out';
-        slot.style.opacity = '0.35';
-        slot.title = 'Créneau passé';
-        td.appendChild(slot); tr.appendChild(td); return;
-      }
-
-      const maResa = maResaPour(dateStr, h, hFin);
-      const nbPers = personnesPour(dateStr, h, hFin);
-      const libres = postesDisponibles(dateStr, h, hFin);
-
-      if (maResa) {
-        slot.className += ' slot-mine';
-        slot.innerHTML = `<span title="${POSTES[maResa.typePoste]}">✓</span>`;
-        if (calContext === 'admin') {
-          slot.style.cursor = 'pointer';
-          slot.onclick = () => confirmerSuppressionResa(maResa.id);
-        }
-      } else if (nbPers >= MAX_PERSONNES) {
-        slot.className += ' slot-full';
-        slot.textContent = 'Complet';
-      } else if (statut === 'exception-open') {
-        slot.className += ' slot-exception-open';
-        slot.textContent = '★';
-        slot.onclick = () => clickSurCreneau(dateStr, h, hFin, libres, wrapperId);
-      } else if (calContext === 'admin') {
-        // Montrer les autres réservations en orange
-        const autresResas = postesPris(dateStr, h, hFin).filter(r => r.userId !== utilisateurCourant.id);
-        if (autresResas.length > 0) {
-          slot.className += ' slot-other';
-          const pseudos = [...new Set(autresResas.map(r => r.pseudo||r.userId))].slice(0,2).join(', ');
-          slot.innerHTML = `<span title="${pseudos}" style="font-size:.68rem">${autresResas.length}👤</span>`;
-          slot.onclick = () => clickSurCreneau(dateStr, h, hFin, libres, wrapperId);
-        } else {
-          slot.className += ' slot-free';
-          slot.textContent = `${libres.length}`;
-          slot.onclick = () => clickSurCreneau(dateStr, h, hFin, libres, wrapperId);
-        }
-      } else {
-        // Adhérent : vérifier si quelqu'un d'autre est là
-        const autresResas = postesPris(dateStr, h, hFin).filter(r => r.userId !== utilisateurCourant.id);
-        if (autresResas.length > 0 && libres.length > 0) {
-          slot.className += ' slot-free';
-          slot.textContent = `${libres.length}`;
-          slot.onclick = () => clickSurCreneau(dateStr, h, hFin, libres, wrapperId);
-        } else if (libres.length === 0) {
-          slot.className += ' slot-full';
-          slot.textContent = 'Complet';
-        } else {
-          slot.className += ' slot-free';
-          slot.textContent = `${libres.length}`;
-          slot.onclick = () => clickSurCreneau(dateStr, h, hFin, libres, wrapperId);
-        }
-      }
-
-      td.appendChild(slot);
-      tr.appendChild(td);
-    });
-
-    tbody.appendChild(tr);
-  }
-  table.appendChild(tbody);
-  wrap.appendChild(table);
-  return wrap;
-}
-
-function renderMois(wrapperId) {
-  const wrap = document.createElement('div');
-  const grid = document.createElement('div');
-  grid.className = 'month-grid';
-
-  // En-têtes jours
-  ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].forEach(j => {
-    const h = document.createElement('div');
-    h.className = 'month-header';
-    h.textContent = j;
-    grid.appendChild(h);
-  });
-
-  // 1er du mois et alignement
-  const premier    = calCurrentMonth;
-  const dowPremier = premier.getDay(); // 0=Dim
-  const offset     = dowPremier === 0 ? 6 : dowPremier - 1; // cases vides avant
-
-  // Jours du mois précédent
-  for (let i=offset; i>0; i--) {
-    const d = new Date(premier); d.setDate(d.getDate()-i);
-    grid.appendChild(celleMois(d, true, wrapperId));
-  }
-
-  // Jours du mois
-  const dernierJour = new Date(premier.getFullYear(), premier.getMonth()+1, 0).getDate();
-  for (let j=1; j<=dernierJour; j++) {
-    const d = new Date(premier.getFullYear(), premier.getMonth(), j);
-    grid.appendChild(celleMois(d, false, wrapperId));
-  }
-
-  // Compléter la grille (6 semaines)
-  const total = offset + dernierJour;
-  const reste = (42 - total);
-  for (let i=1; i<=reste; i++) {
-    const d = new Date(premier.getFullYear(), premier.getMonth()+1, i);
-    grid.appendChild(celleMois(d, true, wrapperId));
-  }
-
-  wrap.appendChild(grid);
-  return wrap;
-}
-
-function celleMois(d, autresMois, wrapperId) {
-  const cell    = document.createElement('div');
-  cell.className = 'month-day';
-  if (autresMois) { cell.classList.add('other-month'); cell.appendChild(numDiv(d.getDate())); return cell; }
-
-  const dateStr = dateToStr(d);
-  const today   = dateToStr(new Date());
-  if (dateStr === today) cell.classList.add('today');
-
-  const dow = d.getDay();
-  const ferme = !JOURS_OUVERTS.includes(dow) || exceptionFerme(dateStr);
-  if (ferme) { cell.classList.add('closed-day'); }
-
-  cell.appendChild(numDiv(d.getDate()));
-
-  if (!ferme) {
-    // Calcul disponibilité
-    let placesLibres = false;
-    let toutPlein    = true;
-    for (let h=H_DEBUT; h<H_FIN; h+=0.5) {
-      const nb = personnesPour(dateStr, h, h+0.5);
-      if (nb < MAX_PERSONNES) { placesLibres = true; }
-      if (nb < MAX_PERSONNES) { toutPlein = false; }
-    }
-    const info = document.createElement('div');
-    info.className = 'month-day-info';
-    const nbResas = allResas.filter(r => r.date === dateStr).length;
-    info.innerHTML = `<div class="${placesLibres?'dot-avail':toutPlein?'dot-full':'dot-none'}">${placesLibres?'🟢':toutPlein?'🔴':'⬜'}</div>
-      <div style="font-size:.7rem;color:var(--clay-lt)">${nbResas} rés.</div>`;
-    cell.appendChild(info);
-    cell.onclick = () => {
-      calView = 'week';
-      calCurrentWeek = lundiDeLaSemaine(d);
-      renderCalendrier(wrapperId);
-    };
-  }
-  return cell;
-}
-
-function numDiv(n) {
-  const d = document.createElement('div');
-  d.className = 'month-day-num';
-  d.textContent = n;
-  return d;
-}
-
-function exceptionFerme(dateStr) {
-  // Vérifie si toute la journée est fermée par exception
-  return allExceptions.some(e => e.date === dateStr && e.type === 'ferme' && e.heureDebut <= H_DEBUT && e.heureFin >= H_FIN);
-}
-
-// =====================================================================
-// CRÉATION DE RÉSERVATION (adhérent)
-// =====================================================================
-function clickSurCreneau(dateStr, hDebut, hFin, postesLibres, wrapperId) {
-  if (calContext === 'adherent') {
-    clickCreneauAdherent(dateStr, hDebut, hFin, postesLibres, wrapperId);
-  } else {
-    // Admin : on ouvre la modale ajout avec les champs pré-remplis
-    ouvrirModaleResaAdmin(dateStr, hDebut, hFin);
-  }
-}
-
-// Icônes par type de poste
-// SVG tour de potier Shimpo (4 pieds)
-const SVG_TOUR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="44" height="44">
-  <ellipse cx="32" cy="16" rx="18" ry="5" fill="#C4622D" opacity=".9"/>
-  <ellipse cx="32" cy="14" rx="18" ry="5" fill="#E8845A"/>
-  <rect x="28" y="18" width="8" height="18" rx="3" fill="#8B6347"/>
-  <rect x="18" y="34" width="28" height="10" rx="4" fill="#5C4033"/>
-  <rect x="14" y="43" width="36" height="4" rx="2" fill="#8B6347"/>
-  <rect x="16" y="47" width="5" height="12" rx="2" fill="#3D2B1F"/>
-  <rect x="24" y="47" width="5" height="12" rx="2" fill="#3D2B1F"/>
-  <rect x="35" y="47" width="5" height="12" rx="2" fill="#3D2B1F"/>
-  <rect x="43" y="47" width="5" height="12" rx="2" fill="#3D2B1F"/>
-  <ellipse cx="32" cy="13" rx="8" ry="3" fill="#D4BFA8" opacity=".7"/>
-</svg>`;
-
-// SVG table de travail argile
-const SVG_TABLE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="44" height="44">
-  <rect x="6" y="20" width="52" height="8" rx="3" fill="#8B6347"/>
-  <rect x="7" y="20" width="50" height="6" rx="2" fill="#B08060"/>
-  <ellipse cx="32" cy="21" rx="14" ry="4" fill="#D4BFA8" opacity=".85"/>
-  <rect x="44" y="18" width="3" height="10" rx="1.5" fill="#5C4033"/>
-  <rect x="10" y="28" width="5" height="22" rx="2" fill="#5C4033"/>
-  <rect x="49" y="28" width="5" height="22" rx="2" fill="#5C4033"/>
-  <rect x="16" y="28" width="4" height="22" rx="2" fill="#3D2B1F"/>
-  <rect x="44" y="28" width="4" height="22" rx="2" fill="#3D2B1F"/>
-  <rect x="10" y="42" width="44" height="3" rx="1.5" fill="#8B6347"/>
-</svg>`;
-
-const POSTES_ICONES = {
-  tour_1:  { svg: SVG_TOUR,  nom: 'Tour 1', desc: 'Tour de potier' },
-  tour_2:  { svg: SVG_TOUR,  nom: 'Tour 2', desc: 'Tour de potier' },
-  table_1: { svg: SVG_TABLE, nom: 'Table 1', desc: 'Table argile'  },
-  table_2: { svg: SVG_TABLE, nom: 'Table 2', desc: 'Table argile'  },
-};
-
-let posteSelectionne = null; // poste sélectionné dans la modale
-
-function rafraichirModaleResa() {
-  if (!resaEnCours) return;
-  const { dateStr, hDebut, hFin } = resaEnCours;
-  const u = utilisateurCourant;
-  const lundi = lundiDeLaSemaine(strToDate(dateStr));
-  const hSem  = heuresSemaine(u.id, lundi);
-  const duree = dureeH(hDebut, hFin);
-
-  // Affichage heures
-  document.getElementById('modal-resa-heures').textContent =
-    heureStr(hDebut) + ' – ' + heureStr(hFin);
-  document.getElementById('modal-resa-duree').textContent =
-    duree >= 1 ? formatHeures(duree) : (duree * 60) + ' min';
-  document.getElementById('modal-resa-date-display').textContent = formatDate(dateStr);
-
-  // Boutons extension : désactiver si hors plage ou fermé
-  const btnMD = document.getElementById('btn-moins-debut');
-  const btnPD = document.getElementById('btn-plus-debut');
-  const btnMF = document.getElementById('btn-moins-fin');
-  const btnPF = document.getElementById('btn-plus-fin');
-
-  // Reculer début : possible si hDebut - 0.5 >= H_DEBUT et le slot est ouvert
-  btnMD.disabled = (hDebut - 0.5 < H_DEBUT) || estOuvert(dateStr, hDebut - 0.5) === 'out' || estOuvert(dateStr, hDebut - 0.5) === 'closed';
-  // Avancer début : possible si hDebut + 0.5 < hFin
-  btnPD.disabled = (hDebut + 0.5 >= hFin);
-  // Avancer fin (raccourcir) : possible si hFin - 0.5 > hDebut
-  btnMF.disabled = (hFin - 0.5 <= hDebut);
-  // Reculer fin (étendre) : possible si hFin + 0.5 <= H_FIN et slot ouvert
-  btnPF.disabled = (hFin + 0.5 > H_FIN) || estOuvert(dateStr, hFin) === 'out' || estOuvert(dateStr, hFin) === 'closed';
-
-  // Postes disponibles pour ce créneau modifié
-  const pris   = postesPris(dateStr, hDebut, hFin).filter(r => r.userId !== u.id).map(r => r.typePoste);
-  const nbPers = new Set(postesPris(dateStr, hDebut, hFin).filter(r => r.userId !== u.id).map(r => r.userId)).size;
-  const grid   = document.getElementById('modal-resa-postes');
-
-  grid.innerHTML = '';
-  Object.entries(POSTES_ICONES).forEach(([id, info]) => {
-    const dispo = !pris.includes(id) && nbPers < MAX_PERSONNES;
-    const card  = document.createElement('div');
-    card.className = 'poste-card' + (dispo ? '' : ' poste-indisponible') +
-                     (posteSelectionne === id && dispo ? ' poste-selectionne' : '');
-    card.innerHTML = `
-      <div class="poste-icone">${info.svg}</div>
-      <div class="poste-nom">${info.nom}</div>
-      <div class="poste-dispo">${dispo ? info.desc : 'Non disponible'}</div>`;
-    if (dispo) {
-      card.onclick = () => {
-        posteSelectionne = id;
-        rafraichirModaleResa();
-      };
-    }
-    grid.appendChild(card);
-  });
-
-  // Si le poste sélectionné n'est plus dispo, le réinitialiser
-  if (posteSelectionne && pris.includes(posteSelectionne)) posteSelectionne = null;
-
-  // Sélectionner automatiquement le premier poste dispo s'il n'y en a pas
-  if (!posteSelectionne) {
-    const premier = Object.keys(POSTES_ICONES).find(id => !pris.includes(id) && nbPers < MAX_PERSONNES);
-    if (premier) { posteSelectionne = premier; rafraichirModaleResa(); return; }
-  }
-
-  // Vérification dépassement du quota heures
-  const warn      = document.getElementById('modal-resa-warning');
-  const btnConfirm = document.getElementById('btn-confirmer-resa');
-  const quotaDepasse = (hSem + duree) > MAX_HEURES_SEM;
-
-  if (quotaDepasse) {
-    warn.innerHTML = '<strong>⛔ Quota hebdomadaire dépassé</strong><br>Cette réservation porterait vos heures à <strong>' +
-      formatHeures(hSem + duree) + '</strong> cette semaine (maximum autorisé : ' + MAX_HEURES_SEM + 'h).<br>' +
-      'Réduisez la durée du créneau ou annulez une réservation existante.';
-    warn.classList.remove('hidden');
-    // Bloquer la confirmation si quota dépassé
-    btnConfirm.disabled = true;
-    btnConfirm.title = 'Quota hebdomadaire atteint';
-    // Désactiver aussi le bouton d\'extension de fin si ça dépasserait le quota
-    if (btnPF) btnPF.disabled = true;
-  } else {
-    warn.classList.add('hidden');
-    // Activer/désactiver le bouton confirmer selon si un poste est sélectionné
-    btnConfirm.disabled = !posteSelectionne;
-    btnConfirm.title = '';
-  }
-}
-
-// Étendre/réduire le début du créneau
-window.etendreDebut = function(delta) {
-  if (!resaEnCours) return;
-  const newDebut = resaEnCours.hDebut + delta;
-  if (newDebut < H_DEBUT || newDebut >= resaEnCours.hFin) return;
-  resaEnCours.hDebut = Math.round(newDebut * 2) / 2;
-  rafraichirModaleResa();
-};
-
-// Étendre/réduire la fin du créneau
-window.etendreFin = function(delta) {
-  if (!resaEnCours) return;
-  const newFin = resaEnCours.hFin + delta;
-  if (newFin > H_FIN || newFin <= resaEnCours.hDebut) return;
-  resaEnCours.hFin = Math.round(newFin * 2) / 2;
-  rafraichirModaleResa();
-};
-
-function clickCreneauAdherent(dateStr, hDebut, hFin, postesLibres, wrapperId) {
-  const u   = utilisateurCourant;
-  const now = new Date();
-
-  // Vérifier que le créneau n'est pas dans le passé
-  const debutCreneau = slotToDate(dateStr, hDebut);
-  if (debutCreneau <= now) {
-    toast('Impossible de réserver un créneau déjà passé.', 'warning');
-    return;
-  }
-
-  // Vérifier adhésion active
-  if (u.statut !== 'actif') { toast('Votre compte n\'est pas actif.', 'warning'); return; }
-
-  // Vérifier date fin adhésion
-  if (u.dateFinAdhesion) {
-    const finAdh = strToDate(u.dateFinAdhesion);
-    if (strToDate(dateStr) > finAdh) {
-      toast('Ce créneau dépasse la date de fin de votre adhésion.', 'warning'); return;
-    }
-  }
-
-  // Règle 6h/semaine : bloquer complètement si quota atteint ET hors 7 jours
-  const lundi  = lundiDeLaSemaine(strToDate(dateStr));
-  const hSem   = heuresSemaine(u.id, lundi);
-  const dans7j = new Date(now); dans7j.setDate(dans7j.getDate() + 7);
-
-  if (hSem >= MAX_HEURES_SEM && debutCreneau > dans7j) {
-    toast('Vous avez déjà ' + formatHeures(hSem) + ' réservées cette semaine. Au-delà de ' + MAX_HEURES_SEM + 'h, réservation possible uniquement dans les 7 prochains jours.', 'warning');
-    return;
-  }
-
-  // Préparer la modale
-  posteSelectionne = null;
-  resaEnCours = { dateStr, hDebut, hFin, postesLibres, wrapperId };
-
-  document.getElementById('modal-resa-titre').textContent = 'Réserver — ' + formatDate(dateStr);
-  rafraichirModaleResa();
-  ouvrirModale('modal-reservation');
-}
-
-window.confirmerReservation = async function() {
-  if (!resaEnCours) return;
-  const { dateStr, hDebut, hFin, wrapperId } = resaEnCours;
-  const poste = posteSelectionne;
-
-  if (!poste) { toast('Veuillez sélectionner un poste.', 'warning'); return; }
-
-  // Vérifier que le créneau n'est pas passé (sécurité finale)
-  if (slotToDate(dateStr, hDebut) <= new Date()) {
-    toast('Ce créneau est déjà passé, réservation impossible.', 'error');
-    fermerModale('modal-reservation');
-    return;
-  }
-
-  // Vérifier le quota d'heures (sécurité finale)
-  const lundi = lundiDeLaSemaine(strToDate(dateStr));
-  const hSem  = heuresSemaine(utilisateurCourant.id, lundi);
-  const duree = dureeH(hDebut, hFin);
-  if (hSem + duree > MAX_HEURES_SEM) {
-    toast('Quota de ' + MAX_HEURES_SEM + 'h par semaine dépassé. Réservation refusée.', 'error');
-    return;
-  }
-
-  // Double vérification disponibilité
-  const libres = postesDisponibles(dateStr, hDebut, hFin);
-  if (!libres.includes(poste)) { toast('Ce poste vient d\'être pris. Veuillez en choisir un autre.', 'warning'); rafraichirModaleResa(); return; }
-  if (personnesPour(dateStr, hDebut, hFin) >= MAX_PERSONNES) { toast('Ce créneau est complet.', 'warning'); return; }
-
-  try {
-    const newResa = {
-      userId:       utilisateurCourant.id,
-      pseudo:       utilisateurCourant.pseudo,
-      date:         dateStr,
-      heureDebut:   hDebut,
-      heureFin:     hFin,
-      typePoste:    poste,
-      dateCreation: new Date().toISOString(),
-    };
-    const ref = await addDoc(collection(db,'reservations'), newResa);
-    allResas.push({ id: ref.id, ...newResa });
-    toast('Réservation confirmée !','success');
-    fermerModale('modal-reservation');
-    resaEnCours = null;
-    posteSelectionne = null;
-    renderCalendrier(wrapperId);
-    afficherDashboardAdherent();
-  } catch(e) { toast('Erreur : '+e.message,'error'); }
-};
-
-// =====================================================================
-// RÉSERVATION ADMIN (ajout manuel / depuis calendrier)
-// =====================================================================
-function ouvrirModaleResaAdmin(dateStr, hDebut, hFin) {
-  // Peupler liste adhérents
-  const sel = document.getElementById('madmin-adherent');
-  sel.innerHTML = allUsers.filter(u => u.role==='adherent' && u.statut==='actif')
-    .map(u => `<option value="${u.id}">${u.pseudo}</option>`).join('');
-
-  if (dateStr) document.getElementById('madmin-date').value = dateStr;
-  if (hDebut !== undefined) document.getElementById('madmin-debut').value = hDebut;
-  if (hFin   !== undefined) document.getElementById('madmin-fin').value   = hFin;
-
-  ouvrirModale('modal-resa-admin');
-}
-window.ouvrirModaleResaAdmin = ouvrirModaleResaAdmin;
-
-window.confirmerResaAdmin = async function() {
-  const userId  = document.getElementById('madmin-adherent').value;
-  const dateStr = document.getElementById('madmin-date').value;
-  const debut   = parseFloat(document.getElementById('madmin-debut').value);
-  const fin     = parseFloat(document.getElementById('madmin-fin').value);
-  const poste   = document.getElementById('madmin-poste').value;
-
-  if (!userId || !dateStr || isNaN(debut) || isNaN(fin) || fin <= debut) {
-    toast('Veuillez remplir correctement tous les champs.','warning'); return;
-  }
-
-  const user = allUsers.find(u => u.id === userId);
-  try {
-    const newResa = {
-      userId, pseudo: user?.pseudo || userId,
-      date: dateStr, heureDebut: debut, heureFin: fin,
-      typePoste: poste, dateCreation: new Date().toISOString(),
-    };
-    const ref = await addDoc(collection(db,'reservations'), newResa);
-    allResas.push({ id: ref.id, ...newResa });
-    toast('Réservation ajoutée.','success');
-    fermerModale('modal-resa-admin');
-    renderCalendrier('admin-wrap');
-    afficherDashboardAdmin();
-  } catch(e) { toast('Erreur : '+e.message,'error'); }
-};
-
-async function confirmerSuppressionResa(id) {
-  if (!await confirmer('Supprimer définitivement cette réservation ?', 'danger', 'Supprimer la réservation')) return;
-  try {
-    await deleteDoc(doc(db,'reservations',id));
-    allResas = allResas.filter(r => r.id !== id);
-    toast('Réservation supprimée.', 'success');
-    renderCalendrier('admin-wrap');
-  } catch(e) { toast('Erreur : ' + e.message, 'error'); }
-}
-
-// =====================================================================
-// EXCEPTIONS HORAIRES
-// =====================================================================
-window.ajouterException = async function() {
-  const date   = document.getElementById('exc-date').value;
-  const debut  = parseFloat(document.getElementById('exc-debut').value);
-  const fin    = parseFloat(document.getElementById('exc-fin').value);
-  const type   = document.getElementById('exc-type').value;
-  const motif  = document.getElementById('exc-motif').value.trim();
-
-  if (!date || isNaN(debut) || isNaN(fin) || fin <= debut) {
-    toast('Vérifiez les champs date et horaires.','warning'); return;
-  }
-
-  try {
-    const exc = { date, heureDebut: debut, heureFin: fin, type, motif };
-    const ref = await addDoc(collection(db,'exceptions'), exc);
-    allExceptions.push({ id: ref.id, ...exc });
-    toast('Exception ajoutée.','success');
-    afficherExceptions();
-    // Réinitialiser les champs
-    document.getElementById('exc-date').value = '';
-    document.getElementById('exc-motif').value = '';
-  } catch(e) { toast('Erreur : '+e.message,'error'); }
-};
-
-function afficherExceptions() {
-  const el = document.getElementById('liste-exceptions');
-  if (allExceptions.length === 0) {
-    el.innerHTML = '<p class="text-muted">Aucune exception définie.</p>';
-    return;
-  }
-  const sorted = [...allExceptions].sort((a,b) => a.date.localeCompare(b.date));
-  el.innerHTML = `<div class="resa-list">` + sorted.map(e => `
-    <div class="resa-item">
-      <div class="resa-date" style="font-size:.9rem">${formatDate(e.date)}</div>
-      <div class="resa-details">
-        <strong>${heureStr(e.heureDebut)} – ${heureStr(e.heureFin)}</strong>
-        <span style="color:${e.type==='ferme'?'var(--danger)':'#6B3FA0'}">${e.type==='ferme'?'🔴 Fermé':'🟣 Ouvert exceptionnellement'}${e.motif?' — '+e.motif:''}</span>
-      </div>
-      <button class="btn btn-danger btn-sm" onclick="supprimerException('${e.id}')">✕</button>
-    </div>`).join('') + `</div>`;
-}
-
-window.supprimerException = async function(id) {
-  if (!await confirmer('Supprimer cette exception horaire ?', 'danger', 'Supprimer l\'exception')) return;
-  try {
-    await deleteDoc(doc(db,'exceptions',id));
-    allExceptions = allExceptions.filter(e => e.id !== id);
-    toast('Exception supprimée.','success');
-    afficherExceptions();
-  } catch(e) { toast('Erreur : '+e.message,'error'); }
-};
-
-// =====================================================================
-// UTILITAIRES UI
-// =====================================================================
-function badgeStatut(s) {
-  const map = {
-    actif:       ['badge-success','Actif'],
-    en_attente:  ['badge-warning','En attente'],
-    suspendu:    ['badge-danger','Suspendu'],
-  };
-  const [cls, label] = map[s] || ['badge-neutral', s];
-  return `<span class="badge ${cls}">${label}</span>`;
-}
-
-// Exposer fonctions globales nécessaires
-window.validerCompte   = window.validerCompte;
-window.suspendreCompte = window.suspendreCompte;
-window.ouvrirFicheAdherent = window.ouvrirFicheAdherent;
-
-// =====================================================================
-// LANCEMENT
-// =====================================================================
-init().catch(e => {
-  console.error('Erreur init:', e);
-  document.getElementById('splash').style.display = 'none';
-  document.getElementById('config-error').style.display = 'flex';
 });
+ 
+function gc() {
+  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  return { grid: dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)', tick: dark ? '#B4B2A9' : '#888780', orangeFill: dark ? 'rgba(216,90,48,0.18)' : 'rgba(216,90,48,0.10)' };
+}
+ 
+function renderChart() {
+  const labels = points.map(p => formatTime(p.time));
+  const temps = points.map(p => p.temp);
+  const speeds = points.map((p,i) => { const s = calcSpeed(i); return s !== null ? +s.toFixed(1) : null; });
+  const c = gc();
+  if (!chart) {
+    chart = new Chart(document.getElementById('myChart').getContext('2d'), {
+      type: 'line',
+      data: { labels, datasets: [
+        { label: 'T°C', data: temps, borderColor: '#D85A30', backgroundColor: c.orangeFill, fill: true, tension: 0.35, pointRadius: 5, pointHitRadius: 20, pointBackgroundColor: '#D85A30', borderWidth: 2.5, yAxisID: 'yT' },
+        { label: 'Vit', data: speeds, borderColor: '#185FA5', backgroundColor: 'transparent', fill: false, tension: 0.35, pointRadius: 4, pointHitRadius: 20, pointBackgroundColor: '#185FA5', borderWidth: 1.5, borderDash: [6,3], spanGaps: true, yAxisID: 'yS' }
+      ]},
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: { duration: 300 },
+        interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(26,26,24,0.92)', titleColor: '#fff', bodyColor: '#D3D1C7', padding: 10, cornerRadius: 8, callbacks: { label: ctx => ctx.datasetIndex === 0 ? '  Temp : ' + Math.round(ctx.parsed.y) + ' °C' : (ctx.parsed.y !== null ? '  Vitesse : ' + Math.round(ctx.parsed.y) + ' °C/h' : null) } },
+          autoHideTooltip: {} },
+        scales: {
+          x: { ticks: { color: c.tick, font: { size: 11 }, autoSkip: true, maxTicksLimit: 7, maxRotation: 35 }, grid: { color: c.grid } },
+          yT: { type: 'linear', position: 'left', min: 0, max: 1400, ticks: { color: '#D85A30', font: { size: 11 }, stepSize: 200 }, grid: { color: c.grid } },
+          yS: { type: 'linear', position: 'right', ticks: { color: '#185FA5', font: { size: 11 } }, grid: { drawOnChartArea: false } }
+        }
+      }
+    });
+  } else {
+    chart.data.labels = labels;
+    chart.data.datasets[0].data = temps;
+    chart.data.datasets[1].data = speeds;
+    chart.update();
+  }
+}
+ 
+function renderTable() {
+  const wrap = document.getElementById('table-wrap');
+  if (!points.length) { wrap.innerHTML = '<div class="no-data">Aucun relevé pour l\'instant</div>'; return; }
+  let html = '<div class="table-header"><span>#</span><span>Temps</span><span>T° °C</span><span>Vit.</span><span></span></div>';
+  [...points].reverse().forEach((p, ri) => {
+    const i = points.length - 1 - ri;
+    const spd = calcSpeed(i);
+    let sh = '<span class="spd-na">—</span>';
+    if (spd !== null) {
+      const sr = Math.round(spd);
+      sh = spd > 0 ? `<span class="spd-up">+${sr}</span>` : spd < 0 ? `<span class="spd-dn">${sr}</span>` : `<span class="spd-na">0</span>`;
+    }
+    const badge = p.src === 'chrono' ? '<span class="src-badge">⏱</span>' : '<span class="src-badge">✏</span>';
+    html += `<div class="table-row"><span class="num">${i+1}</span><span>${formatTime(p.time)}${badge}</span><span>${Math.round(p.temp)}</span><span>${sh}</span><button class="btn-del" onclick="deletePoint(${i})">×</button></div>`;
+  });
+  wrap.innerHTML = html;
+}
+ 
+function exportPDF() {
+  if (!points.length) { toast('Aucun relevé à exporter'); return; }
+  toast('Génération du PDF…');
+  setTimeout(() => {
+    try {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const W = 297, H = 210;
+      const now = new Date();
+      const ds = now.toLocaleDateString('fr-FR') + ' ' + now.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+      doc.setFillColor(245,244,241); doc.rect(0,0,W,H,'F');
+      doc.setFillColor(216,90,48); doc.rect(0,0,6,H,'F');
+      doc.setFontSize(20); doc.setFont(undefined,'bold'); doc.setTextColor(30,30,28);
+      doc.text('Courbe de cuisson céramique', 16, 16);
+      doc.setFontSize(10); doc.setFont(undefined,'normal'); doc.setTextColor(95,94,90);
+      doc.text('Exporté le ' + ds, 16, 23);
+      const last = points[points.length-1]; const sl = calcSpeed(points.length-1);
+      doc.setTextColor(30,30,28);
+      doc.text(`${points.length} relevés  |  Durée : ${formatTime(last.time)}  |  Temp. finale : ${Math.round(last.temp)} °C  |  Vitesse finale : ${sl !== null ? Math.round(sl) + ' °C/h' : '—'}`, 16, 31);
+      doc.setDrawColor(216,90,48); doc.setLineWidth(0.4); doc.line(16,34,W-16,34);
+      doc.addImage(document.getElementById('myChart').toDataURL('image/png',0.95), 'PNG', 16, 38, 170, 100);
+      const lx = 196, ly = 38;
+      doc.setFillColor(216,90,48); doc.rect(lx,ly+1,6,3,'F'); doc.setFontSize(9); doc.setTextColor(50,50,48); doc.text('Température (°C)', lx+9, ly+4);
+      doc.setFillColor(24,95,165); doc.rect(lx,ly+8,6,3,'F'); doc.text('Vitesse (°C/h)', lx+9, ly+11);
+      const cols = [lx, lx+12, lx+33, lx+55, lx+72];
+      let ry = ly+22;
+      doc.setFontSize(8.5); doc.setTextColor(95,94,90);
+      ['#','Temps','T° (°C)','Vit.','Source'].forEach((h,i) => doc.text(h, cols[i], ry));
+      ry+=2; doc.setDrawColor(180,178,169); doc.setLineWidth(0.3); doc.line(lx,ry,lx+90,ry); ry+=5;
+      points.forEach((p,idx) => {
+        const spd = calcSpeed(idx);
+        const ss = spd !== null ? (spd>0?'+':'') + Math.round(spd) : '—';
+        doc.setTextColor(30,30,28); doc.text(String(idx+1), cols[0], ry); doc.text(formatTime(p.time), cols[1], ry); doc.text(String(Math.round(p.temp)), cols[2], ry);
+        if (spd!==null&&spd>0) doc.setTextColor(59,109,17); else if (spd!==null&&spd<0) doc.setTextColor(163,45,45); else doc.setTextColor(95,94,90);
+        doc.text(ss, cols[3], ry);
+        doc.setTextColor(24,95,165); doc.text(p.src==='chrono'?'chrono':'manuel', cols[4], ry);
+        ry+=6; if (ry>H-12) { doc.addPage(); ry=20; }
+      });
+      doc.setFontSize(8); doc.setTextColor(160,158,154); doc.text('Suivi de cuisson céramique', 16, H-8);
+      doc.save('cuisson-' + now.toISOString().slice(0,10) + '.pdf');
+      toast('PDF exporté !');
+    } catch(e) { toast('Erreur : ' + e.message); }
+  }, 100);
+}
+ 
+document.getElementById('inp-time').addEventListener('keydown', e => { if (e.key==='Enter') { e.preventDefault(); document.getElementById('inp-temp').focus(); } });
+document.getElementById('inp-temp').addEventListener('keydown', e => { if (e.key==='Enter') { e.preventDefault(); addManualPoint(); } });
+document.getElementById('inp-time').addEventListener('blur', function() { const v = this.value.trim(); if (!v) return; const t = parseTime(v); if (t!==null) this.value = formatTime(t); });
+document.getElementById('chrono-temp').addEventListener('input', updateCaptureBtn);
+document.getElementById('chrono-temp').addEventListener('keydown', e => { if (e.key==='Enter') { e.preventDefault(); capturePoint(); } });
+ 
+loadStorage();
+ 
+if (chronoRunning) {
+  document.getElementById('btn-start').textContent = 'Pause';
+  document.getElementById('btn-start').classList.add('running');
+  document.getElementById('chrono-disp').className = 'chrono-display running';
+  document.getElementById('m-chrono-lbl').textContent = 'en cours';
+  tick();
+} else if (chronoAccumMs > 0) {
+  document.getElementById('chrono-disp').textContent = fmtMs(chronoAccumMs);
+  document.getElementById('chrono-disp').className = 'chrono-display paused';
+  document.getElementById('btn-start').textContent = 'Reprendre';
+  document.getElementById('m-chrono').textContent = formatTime(chronoAccumMs / 3600000);
+  document.getElementById('m-chrono-lbl').textContent = 'en pause';
+}
+ 
+render();
 </script>
 </body>
 </html>
