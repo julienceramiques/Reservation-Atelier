@@ -841,7 +841,7 @@ tr:hover td { background: var(--cream); }
   <main id="main">
 
     <!-- ===== PAGE AUTH ===== -->
-    <div id="page-auth" style="display:none;position:fixed;inset:0;z-index:200;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--earth) 0%,var(--earth-lt) 50%,var(--clay) 100%);padding:2rem;overflow-y:auto;">
+    <div id="page-auth" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--earth) 0%,var(--earth-lt) 50%,var(--clay) 100%);padding:2rem;margin:-2rem -1.5rem;">
       <div class="auth-wrapper">
         <div class="auth-logo">
           <h1>🏺 Julien Céramiques</h1>
@@ -874,7 +874,9 @@ tr:hover td { background: var(--cream); }
           <!-- Inscription -->
           <div id="form-register" class="hidden">
             <div id="reg-step1">
-              
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
+                <div class="form-group"><label class="form-label">Prénom <span style="color:var(--danger)">*</span></label>
+                  <input class="form-input" id="reg-prenom" type="text" placeholder="Votre prénom"></div>
                 <div class="form-group"><label class="form-label">Nom <span style="color:var(--danger)">*</span></label>
                   <input class="form-input" id="reg-nom" type="text" placeholder="Votre nom"></div>
               </div>
@@ -1650,10 +1652,10 @@ function showErr(el, msg) {
 // NAVIGATION PRINCIPALE
 // =====================================================================
 function afficherAuth() {
-  document.getElementById('navbar').style.display        = 'none';
-  document.getElementById('page-auth').style.display     = 'flex';
+  document.getElementById('navbar').style.display      = 'none';
+  document.getElementById('page-auth').style.display   = 'flex';
   document.getElementById('page-adherent').style.display = 'none';
-  document.getElementById('page-admin').style.display    = 'none';
+  document.getElementById('page-admin').style.display  = 'none';
 }
 
 function afficherInterface() {
@@ -1704,23 +1706,20 @@ window.showAdherentTab = function(tab) {
 function afficherAlerteAdhesion() {
   const u       = utilisateurCourant;
   const alertEl = document.getElementById('adherent-alerte-adhesion');
-  const statut  = calculerStatutAdhesion(u);
-
-  if (statut === 'non_adherent') {
+  if (calculerStatutAdhesion(u) === 'non_adherent') {
     document.getElementById('adherent-alerte-txt').textContent =
-      'Votre adhésion est expirée ou inactive. Vous ne pouvez pas effectuer de réservations. Contactez l\'administrateur pour renouveler.';
+      'Votre adhésion est expirée ou inactive. Vous ne pouvez pas réserver. Contactez l\'administrateur.';
     alertEl.classList.remove('hidden');
-    alertEl.className = alertEl.className.replace('alert-warning','alert-danger');
     return;
   }
-
   if (!u.dateFinAdhesion) { alertEl.classList.add('hidden'); return; }
   const fin   = strToDate(u.dateFinAdhesion);
-  const today = new Date(); today.setHours(0,0,0,0);
+  const today = new Date();
+  today.setHours(0,0,0,0);
   const diff  = Math.ceil((fin - today) / 86400000);
   if (diff <= JOURS_EXPIRE && diff >= 0) {
     document.getElementById('adherent-alerte-txt').textContent =
-      'Votre adhésion expire le ' + formatDate(fin) + ' (dans ' + diff + ' jour' + (diff>1?'s':'') + '). Contactez l\'administrateur pour renouveler.';
+      `Votre adhésion expire le ${formatDate(fin)} (dans ${diff} jour${diff>1?'s':''}). Contactez l'administrateur pour renouveler.`;
     alertEl.classList.remove('hidden');
   } else {
     alertEl.classList.add('hidden');
@@ -1865,8 +1864,8 @@ window.showAdminTab = function(tab) {
 };
 
 function afficherDashboardAdmin() {
-  const actifs   = allUsers.filter(u => u.role==='adherent' && peutReserver(u)).length;
-  const nonAdh   = allUsers.filter(u => u.role==='adherent' && calculerStatutAdhesion(u)==='non_adherent').length;
+  const actifs  = allUsers.filter(u => u.role==='adherent' && peutReserver(u)).length;
+  const nonAdh  = allUsers.filter(u => u.role==='adherent' && calculerStatutAdhesion(u)==='non_adherent').length;
   const attente  = allUsers.filter(u => u.statut==='en_attente');
   const today    = new Date(); today.setHours(0,0,0,0);
   const fin15    = new Date(today); fin15.setDate(fin15.getDate()+15);
@@ -1967,9 +1966,9 @@ window.filtrerAdherents = function() {
 
 window.validerCompte = async function(id) {
   try {
-    await updateDoc(doc(db,'utilisateurs',id), { statut:'actif' }); // 'actif' = compte validé, statut adhésion calculé selon les dates
+    await updateDoc(doc(db,'utilisateurs',id), { statut:'actif' });
     const u=allUsers.find(x=>x.id===id);
-    if (u?.email) envoyerEmail(u.email, u.pseudo,
+    if (u?.email) envoyerEmail(u.email, u.prenom||u.pseudo,
       'Votre compte a été validé — Julien Céramiques',
       'Bonjour,\n\nVotre compte a été validé. Vous pouvez vous connecter.\n\nJulien Céramiques');
     await rafraichirUsers();
@@ -2010,6 +2009,10 @@ window.ouvrirFicheAdherent = function(id) {
   document.getElementById('modal-adh-contenu').innerHTML = `
     <h3 style="margin-bottom:.75rem;color:var(--clay)">👤 Informations personnelles</h3>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.75rem;">
+      <div class="form-group"><label class="form-label">Prénom</label>
+        <input class="form-input" id="fiche-prenom" type="text" value="${u.prenom||''}" placeholder="Prénom"></div>
+      <div class="form-group"><label class="form-label">Nom</label>
+        <input class="form-input" id="fiche-nom" type="text" value="${u.nom||''}" placeholder="Nom"></div>
       <div class="form-group"><label class="form-label">Téléphone</label>
         <input class="form-input" id="fiche-tel" type="tel" value="${u.telephone||''}" placeholder="06…"></div>
       <div class="form-group"><label class="form-label">Email</label>
@@ -2083,7 +2086,7 @@ window.enregistrerPaiement = async function(id) {
       montantPaye:      montant  ? parseFloat(montant) : null,
       dateDebutAdhesion: debut   || null,
       dateFinAdhesion:  dateFinCal || null,
-      statut:           'actif', // compte validé — statut adhésion calculé selon les dates
+      statut:           'actif',
     });
     await rafraichirUsers();
     toast('Paiement enregistré.','success');
@@ -2527,14 +2530,10 @@ function clickCreneauAdherent(dateStr, hDebut, hFin, postesLibres, wrapperId) {
   if (slotToDate(dateStr,hDebut)<=now) { toast("Impossible de réserver un créneau passé.",'warning'); return; }
   if (!peutReserver(u)) {
     const st = calculerStatutAdhesion(u);
-    if (st==='non_adherent') toast('Votre adhésion n\'est pas active. Contactez l\'administrateur.','warning');
-    else toast('Votre compte n\'est pas actif.','warning');
+    if (st === 'non_adherent') toast('Votre adhésion n\'est pas active. Contactez l\'administrateur.', 'warning');
+    else toast('Votre compte n\'est pas actif.', 'warning');
     return;
   }
-  if (u.dateFinAdhesion&&strToDate(dateStr)>strToDate(u.dateFinAdhesion))
-    { toast('Ce créneau dépasse la date de fin de votre adhésion.','warning'); return; }
-  if (u.dateDebutAdhesion&&strToDate(dateStr)<strToDate(u.dateDebutAdhesion))
-    { toast('Ce créneau est avant le début de votre adhésion.','warning'); return; }
   if (u.dateFinAdhesion&&strToDate(dateStr)>strToDate(u.dateFinAdhesion))
     { toast("Ce créneau dépasse la date de fin de votre adhésion.",'warning'); return; }
   const lundi=lundiDeLaSemaine(strToDate(dateStr));
@@ -2685,33 +2684,27 @@ window.supprimerException = async function(id) {
 // =====================================================================
 // UTILITAIRES UI
 // =====================================================================
-// Vérifie si un utilisateur peut réserver (adhésion active et en cours)
-function peutReserver(u) {
-  const today = new Date(); today.setHours(0,0,0,0);
-  // Statut compatible
-  const statutOk = u.statut === 'actif' || u.statut === 'adherent';
-  if (!statutOk) return false;
-  // Vérifier les dates d'adhésion si elles existent
-  if (u.dateDebutAdhesion && strToDate(u.dateDebutAdhesion) > today) return false;
-  if (u.dateFinAdhesion   && strToDate(u.dateFinAdhesion)   < today) return false;
-  return true;
-}
-
-// Calcule le statut affiché selon les dates d'adhésion
+// Calcule le statut d'adhésion selon les dates
 function calculerStatutAdhesion(u) {
   if (u.role === 'admin') return u.statut;
   if (u.statut === 'en_attente' || u.statut === 'suspendu') return u.statut;
   const today = new Date(); today.setHours(0,0,0,0);
-  if (u.dateDebutAdhesion && strToDate(u.dateDebutAdhesion) > today) return 'non_adherent';
-  if (u.dateFinAdhesion   && strToDate(u.dateFinAdhesion)   < today) return 'non_adherent';
-  if (u.dateDebutAdhesion && u.dateFinAdhesion) return 'adherent';
-  // Pas de dates définies : si compte validé → adhérent
-  return (u.statut === 'actif' || u.statut === 'adherent') ? 'adherent' : u.statut;
+  // Sans dates définies = non adhérent
+  if (!u.dateDebutAdhesion || !u.dateFinAdhesion) return 'non_adherent';
+  if (strToDate(u.dateDebutAdhesion) > today) return 'non_adherent';
+  if (strToDate(u.dateFinAdhesion)   < today) return 'non_adherent';
+  return 'adherent';
+}
+
+// Vérifie si un utilisateur peut réserver
+function peutReserver(u) {
+  if (u.statut !== 'actif') return false;
+  return calculerStatutAdhesion(u) === 'adherent';
 }
 
 function badgeStatut(s) {
   const map = {
-    actif:        ['badge-success','Adhérent'],   // rétrocompat
+    actif:        ['badge-success','Adhérent'],
     adherent:     ['badge-success','Adhérent'],
     non_adherent: ['badge-neutral','Non adhérent'],
     en_attente:   ['badge-warning','En attente'],
@@ -2749,6 +2742,8 @@ let verifData = null;
 function emailValide(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e); }
 
 window.demanderVerificationEmail = async function(renvoyer=false) {
+  const prenom = document.getElementById('reg-prenom').value.trim();
+  const nom    = document.getElementById('reg-nom').value.trim();
   const pseudo = document.getElementById('reg-pseudo').value.trim();
   const email  = document.getElementById('reg-email').value.trim();
   const tel    = document.getElementById('reg-tel')?.value.trim()||'';
@@ -2756,7 +2751,8 @@ window.demanderVerificationEmail = async function(renvoyer=false) {
   const errEl  = document.getElementById('reg-error');
   errEl.classList.add('hidden');
 
-  if (!pseudo||!email||!mdp) { showErr(errEl,'Veuillez remplir les champs obligatoires.'); return; }
+  if (!prenom||!nom||!pseudo||!email||!mdp)
+    { showErr(errEl,'Veuillez remplir tous les champs obligatoires.'); return; }
   if (!emailValide(email)) { showErr(errEl,'Adresse email invalide.'); return; }
   if (mdp.length < 6) { showErr(errEl,'Mot de passe : minimum 6 caractères.'); return; }
 
@@ -2771,12 +2767,12 @@ window.demanderVerificationEmail = async function(renvoyer=false) {
 
     const code = String(Math.floor(100000+Math.random()*900000));
     const hash = await sha256(mdp);
-    verifData  = {code, email, pseudo, tel, hash, expireAt:Date.now()+10*60*1000};
+    verifData  = {code, email, pseudo, prenom, nom, tel, hash, expireAt:Date.now()+10*60*1000};
     document.getElementById('verif-email-display').textContent = email;
 
-    const ok = await envoyerEmail(email, pseudo,
+    const ok = await envoyerEmail(email, prenom+' '+nom,
       'Code de vérification — Julien Céramiques',
-      'Bonjour '+pseudo+',\n\nCode : '+code+'\n\nValable 10 minutes.\n\nJulien Céramiques');
+      'Bonjour '+prenom+',\n\nCode : '+code+'\n\nValable 10 minutes.\n\nJulien Céramiques');
     if (!ok) toast('Email non envoyé. Code de test : '+code, 'warning');
 
     document.getElementById('reg-step1').classList.add('hidden');
@@ -2805,7 +2801,7 @@ window.verifierCode = async function() {
   btn.disabled=true; btn.textContent='Création du compte…';
   try {
     await addDoc(collection(db,'utilisateurs'), {
-      pseudo:verifData.pseudo,
+      pseudo:verifData.pseudo, prenom:verifData.prenom, nom:verifData.nom,
       telephone:verifData.tel||null, email:verifData.email, motDePasse:verifData.hash,
       role:'adherent', statut:'en_attente', emailVerifie:true,
       dateInscription:new Date().toISOString(),
@@ -2816,7 +2812,7 @@ window.verifierCode = async function() {
     showAuthTab('login');
     document.getElementById('reg-step1').classList.remove('hidden');
     document.getElementById('reg-step2').classList.add('hidden');
-    ['reg-pseudo','reg-email','reg-tel','reg-mdp']
+    ['reg-prenom','reg-nom','reg-pseudo','reg-email','reg-tel','reg-mdp']
       .forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
   } catch(e) { showErr(errEl,'Erreur : '+e.message); }
   btn.disabled=false; btn.textContent='Valider le code';
@@ -2928,15 +2924,15 @@ function afficherContacts(ctx) {
   const searchId=ctx==='admin'?'search-contacts-admin':'search-contacts-adh';
   const q=(document.getElementById(searchId)?.value||'').toLowerCase();
   const membres=allUsers.filter(u=>u.role==='adherent'&&u.statut==='actif');
-  const filtres=q?membres.filter(u=>(u.pseudo||'').toLowerCase().includes(q)||(u.email||'').toLowerCase().includes(q)):membres;
+  const filtres=q?membres.filter(u=>(u.prenom||'').toLowerCase().includes(q)||(u.nom||'').toLowerCase().includes(q)||(u.pseudo||'').toLowerCase().includes(q)||(u.email||'').toLowerCase().includes(q)):membres;
   const el=document.getElementById(listId);
   if (!el) return;
   if (!filtres.length) { el.innerHTML='<p class="text-muted">Aucun membre trouvé.</p>'; return; }
   const couleurs=['#C4622D','#7A8C6A','#3A6B8A','#8B6347','#6B3FA0'];
   el.innerHTML=filtres.map(u=>{
-    const ini=(u.pseudo||'?').substring(0,2).toUpperCase();
+    const ini=((u.prenom||'?')[0]+(u.nom||'?')[0]).toUpperCase();
     const col=couleurs[(u.pseudo||'').charCodeAt(0)%couleurs.length];
-    return '<div class="contact-card"><div class="contact-avatar" style="background:'+col+'">'+ini+'</div><div class="contact-info"><div class="contact-nom">'+u.pseudo+'</div><div class="contact-pseudo">@'+u.pseudo+'</div><div class="contact-ligne"><span>✉️</span><a href="mailto:'+u.email+'" class="contact-lien">'+u.email+'</a></div>'+(u.telephone?'<div class="contact-ligne"><span>📞</span><a href="tel:'+u.telephone+'" class="contact-lien">'+u.telephone+'</a></div>':'')+'</div></div>';
+    return '<div class="contact-card"><div class="contact-avatar" style="background:'+col+'">'+ini+'</div><div class="contact-info"><div class="contact-nom">'+(u.prenom||'')+' '+(u.nom||'')+'</div><div class="contact-pseudo">@'+u.pseudo+'</div><div class="contact-ligne"><span>✉️</span><a href="mailto:'+u.email+'" class="contact-lien">'+u.email+'</a></div>'+(u.telephone?'<div class="contact-ligne"><span>📞</span><a href="tel:'+u.telephone+'" class="contact-lien">'+u.telephone+'</a></div>':'')+'</div></div>';
   }).join('');
 }
 window.filtrerContacts = function(ctx) { afficherContacts(ctx); };
@@ -2965,12 +2961,14 @@ window.changerMdpAdmin = async function() {
 // IDENTITÉ ADHÉRENT (admin)
 // =====================================================================
 window.enregistrerIdentite = async function(id) {
-  const tel   = document.getElementById('fiche-tel').value.trim();
-  const email = document.getElementById('fiche-email').value.trim();
+  const prenom=document.getElementById('fiche-prenom').value.trim();
+  const nom   =document.getElementById('fiche-nom').value.trim();
+  const tel   =document.getElementById('fiche-tel').value.trim();
+  const email =document.getElementById('fiche-email').value.trim();
   try {
-    await updateDoc(doc(db,'utilisateurs',id), { telephone:tel||null, email:email||null });
-    const idx = allUsers.findIndex(u=>u.id===id);
-    if (idx!==-1) allUsers[idx]={...allUsers[idx], telephone:tel, email};
+    await updateDoc(doc(db,'utilisateurs',id),{prenom:prenom||null,nom:nom||null,telephone:tel||null,email:email||null});
+    const idx=allUsers.findIndex(u=>u.id===id);
+    if (idx!==-1) allUsers[idx]={...allUsers[idx],prenom,nom,telephone:tel,email};
     toast('Informations enregistrées.','success');
   } catch(e) { toast('Erreur : '+e.message,'error'); }
 };
@@ -3055,7 +3053,7 @@ window.envoyerCodeReinit = async function(renvoyer = false) {
     // Envoyer le code
     const ok = await envoyerEmail(
       userData.email,
-      userData.pseudo || 'Membre',
+      userData.prenom || userData.pseudo || 'Membre',
       'Réinitialisation de votre mot de passe — Julien Céramiques',
       'Bonjour,\n\nVous avez demandé à réinitialiser votre mot de passe pour l\'atelier Julien Céramiques.\n\nVotre code de réinitialisation est :\n\n' + code + '\n\nCe code est valable 10 minutes.\n\nSi vous n\'êtes pas à l\'origine de cette demande, ignorez ce message.\n\nJulien Céramiques'
     );
