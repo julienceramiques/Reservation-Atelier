@@ -960,7 +960,7 @@ tr:hover td { background: var(--cream); }
               </div>
               <div class="form-group">
                 <label class="form-label">Téléphone <span style="font-weight:400;color:var(--clay-lt);font-size:.85rem;">(facultatif)</span></label>
-                <input class="form-input" id="reg-tel" type="tel" placeholder="06 00 00 00 00">
+                <input class="form-input" id="reg-tel" type="tel" placeholder="Ex : 06 00 00 00" maxlength="10">
               </div>
               <div id="reg-error" class="alert alert-danger hidden" style="font-size:.85rem;padding:.6rem .85rem;"></div>
               <button class="btn btn-primary btn-full mt-2" id="btn-envoyer-code" onclick="demanderVerificationEmail()">Vérifier mon adresse mail →</button>
@@ -2790,6 +2790,8 @@ window.demanderVerificationEmail = async function(renvoyer=false) {
     { showErr(errEl,'Veuillez remplir les champs obligatoires.'); return; }
   if (!emailValide(email)) { showErr(errEl,'Adresse email invalide.'); return; }
   if (mdp.length < 6) { showErr(errEl,'Mot de passe : minimum 6 caractères.'); return; }
+  if (tel && tel.replace(/\s/g,'').length !== 8)
+    { showErr(errEl,'Le numéro de téléphone doit contenir exactement 8 chiffres.'); return; }
 
   const btn = document.getElementById('btn-envoyer-code');
   btn.disabled=true; btn.textContent='Envoi du code…';
