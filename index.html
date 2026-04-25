@@ -188,6 +188,8 @@ nav#navbar {
   padding: .75rem 1.5rem;
   display: flex; align-items: center; gap: 1rem;
   box-shadow: 0 2px 12px rgba(0,0,0,.25);
+  /* Hauteur fixe pour que tabs-nav puisse se coller dessous */
+  min-height: 52px;
 }
 .nav-brand {
   font-family: var(--font-display);
@@ -230,9 +232,18 @@ main#main {
   padding: 2rem 1.5rem;
 }
 
+#page-adherent, #page-admin {
+  padding-top: 0;
+}
+
+
 /* =====================================================
    PAGES / ÉCRANS
    ===================================================== */
+.tab-content {
+  padding-top: 1.5rem;
+}
+
 .page { display: none; }
 .page.active { display: block; animation: fadeIn .25s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -242,7 +253,8 @@ main#main {
    ===================================================== */
 #page-auth {
   min-height: 100vh;
-  display: flex; align-items: center; justify-content: center;
+  display: none;
+  align-items: center; justify-content: center;
   background: linear-gradient(135deg, var(--earth) 0%, var(--earth-lt) 50%, var(--clay) 100%);
   padding: 2rem;
 }
@@ -381,11 +393,11 @@ main#main {
    ===================================================== */
 .tabs-nav {
   display: flex; gap: .5rem;
-  background: var(--beige);
-  border-radius: var(--radius-md);
-  padding: .4rem;
-  margin-bottom: 1.75rem;
+  background: var(--beige-dk);
+  border-radius: 0;
+  padding: .6rem 1.5rem;
   flex-wrap: wrap;
+  box-shadow: 0 2px 8px rgba(0,0,0,.10);
 }
 .tab-btn {
   flex: 1; min-width: 120px;
@@ -867,10 +879,31 @@ tr:hover td { background: var(--cream); }
     </div>
   </nav>
 
-  <main id="main">
+  <!-- Barre de navigation adhérent (hors du main, collée sous la navbar) -->
+  <div id="tabs-adherent" style="display:none">
+    <div class="tabs-nav">
+      <button class="tab-btn active" onclick="showAdherentTab('dashboard')">🏠 Tableau de bord</button>
+      <button class="tab-btn" onclick="showAdherentTab('calendrier')">📅 Calendrier</button>
+      <button class="tab-btn" onclick="showAdherentTab('mes-reservations')">📋 Mes réservations</button>
+      <button class="tab-btn" onclick="showAdherentTab('contacts')">📇 Contacts</button>
+      <button class="tab-btn" onclick="showAdherentTab('mon-compte')">👤 Mon compte</button>
+    </div>
+  </div>
+
+  <!-- Barre de navigation admin (hors du main, collée sous la navbar) -->
+  <div id="tabs-admin" style="display:none">
+    <div class="tabs-nav">
+      <button class="tab-btn active" onclick="showAdminTab('dashboard')">📊 Tableau de bord <span id="admin-badge-wait" class="nav-badge hidden" style="background:var(--danger)"></span></button>
+      <button class="tab-btn" onclick="showAdminTab('adherents')">👥 Adhérents</button>
+      <button class="tab-btn" onclick="showAdminTab('calendrier')">📅 Calendrier</button>
+      <button class="tab-btn" onclick="showAdminTab('contacts')">📇 Contacts</button>
+      <button class="tab-btn" onclick="showAdminTab('exceptions')">⚙️ Exceptions</button>
+      <button class="tab-btn" onclick="showAdminTab('mon-compte')">🔑 Mon compte</button>
+    </div>
+  </div>
 
     <!-- ===== PAGE AUTH ===== -->
-    <div id="page-auth" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--earth) 0%,var(--earth-lt) 50%,var(--clay) 100%);padding:2rem;margin:-2rem -1.5rem;">
+    <div id="page-auth" style="min-height:100vh;display:none;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--earth) 0%,var(--earth-lt) 50%,var(--clay) 100%);padding:2rem;margin:-2rem -1.5rem;">
       <div class="auth-wrapper">
         <div class="auth-logo">
           <h1>🏺 Julien Céramiques</h1>
@@ -890,44 +923,43 @@ tr:hover td { background: var(--cream); }
             </div>
             <div class="form-group">
               <label class="form-label">Mot de passe</label>
-              <div class="mdp-wrap">
-                <input class="form-input" id="login-mdp" type="password" placeholder="••••••••" autocomplete="current-password">
-                <button type="button" class="btn-eye" onclick="toggleMdp('login-mdp',this)" title="Voir le mot de passe">👁</button>
-              </div>
+              <input class="form-input" id="login-mdp" type="password" placeholder="••••••••" autocomplete="current-password">
             </div>
             <div id="login-error" class="alert alert-danger hidden" style="font-size:.85rem;padding:.6rem .85rem;"></div>
             <button class="btn btn-primary btn-full mt-2" onclick="connexion()">Se connecter</button>
-            <button class="btn btn-ghost btn-full mt-1" onclick="afficherReinitialisationMdp()" style="font-size:.85rem;color:var(--clay-lt);">🔑 Mot de passe oublié ?</button>
           </div>
 
           <!-- Inscription -->
           <div id="form-register" class="hidden">
+            <!-- Étape 1 : Formulaire de base -->
             <div id="reg-step1">
-              
+              <div class="form-group">
+                <label class="form-label">Pseudo (unique)</label>
+                <input class="form-input" id="reg-pseudo" type="text" placeholder="Choisissez un pseudo">
               </div>
-              <div class="form-group"><label class="form-label">Pseudo (unique) <span style="color:var(--danger)">*</span></label>
-                <input class="form-input" id="reg-pseudo" type="text" placeholder="Choisissez un pseudo"></div>
-              <div class="form-group"><label class="form-label">Email <span style="color:var(--danger)">*</span></label>
-                <input class="form-input" id="reg-email" type="email" placeholder="votre@email.com"></div>
-              <div class="form-group"><label class="form-label">Téléphone <span style="color:var(--clay-lt);font-size:.78rem">(facultatif)</span></label>
-                <input class="form-input" id="reg-tel" type="tel" placeholder="06 00 00 00 00"></div>
-              <div class="form-group"><label class="form-label">Mot de passe <span style="color:var(--danger)">*</span></label>
-                <div class="mdp-wrap">
-                  <input class="form-input" id="reg-mdp" type="password" placeholder="Min. 6 caractères">
-                  <button type="button" class="btn-eye" onclick="toggleMdp('reg-mdp',this)" title="Voir le mot de passe">👁</button>
-                </div></div>
-              <div class="alert alert-info" style="font-size:.78rem;padding:.6rem .85rem;margin-bottom:.75rem;">
-                🔒 Votre adresse courriel et numéro de téléphone seront accessibles par l'ensemble des membres de l'atelier Julien Céramiques.</div>
+              <div class="form-group">
+                <label class="form-label">Email</label>
+                <input class="form-input" id="reg-email" type="email" placeholder="votre@email.com">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Mot de passe</label>
+                <input class="form-input" id="reg-mdp" type="password" placeholder="Min. 6 caractères">
+              </div>
               <div id="reg-error" class="alert alert-danger hidden" style="font-size:.85rem;padding:.6rem .85rem;"></div>
               <button class="btn btn-primary btn-full mt-2" id="btn-envoyer-code" onclick="demanderVerificationEmail()">Vérifier mon adresse mail →</button>
               <p class="text-muted text-center mt-2" style="font-size:.8rem;">Un code de vérification sera envoyé à votre adresse mail.</p>
             </div>
+            <!-- Étape 2 : Saisie du code reçu par mail -->
             <div id="reg-step2" class="hidden">
               <div class="alert alert-info" style="margin-bottom:1rem;font-size:.85rem;">
-                📧 Code envoyé à <strong id="verif-email-display"></strong>. Vérifiez vos spams.</div>
-              <div class="form-group"><label class="form-label">Code de vérification</label>
+                📧 Un code à 6 chiffres a été envoyé à <strong id="verif-email-display"></strong>.<br>
+                Vérifiez vos spams si vous ne le recevez pas.
+              </div>
+              <div class="form-group">
+                <label class="form-label">Code de vérification</label>
                 <input class="form-input" id="verif-code-input" type="text" placeholder="123456" maxlength="6"
-                  style="font-size:1.4rem;letter-spacing:.3em;text-align:center;"></div>
+                  style="font-size:1.4rem;letter-spacing:.3em;text-align:center;">
+              </div>
               <div id="verif-error" class="alert alert-danger hidden" style="font-size:.85rem;padding:.6rem .85rem;"></div>
               <button class="btn btn-primary btn-full mt-2" onclick="verifierCode()">Valider le code</button>
               <button class="btn btn-ghost btn-full mt-1" onclick="retourEtape1()" style="font-size:.85rem;">← Modifier mes informations</button>
@@ -935,66 +967,6 @@ tr:hover td { background: var(--cream); }
             </div>
           </div>
         </div>
-
-        <!-- === MOT DE PASSE OUBLIÉ === -->
-        <div id="form-reinit" class="hidden">
-          <!-- Étape 1 : saisie email/pseudo -->
-          <div id="reinit-step1">
-            <h3 style="font-family:var(--font-display);font-size:1.1rem;color:var(--earth);margin-bottom:.75rem;">🔑 Réinitialiser mon mot de passe</h3>
-            <div class="form-group">
-              <label class="form-label">Votre pseudo ou adresse email</label>
-              <input class="form-input" id="reinit-pseudo-email" type="text" placeholder="Pseudo ou email">
-            </div>
-            <div id="reinit-error1" class="alert alert-danger hidden" style="font-size:.85rem;padding:.6rem .85rem;"></div>
-            <div style="display:flex;gap:.75rem;margin-top:.75rem;">
-              <button class="btn btn-secondary" onclick="retourConnexion()">← Retour</button>
-              <button class="btn btn-primary" onclick="envoyerCodeReinit()">Envoyer le code →</button>
-            </div>
-          </div>
-          <!-- Étape 2 : saisie du code reçu -->
-          <div id="reinit-step2" class="hidden">
-            <div class="alert alert-info" style="margin-bottom:1rem;font-size:.85rem;">
-              📧 Un code à 6 chiffres a été envoyé à <strong id="reinit-email-display"></strong>.<br>Vérifiez vos spams si besoin.
-            </div>
-            <div class="form-group">
-              <label class="form-label">Code de vérification</label>
-              <input class="form-input" id="reinit-code-input" type="text" placeholder="123456" maxlength="6"
-                style="font-size:1.4rem;letter-spacing:.3em;text-align:center;">
-            </div>
-            <div id="reinit-error2" class="alert alert-danger hidden" style="font-size:.85rem;padding:.6rem .85rem;"></div>
-            <div style="display:flex;gap:.75rem;margin-top:.75rem;flex-wrap:wrap;">
-              <button class="btn btn-secondary" onclick="reinitStep(1)">← Retour</button>
-              <button class="btn btn-primary" onclick="validerCodeReinit()">Valider →</button>
-              <button class="btn btn-ghost" onclick="envoyerCodeReinit(true)" style="font-size:.82rem;color:var(--clay-lt);">Renvoyer le code</button>
-            </div>
-          </div>
-          <!-- Étape 3 : nouveau mot de passe -->
-          <div id="reinit-step3" class="hidden">
-            <div class="alert alert-success" style="margin-bottom:1rem;font-size:.85rem;">
-              ✅ Code validé ! Choisissez votre nouveau mot de passe.
-            </div>
-            <div class="form-group">
-              <label class="form-label">Nouveau mot de passe</label>
-              <div class="mdp-wrap">
-                <input class="form-input" id="reinit-new-mdp" type="password" placeholder="Min. 6 caractères">
-                <button type="button" class="btn-eye" onclick="toggleMdp('reinit-new-mdp',this)">👁</button>
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Confirmer le mot de passe</label>
-              <div class="mdp-wrap">
-                <input class="form-input" id="reinit-new-mdp2" type="password" placeholder="Répétez le mot de passe">
-                <button type="button" class="btn-eye" onclick="toggleMdp('reinit-new-mdp2',this)">👁</button>
-              </div>
-            </div>
-            <div id="reinit-error3" class="alert alert-danger hidden" style="font-size:.85rem;padding:.6rem .85rem;"></div>
-            <div style="display:flex;gap:.75rem;margin-top:.75rem;">
-              <button class="btn btn-secondary" onclick="reinitStep(2)">← Retour</button>
-              <button class="btn btn-primary" onclick="enregistrerNouveauMdp()">Enregistrer le mot de passe</button>
-            </div>
-          </div>
-        </div>
-
       </div>
     </div>
 
@@ -1002,14 +974,6 @@ tr:hover td { background: var(--cream); }
     <div id="page-adherent" style="display:none">
       <div id="adherent-alerte-adhesion" class="alert alert-warning hidden" style="margin-bottom:1.5rem;">
         ⚠️ <span id="adherent-alerte-txt"></span>
-      </div>
-
-      <div class="tabs-nav">
-        <button class="tab-btn active" onclick="showAdherentTab('dashboard')">🏠 Tableau de bord</button>
-        <button class="tab-btn" onclick="showAdherentTab('calendrier')">📅 Calendrier</button>
-        <button class="tab-btn" onclick="showAdherentTab('mes-reservations')">📋 Mes réservations</button>
-        <button class="tab-btn" onclick="showAdherentTab('contacts')">📇 Contacts</button>
-        <button class="tab-btn" onclick="showAdherentTab('mon-compte')">👤 Mon compte</button>
       </div>
 
       <!-- Dashboard adhérent -->
@@ -1087,14 +1051,7 @@ tr:hover td { background: var(--cream); }
 
     <!-- ===== PAGE ADMIN ===== -->
     <div id="page-admin" style="display:none">
-      <div class="tabs-nav">
-        <button class="tab-btn active" onclick="showAdminTab('dashboard')">📊 Tableau de bord <span id="admin-badge-wait" class="nav-badge hidden" style="background:var(--danger)"></span></button>
-        <button class="tab-btn" onclick="showAdminTab('adherents')">👥 Adhérents</button>
-        <button class="tab-btn" onclick="showAdminTab('calendrier')">📅 Calendrier</button>
-        <button class="tab-btn" onclick="showAdminTab('contacts')">📇 Contacts</button>
-        <button class="tab-btn" onclick="showAdminTab('exceptions')">⚙️ Exceptions</button>
-        <button class="tab-btn" onclick="showAdminTab('mon-compte')">🔑 Mon compte</button>
-      </div>
+
 
       <!-- Dashboard admin -->
       <div id="tab-admin-dashboard" class="tab-content">
@@ -1335,13 +1292,14 @@ tr:hover td { background: var(--cream); }
 // Paramètres du projet → Vos applications → SDK setup and configuration
 // =====================================================================
 const firebaseConfig = {
-  apiKey: "AIzaSyC6xEpKOzBmeM9f7JroC4u6AGA44b-xFUM",
-  authDomain: "syst-resa-atelier.firebaseapp.com",
-  projectId: "syst-resa-atelier",
-  storageBucket: "syst-resa-atelier.firebasestorage.app",
-  messagingSenderId: "255396165813",
-  appId: "1:255396165813:web:5269d7cb8493a02eb766fc"
+  apiKey:            "VOTRE_API_KEY",
+  authDomain:        "VOTRE_PROJECT.firebaseapp.com",
+  projectId:         "VOTRE_PROJECT_ID",
+  storageBucket:     "VOTRE_PROJECT.firebasestorage.app",
+  messagingSenderId: "VOTRE_SENDER_ID",
+  appId:             "VOTRE_APP_ID"
 };
+
 // Importation du SDK Firebase v9 modulaire via CDN
 import { initializeApp }                                  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
@@ -1350,7 +1308,8 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
   getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-  signOut, updatePassword, sendPasswordResetEmail, onAuthStateChanged
+  signOut, updatePassword, sendPasswordResetEmail, onAuthStateChanged,
+  browserSessionPersistence, setPersistence
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 // =====================================================================
@@ -1384,6 +1343,10 @@ if (configVide) {
 const app  = initializeApp(firebaseConfig);
 const db   = getFirestore(app);
 const auth = getAuth(app);
+
+// Persistance SESSION uniquement : l'utilisateur est déconnecté
+// automatiquement à la fermeture de l'onglet ou du navigateur.
+await setPersistence(auth, browserSessionPersistence);
 
 // =====================================================================
 // CONSTANTES
@@ -1696,35 +1659,31 @@ function showErr(el, msg) {
 // NAVIGATION PRINCIPALE
 // =====================================================================
 function afficherAuth() {
-  const pageAuth = document.getElementById('page-auth');
-  // Mettre page-auth en fixed pour qu'elle ne pousse pas le contenu
-  pageAuth.style.position = 'fixed';
-  pageAuth.style.inset    = '0';
-  pageAuth.style.zIndex   = '200';
-  pageAuth.style.display  = 'flex';
-  document.getElementById('navbar').style.display        = 'none';
-  document.getElementById('page-adherent').style.display = 'none';
-  document.getElementById('page-admin').style.display    = 'none';
+  document.getElementById('page-auth').style.display      = 'flex';
+  document.getElementById('navbar').style.display         = 'none';
+  document.getElementById('tabs-adherent').style.display  = 'none';
+  document.getElementById('tabs-admin').style.display     = 'none';
+  document.getElementById('page-adherent').style.display  = 'none';
+  document.getElementById('page-admin').style.display     = 'none';
 }
 
 function afficherInterface() {
-  const pageAuth = document.getElementById('page-auth');
-  // Cacher page-auth et lui retirer le fixed pour ne pas bloquer
-  pageAuth.style.display  = 'none';
-  pageAuth.style.position = '';
-  pageAuth.style.inset    = '';
-  pageAuth.style.zIndex   = '';
+  document.getElementById('page-auth').style.display = 'none';
   document.getElementById('navbar').style.display = 'flex';
 
   document.getElementById('nav-pseudo').textContent = utilisateurCourant.pseudo;
 
   if (utilisateurCourant.role === 'admin') {
-    document.getElementById('page-adherent').style.display = 'none';
-    document.getElementById('page-admin').style.display    = 'block';
+    document.getElementById('tabs-adherent').style.display  = 'none';
+    document.getElementById('tabs-admin').style.display     = 'block';
+    document.getElementById('page-adherent').style.display  = 'none';
+    document.getElementById('page-admin').style.display     = 'block';
     chargerAdmin();
   } else {
-    document.getElementById('page-adherent').style.display = 'block';
-    document.getElementById('page-admin').style.display    = 'none';
+    document.getElementById('tabs-adherent').style.display  = 'block';
+    document.getElementById('tabs-admin').style.display     = 'none';
+    document.getElementById('page-adherent').style.display  = 'block';
+    document.getElementById('page-admin').style.display     = 'none';
     chargerAdherent();
   }
 }
@@ -1745,12 +1704,12 @@ async function chargerAdherent() {
 }
 
 window.showAdherentTab = function(tab) {
-  document.querySelectorAll('#page-adherent .tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#tabs-adherent .tab-btn').forEach(b=>b.classList.remove('active'));
   ['dashboard','calendrier','mes-reservations','contacts','mon-compte'].forEach(t=>{
     const el=document.getElementById('tab-adh-'+t); if(el) el.classList.add('hidden');
   });
   const idx=['dashboard','calendrier','mes-reservations','contacts','mon-compte'].indexOf(tab);
-  document.querySelectorAll('#page-adherent .tab-btn')[idx]?.classList.add('active');
+  document.querySelectorAll('#tabs-adherent .tab-btn')[idx]?.classList.add('active');
   const el=document.getElementById('tab-adh-'+tab); if(el) el.classList.remove('hidden');
   if (tab==='calendrier') renderCalendrier('adherent-wrap');
   else if (tab==='mes-reservations') afficherMesReservations();
@@ -1913,12 +1872,12 @@ async function chargerAdmin() {
 }
 
 window.showAdminTab = function(tab) {
-  document.querySelectorAll('#page-admin .tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#tabs-admin .tab-btn').forEach(b=>b.classList.remove('active'));
   ['dashboard','adherents','calendrier','contacts','exceptions','mon-compte'].forEach(t=>{
     const el=document.getElementById('tab-admin-'+t); if(el) el.classList.add('hidden');
   });
   const tabs=['dashboard','adherents','calendrier','contacts','exceptions','mon-compte'];
-  document.querySelectorAll('#page-admin .tab-btn')[tabs.indexOf(tab)]?.classList.add('active');
+  document.querySelectorAll('#tabs-admin .tab-btn')[tabs.indexOf(tab)]?.classList.add('active');
   const el=document.getElementById('tab-admin-'+tab); if(el) el.classList.remove('hidden');
   if (tab==='adherents')  afficherTableauAdherents();
   if (tab==='calendrier') renderCalendrier('admin-wrap');
@@ -3240,6 +3199,22 @@ window.toggleMdp = function(inputId, btn) {
 // Listeners clavier pour les champs de réinitialisation
 document.addEventListener('keydown', function(e) {
   if (e.key !== 'Enter') return;
+
+  // Page de connexion
+  const loginVisible = !document.getElementById('form-login').classList.contains('hidden');
+  const authVisible  = document.getElementById('page-auth').style.display !== 'none';
+  if (authVisible && loginVisible) { window.connexion(); return; }
+
+  // Page d'inscription étape 1
+  const registerVisible = !document.getElementById('form-register').classList.contains('hidden');
+  const step1Reg = !document.getElementById('reg-step1')?.classList.contains('hidden');
+  if (authVisible && registerVisible && step1Reg) { window.demanderVerificationEmail(); return; }
+
+  // Page d'inscription étape 2 (code vérification)
+  const step2Reg = !document.getElementById('reg-step2')?.classList.contains('hidden');
+  if (authVisible && registerVisible && step2Reg) { window.verifierCode(); return; }
+
+  // Réinitialisation mot de passe
   const reinitVisible = !document.getElementById('form-reinit').classList.contains('hidden');
   if (!reinitVisible) return;
   const step1Visible = !document.getElementById('reinit-step1').classList.contains('hidden');
