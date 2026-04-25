@@ -940,6 +940,41 @@ tr:hover td { background: var(--cream); }
             </div>
             <div id="login-error" class="alert alert-danger hidden" style="font-size:.85rem;padding:.6rem .85rem;"></div>
             <button class="btn btn-primary btn-full mt-2" onclick="connexion()">Se connecter</button>
+            <p class="text-center mt-2" style="font-size:.82rem;">
+              <a href="#" style="color:var(--terracotta);text-decoration:none;" onclick="afficherReinitialisationMdp();return false;">Mot de passe oublié ?</a>
+            </p>
+          </div>
+
+          <!-- Réinitialisation mot de passe -->
+          <div id="form-reinit" class="hidden">
+            <!-- Étape 1 : saisir pseudo ou email -->
+            <div id="reinit-step1">
+              <p style="font-size:.9rem;color:var(--earth-lt);margin-bottom:1rem;">Saisissez votre pseudo ou adresse email. Vous recevrez un lien officiel Firebase pour choisir un nouveau mot de passe.</p>
+              <div class="form-group">
+                <label class="form-label">Pseudo ou Email</label>
+                <input class="form-input" id="reinit-pseudo-email" type="text" placeholder="Votre pseudo ou email">
+              </div>
+              <div id="reinit-error1" class="alert alert-danger hidden" style="font-size:.85rem;padding:.6rem .85rem;"></div>
+              <button class="btn btn-primary btn-full mt-2" onclick="envoyerCodeReinit()">Écrire le lien →</button>
+              <button class="btn btn-ghost btn-full mt-1" onclick="retourConnexion()" style="font-size:.85rem;">← Retour à la connexion</button>
+            </div>
+            <!-- Étape 2 : confirmation envoi -->
+            <div id="reinit-step2" class="hidden">
+              <div class="alert alert-success" style="margin-bottom:1rem;font-size:.85rem;">
+                ✅ Un email de réinitialisation a été envoyé à <strong id="reinit-email-display"></strong>.<br>
+                Cliquez sur le lien dans l'email pour choisir un nouveau mot de passe. Vérifiez vos spams si besoin.
+              </div>
+              <button class="btn btn-primary btn-full" onclick="retourConnexion()">Retour à la connexion</button>
+              <button class="btn btn-ghost btn-full mt-1" onclick="envoyerCodeReinit(true)" style="font-size:.82rem;color:var(--clay-lt);">Renvoyer l'email</button>
+            </div>
+            <!-- Étape 3 : stub (plus utilisée — Firebase gère via le lien email) -->
+            <div id="reinit-step3" class="hidden"></div>
+            <!-- Champs hidden pour compatibilité JS -->
+            <input type="hidden" id="reinit-code-input">
+            <input type="hidden" id="reinit-new-mdp">
+            <input type="hidden" id="reinit-new-mdp2">
+            <div id="reinit-error2" class="hidden"></div>
+            <div id="reinit-error3" class="hidden"></div>
           </div>
 
           <!-- Inscription -->
@@ -960,7 +995,7 @@ tr:hover td { background: var(--cream); }
               </div>
               <div class="form-group">
                 <label class="form-label">Téléphone <span style="font-weight:400;color:var(--clay-lt);font-size:.85rem;">(facultatif)</span></label>
-                <input class="form-input" id="reg-tel" type="tel" placeholder="Ex : 06 00 00 00" maxlength="10">
+                <input class="form-input" id="reg-tel" type="tel" placeholder="Ex : 06 12 34 56 78 ou +352 621 000" maxlength="20">
               </div>
               <div id="reg-error" class="alert alert-danger hidden" style="font-size:.85rem;padding:.6rem .85rem;"></div>
               <button class="btn btn-primary btn-full mt-2" id="btn-envoyer-code" onclick="demanderVerificationEmail()">Vérifier mon adresse mail →</button>
@@ -1582,6 +1617,7 @@ async function initAdminDefaut() {
       // Créer le document Firestore avec l'UID comme identifiant
       await setDoc(doc(db,'utilisateurs', uid), {
         pseudo:            'admin',
+        pseudoLower:       'admin',
         email:             'julienceramiques@gmail.com',
         role:              'admin',
         statut:            'actif',
@@ -1626,11 +1662,22 @@ window.connexion = async function() {
   if (!pseudo || !mdp) { showErr(errEl,'Veuillez remplir tous les champs.'); return; }
 
   try {
-    // Recherche insensible à la casse : on charge tous les users
-    // et on compare les pseudos en minuscules
-    const snap     = await getDocs(collection(db,'utilisateurs'));
+    // Requête ciblée sur le champ pseudoLower (pas de chargement de toute la collection)
     const pseudoLw = pseudo.toLowerCase();
-    const match    = snap.docs.find(d => (d.data().pseudo||'').toLowerCase() === pseudoLw);
+    const q = query(collection(db,'utilisateurs'), where('pseudoLower','==',pseudoLw));
+    const snap = await getDocs(q);
+
+    // Fallback : si aucun résultat (comptes créés avant la migration), scan complet
+    let match = snap.docs[0] || null;
+    if (!match) {
+      const snapAll = await getDocs(collection(db,'utilisateurs'));
+      match = snapAll.docs.find(d => (d.data().pseudo||'').toLowerCase() === pseudoLw) || null;
+      // Migrer ce compte pour les prochaines connexions
+      if (match) {
+        await updateDoc(doc(db,'utilisateurs', match.id), { pseudoLower: pseudoLw });
+      }
+    }
+
     if (!match) { showErr(errEl,'Pseudo ou mot de passe incorrect.'); return; }
 
     const userData = match.data();
@@ -2790,17 +2837,22 @@ window.demanderVerificationEmail = async function(renvoyer=false) {
     { showErr(errEl,'Veuillez remplir les champs obligatoires.'); return; }
   if (!emailValide(email)) { showErr(errEl,'Adresse email invalide.'); return; }
   if (mdp.length < 6) { showErr(errEl,'Mot de passe : minimum 6 caractères.'); return; }
-  if (tel && tel.replace(/\s/g,'').length !== 8)
-    { showErr(errEl,'Le numéro de téléphone doit contenir exactement 8 chiffres.'); return; }
+  const telDigits = tel.replace(/[\s\-\.\+]/g,'');
+  if (tel && (!/^\d+$/.test(telDigits) || telDigits.length < 8 || telDigits.length > 15))
+    { showErr(errEl,'Numéro de téléphone invalide (8 à 15 chiffres, espaces et + acceptés).'); return; }
 
   const btn = document.getElementById('btn-envoyer-code');
   btn.disabled=true; btn.textContent='Envoi du code…';
   try {
     // Vérifier unicité pseudo et email dans Firestore
-    const snap = await getDocs(collection(db,'utilisateurs'));
-    if (snap.docs.some(d => (d.data().pseudo||'').toLowerCase()===pseudo.toLowerCase()))
+    // Vérifier unicité pseudo et email via requêtes ciblées (sans charger tous les docs)
+    const [snapPseudo, snapEmail] = await Promise.all([
+      getDocs(query(collection(db,'utilisateurs'), where('pseudoLower','==',pseudo.toLowerCase()))),
+      getDocs(query(collection(db,'utilisateurs'), where('email','==',email.toLowerCase()))),
+    ]);
+    if (!snapPseudo.empty)
       { showErr(errEl,'Ce pseudo est déjà utilisé.'); btn.disabled=false; btn.textContent='Vérifier mon adresse mail →'; return; }
-    if (snap.docs.some(d => (d.data().email||'').toLowerCase()===email.toLowerCase()))
+    if (!snapEmail.empty)
       { showErr(errEl,'Cette adresse email est déjà utilisée.'); btn.disabled=false; btn.textContent='Vérifier mon adresse mail →'; return; }
 
     // Générer un code de vérification à 6 chiffres
@@ -2847,6 +2899,7 @@ window.verifierCode = async function() {
     // 2. Créer le document Firestore avec l'UID comme identifiant (sans mot de passe)
     await setDoc(doc(db,'utilisateurs', uid), {
       pseudo:    verifData.pseudo,
+      pseudoLower: verifData.pseudo.toLowerCase(),
       telephone: verifData.tel||null,
       email:     verifData.email,
       role:      'adherent',
@@ -3042,32 +3095,28 @@ window.enregistrerIdentite = async function(id) {
 
 // =====================================================================
 // RÉINITIALISATION MOT DE PASSE OUBLIÉ
+// Flux simplifié : pseudo/email → recherche Firestore → sendPasswordResetEmail Firebase
+// L'utilisateur reçoit un lien officiel Firebase pour choisir son nouveau mot de passe.
 // =====================================================================
-let reinitData = null; // { code, userId, email, expireAt }
 
 // Afficher le panneau réinitialisation
 window.afficherReinitialisationMdp = function() {
   document.getElementById('form-login').classList.add('hidden');
   document.getElementById('form-register').classList.add('hidden');
   document.getElementById('form-reinit').classList.remove('hidden');
-  // Réinitialiser toutes les étapes
   reinitStep(1);
   document.getElementById('reinit-pseudo-email').value = '';
-  document.getElementById('reinit-code-input').value   = '';
-  document.getElementById('reinit-new-mdp').value      = '';
-  document.getElementById('reinit-new-mdp2').value     = '';
-  ['reinit-error1','reinit-error2','reinit-error3'].forEach(id =>
-    document.getElementById(id).classList.add('hidden'));
+  document.getElementById('reinit-error1').classList.add('hidden');
 };
 
 // Revenir à la connexion
 window.retourConnexion = function() {
   document.getElementById('form-reinit').classList.add('hidden');
   document.getElementById('form-login').classList.remove('hidden');
-  reinitData = null;
+  reinitStep(1);
 };
 
-// Naviguer entre les étapes
+// Naviguer entre les étapes (1 = saisie, 2 = confirmation)
 window.reinitStep = function(step) {
   [1,2,3].forEach(s => {
     const el = document.getElementById('reinit-step'+s);
@@ -3075,7 +3124,7 @@ window.reinitStep = function(step) {
   });
 };
 
-// Étape 1 : envoyer le code par email
+// Étape 1 : rechercher le compte et envoyer le lien Firebase
 window.envoyerCodeReinit = async function(renvoyer = false) {
   const valeur = document.getElementById('reinit-pseudo-email').value.trim();
   const errEl  = document.getElementById('reinit-error1');
@@ -3087,116 +3136,54 @@ window.envoyerCodeReinit = async function(renvoyer = false) {
   btn.disabled = true; btn.textContent = 'Envoi…';
 
   try {
-    // Chercher l'utilisateur par pseudo OU email (insensible à la casse)
-    const snap   = await getDocs(collection(db,'utilisateurs'));
     const valLow = valeur.toLowerCase();
-    const match  = snap.docs.find(d => {
-      const data = d.data();
-      return (data.pseudo||'').toLowerCase() === valLow ||
-             (data.email||'').toLowerCase()  === valLow;
-    });
+    // Recherche ciblée : pseudoLower d'abord, puis email (insensible à la casse)
+    let email = null;
+    const byPseudo = await getDocs(query(collection(db,'utilisateurs'), where('pseudoLower','==',valLow)));
+    if (!byPseudo.empty) {
+      const userData = byPseudo.docs[0].data();
+      if (userData.statut === 'suspendu') {
+        showErr(errEl, 'Ce compte est suspendu. Contactez l\'administrateur.');
+        btn.disabled = false; btn.textContent = 'Envoyer le lien →'; return;
+      }
+      email = userData.email;
+    } else {
+      // Recherche par email : on cherche avec la valeur telle quelle ET en minuscule
+      const snapAll = await getDocs(collection(db,'utilisateurs'));
+      const match = snapAll.docs.find(d => (d.data().email||'').toLowerCase() === valLow);
+      if (match) {
+        const userData = match.data();
+        if (userData.statut === 'suspendu') {
+          showErr(errEl, 'Ce compte est suspendu. Contactez l\'administrateur.');
+          btn.disabled = false; btn.textContent = 'Envoyer le lien →'; return;
+        }
+        email = userData.email;
+      }
+    }
 
-    if (!match) {
+    if (!email) {
       showErr(errEl, 'Aucun compte trouvé avec ce pseudo ou cet email.');
-      btn.disabled = false; btn.textContent = 'Envoyer le code →'; return;
+      btn.disabled = false; btn.textContent = 'Envoyer le lien →'; return;
     }
 
-    const userData = match.data();
-    if (userData.statut === 'suspendu') {
-      showErr(errEl, 'Ce compte est suspendu. Contactez l\'administrateur.');
-      btn.disabled = false; btn.textContent = 'Envoyer le code →'; return;
-    }
-
-    // Générer un code à 6 chiffres
-    const code = String(Math.floor(100000 + Math.random() * 900000));
-    reinitData  = { code, userId: match.id, email: userData.email, expireAt: Date.now() + 10*60*1000 };
+    // Envoyer le lien officiel Firebase (sécurisé, signé, expirant)
+    await sendPasswordResetEmail(auth, email);
 
     // Afficher l'email masqué (ex: j***@gmail.com)
-    const email  = userData.email || '';
     const parts  = email.split('@');
     const masque = parts[0].substring(0,2) + '***@' + (parts[1]||'');
     document.getElementById('reinit-email-display').textContent = masque;
-
-    // Envoyer le code
-    const ok = await envoyerEmail(
-      userData.email,
-      userData.pseudo || 'Membre',
-      'Réinitialisation de votre mot de passe — Julien Céramiques',
-      'Bonjour,\n\nVous avez demandé à réinitialiser votre mot de passe pour l\'atelier Julien Céramiques.\n\nVotre code de réinitialisation est :\n\n' + code + '\n\nCe code est valable 10 minutes.\n\nSi vous n\'êtes pas à l\'origine de cette demande, ignorez ce message.\n\nJulien Céramiques'
-    );
-
-    if (!ok) {
-      // En cas d'échec d'envoi, afficher le code pour les tests
-      toast('⚠️ Email non envoyé. Code de test : ' + code, 'warning');
-    }
-
     reinitStep(2);
-    setTimeout(() => document.getElementById('reinit-code-input')?.focus(), 100);
 
   } catch(e) {
     showErr(errEl, 'Erreur : ' + e.message);
   }
-  btn.disabled = false; btn.textContent = 'Envoyer le code →';
+  btn.disabled = false; btn.textContent = 'Envoyer le lien →';
 };
 
-// Étape 2 : valider le code
-window.validerCodeReinit = function() {
-  const saisi = document.getElementById('reinit-code-input').value.trim();
-  const errEl = document.getElementById('reinit-error2');
-  errEl.classList.add('hidden');
-
-  if (!reinitData) { showErr(errEl, 'Session expirée. Recommencez.'); return; }
-  if (Date.now() > reinitData.expireAt) {
-    showErr(errEl, 'Le code a expiré (10 min). Cliquez sur "Renvoyer le code".');
-    return;
-  }
-  if (saisi !== reinitData.code) {
-    showErr(errEl, 'Code incorrect. Vérifiez le code reçu par email.');
-    return;
-  }
-
-  // Code valide → passer à l'étape 3
-  reinitStep(3);
-  setTimeout(() => document.getElementById('reinit-new-mdp')?.focus(), 100);
-};
-
-// Étape 3 : enregistrer le nouveau mot de passe
-// NOTE : Firebase Auth gère la réinitialisation via sendPasswordResetEmail.
-// On conserve le flux custom (code 6 chiffres) mais on délègue le changement
-// de mot de passe à Firebase Auth via une reconnexion temporaire.
-window.enregistrerNouveauMdp = async function() {
-  const mdp  = document.getElementById('reinit-new-mdp').value;
-  const mdp2 = document.getElementById('reinit-new-mdp2').value;
-  const errEl = document.getElementById('reinit-error3');
-  errEl.classList.add('hidden');
-
-  if (!mdp || !mdp2)  { showErr(errEl, 'Veuillez remplir les deux champs.'); return; }
-  if (mdp !== mdp2)   { showErr(errEl, 'Les mots de passe ne correspondent pas.'); return; }
-  if (mdp.length < 6) { showErr(errEl, 'Le mot de passe doit contenir au moins 6 caractères.'); return; }
-  if (!reinitData)    { showErr(errEl, 'Session expirée. Recommencez.'); return; }
-
-  const btn = document.querySelector('#reinit-step3 .btn-primary');
-  btn.disabled = true; btn.textContent = 'Enregistrement…';
-
-  try {
-    // Récupérer l'email depuis Firestore
-    const snap = await getDoc(doc(db,'utilisateurs', reinitData.userId));
-    if (!snap.exists()) { showErr(errEl, 'Compte introuvable.'); btn.disabled=false; btn.textContent='Enregistrer le mot de passe'; return; }
-    const email = snap.data().email;
-
-    // Utiliser Firebase Auth : envoyer un email de réinitialisation officiel
-    // (plus sécurisé que de changer le mdp avec une connexion temporaire)
-    await sendPasswordResetEmail(auth, email);
-
-    reinitData = null;
-    toast('✅ Un email de réinitialisation Firebase vous a été envoyé. Suivez le lien pour finaliser.', 'success');
-    retourConnexion();
-
-  } catch(e) {
-    showErr(errEl, 'Erreur : ' + e.message);
-  }
-  btn.disabled = false; btn.textContent = 'Enregistrer le mot de passe';
-};
+// Stubs conservés pour compatibilité avec les listeners clavier
+window.validerCodeReinit    = function() {};
+window.enregistrerNouveauMdp = function() {};
 
 // =====================================================================
 // Afficher/masquer le mot de passe
