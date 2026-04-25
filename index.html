@@ -232,6 +232,18 @@ main#main {
   padding: 2rem 1.5rem;
 }
 
+/* Marges confortables sur écrans larges */
+@media (min-width: 900px) {
+  main#main {
+    padding: 2rem 3rem;
+  }
+}
+@media (min-width: 1280px) {
+  main#main {
+    padding: 2rem 5rem;
+  }
+}
+
 #page-adherent, #page-admin {
   padding-top: 0;
 }
@@ -622,9 +634,10 @@ tr:hover td { background: var(--cream); }
   margin-bottom: .3rem;
 }
 .month-day-info { font-size: .7rem; text-align: center; }
-.dot-avail { color: var(--success); font-size: 1rem; }
-.dot-full  { color: var(--danger);  font-size: 1rem; }
-.dot-none  { color: var(--clay-lt); font-size: 1rem; }
+.dot-avail   { color: var(--success); font-size: 1rem; }
+.dot-partiel { color: #f59e0b;        font-size: 1rem; }
+.dot-full    { color: var(--danger);  font-size: 1rem; }
+.dot-none    { color: var(--clay-lt); font-size: 1rem; }
 
 /* =====================================================
    MODALE
@@ -944,6 +957,10 @@ tr:hover td { background: var(--cream); }
               <div class="form-group">
                 <label class="form-label">Mot de passe</label>
                 <input class="form-input" id="reg-mdp" type="password" placeholder="Min. 6 caractères">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Téléphone <span style="font-weight:400;color:var(--clay-lt);font-size:.85rem;">(facultatif)</span></label>
+                <input class="form-input" id="reg-tel" type="tel" placeholder="06 00 00 00 00">
               </div>
               <div id="reg-error" class="alert alert-danger hidden" style="font-size:.85rem;padding:.6rem .85rem;"></div>
               <button class="btn btn-primary btn-full mt-2" id="btn-envoyer-code" onclick="demanderVerificationEmail()">Vérifier mon adresse mail →</button>
@@ -2492,16 +2509,22 @@ function celleMois(d, autresMois, wrapperId) {
   if (!ferme) {
     // Calcul disponibilité
     let placesLibres = false;
+    let auMoinsUneResa = false;
     let toutPlein    = true;
     for (let h=H_DEBUT; h<H_FIN; h+=0.5) {
       const nb = personnesPour(dateStr, h, h+0.5);
-      if (nb < MAX_PERSONNES) { placesLibres = true; }
-      if (nb < MAX_PERSONNES) { toutPlein = false; }
+      if (nb > 0)              { auMoinsUneResa = true; }
+      if (nb < MAX_PERSONNES)  { placesLibres = true; toutPlein = false; }
     }
+
+    // 🟢 aucune réservation — 🟠 au moins 1 résa mais places libres — 🔴 tout plein
+    const dotClass  = toutPlein ? 'dot-full' : auMoinsUneResa ? 'dot-partiel' : 'dot-avail';
+    const dotEmoji  = toutPlein ? '🔴'       : auMoinsUneResa ? '🟠'          : '🟢';
+
     const info = document.createElement('div');
     info.className = 'month-day-info';
     const nbResas = allResas.filter(r => r.date === dateStr).length;
-    info.innerHTML = `<div class="${placesLibres?'dot-avail':toutPlein?'dot-full':'dot-none'}">${placesLibres?'🟢':toutPlein?'🔴':'⬜'}</div>
+    info.innerHTML = `<div class="${dotClass}">${dotEmoji}</div>
       <div style="font-size:.7rem;color:var(--clay-lt)">${nbResas} rés.</div>`;
     cell.appendChild(info);
     cell.onclick = () => {
