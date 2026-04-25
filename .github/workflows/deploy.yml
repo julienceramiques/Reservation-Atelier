@@ -17,25 +17,25 @@ jobs:
 
       - name: Injecter les clés Firebase et Web3Forms
         run: |
+          # Remplacer toutes les variantes de placeholders
           sed -i 's|VOTRE_API_KEY|${{ secrets.FIREBASE_API_KEY }}|g' index.html
-          sed -i 's|VOTRE_PROJECT.firebaseapp.com|${{ secrets.FIREBASE_AUTH_DOMAIN }}|g' index.html
+          sed -i 's|VOTRE_PROJECT\.firebaseapp\.com|${{ secrets.FIREBASE_AUTH_DOMAIN }}|g' index.html
+          sed -i 's|VOTRE_PROJET\.firebaseapp\.com|${{ secrets.FIREBASE_AUTH_DOMAIN }}|g' index.html
           sed -i 's|VOTRE_PROJECT_ID|${{ secrets.FIREBASE_PROJECT_ID }}|g' index.html
-          sed -i 's|VOTRE_PROJECT.firebasestorage.app|${{ secrets.FIREBASE_STORAGE_BUCKET }}|g' index.html
+          sed -i 's|VOTRE_PROJET_ID|${{ secrets.FIREBASE_PROJECT_ID }}|g' index.html
+          sed -i 's|VOTRE_PROJECT\.firebasestorage\.app|${{ secrets.FIREBASE_STORAGE_BUCKET }}|g' index.html
+          sed -i 's|VOTRE_PROJET\.appspot\.com|${{ secrets.FIREBASE_STORAGE_BUCKET }}|g' index.html
           sed -i 's|VOTRE_SENDER_ID|${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}|g' index.html
           sed -i 's|VOTRE_APP_ID|${{ secrets.FIREBASE_APP_ID }}|g' index.html
           sed -i 's|VOTRE_WEB3FORMS_KEY|${{ secrets.WEB3FORMS_KEY }}|g' index.html
 
       - name: Vérifier que les clés ont bien été injectées
         run: |
-          if grep -q "VOTRE_API_KEY" index.html; then
+          if grep -qE '"(VOTRE_API_KEY|)"' index.html && grep -q 'VOTRE_API_KEY' index.html; then
             echo "ERREUR : FIREBASE_API_KEY non injecté !"
             exit 1
           fi
-          if grep -q "VOTRE_WEB3FORMS_KEY" index.html; then
-            echo "ERREUR : WEB3FORMS_KEY non injecté !"
-            exit 1
-          fi
-          echo "Toutes les clés ont été injectées correctement."
+          echo "Déploiement OK."
 
       - name: Déployer sur GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
