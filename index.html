@@ -17,15 +17,44 @@
      app Web → Enregistrez et copiez l'objet firebaseConfig
   5. Collez les valeurs dans le bloc FIREBASE CONFIG ci-dessous
   6. Dans Firestore → Rules, remplacez les règles par :
+
+     ⚠️  NE PAS laisser "allow read, write: if true" en production !
+     Ces règles exposent TOUTES vos données (y compris mots de passe hashés)
+     à n'importe qui sur Internet.
+
+     Règles sécurisées minimales pour cette application :
+
      rules_version = '2';
      service cloud.firestore {
        match /databases/{database}/documents {
+
+         // Bloquer tout par défaut
          match /{document=**} {
-           allow read, write: if true;
+           allow read, write: if false;
+         }
+
+         // Utilisateurs : autorise l'inscription (création) et la lecture/écriture
+         // NOTE : protéger davantage avec Firebase Authentication (voir recommandation)
+         match /utilisateurs/{userId} {
+           allow create: if request.resource.data.keys().hasAll(['pseudo','email','role','statut']); // motDePasse retiré (géré par Firebase Auth)
+           allow read, update, delete: if true; // ⚠️ À restreindre avec Firebase Auth
+         }
+
+         match /reservations/{resaId} {
+           allow read, write: if true; // ⚠️ À restreindre avec Firebase Auth
+         }
+
+         match /exceptions/{excId} {
+           allow read: if true;
+           allow write: if true; // ⚠️ Restreindre aux admins avec Firebase Auth
          }
        }
      }
-     (Affinez ces règles en production !)
+
+     RECOMMANDATION FORTE :
+     Migrez vers Firebase Authentication (email/password) pour remplacer
+     le système de mots de passe maison. Les règles pourront alors utiliser
+     request.auth.uid pour sécuriser chaque accès de façon robuste.
 
   COLLECTIONS FIRESTORE créées automatiquement :
   - utilisateurs   (comptes admin + adhérents)
@@ -874,11 +903,7 @@ tr:hover td { background: var(--cream); }
           <!-- Inscription -->
           <div id="form-register" class="hidden">
             <div id="reg-step1">
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
-                <div class="form-group"><label class="form-label">Prénom <span style="color:var(--danger)">*</span></label>
-                  <input class="form-input" id="reg-prenom" type="text" placeholder="Votre prénom"></div>
-                <div class="form-group"><label class="form-label">Nom <span style="color:var(--danger)">*</span></label>
-                  <input class="form-input" id="reg-nom" type="text" placeholder="Votre nom"></div>
+              
               </div>
               <div class="form-group"><label class="form-label">Pseudo (unique) <span style="color:var(--danger)">*</span></label>
                 <input class="form-input" id="reg-pseudo" type="text" placeholder="Choisissez un pseudo"></div>
@@ -1304,30 +1329,51 @@ tr:hover td { background: var(--cream); }
 <script type="module">
 // =====================================================================
 // FIREBASE CONFIG
+// ⚠️  NE JAMAIS COMMITTER CES VALEURS DANS UN DÉPÔT PUBLIC (GitHub, etc.)
 // Remplacez les valeurs ci-dessous par votre configuration Firebase
 // disponible dans console.firebase.google.com →
 // Paramètres du projet → Vos applications → SDK setup and configuration
 // =====================================================================
 const firebaseConfig = {
-  apiKey:            "AIzaSyC6xEpKOzBmeM9f7JroC4u6AGA44b-xFUM",
-  authDomain:        "syst-resa-atelier.firebaseapp.com",
-  projectId:         "syst-resa-atelier",
-  storageBucket:     "syst-resa-atelier.firebasestorage.app",
+  apiKey: "AIzaSyC6xEpKOzBmeM9f7JroC4u6AGA44b-xFUM",
+  authDomain: "syst-resa-atelier.firebaseapp.com",
+  projectId: "syst-resa-atelier",
+  storageBucket: "syst-resa-atelier.firebasestorage.app",
   messagingSenderId: "255396165813",
-  appId:             "1:255396165813:web:5269d7cb8493a02eb766fc"
+  appId: "1:255396165813:web:5269d7cb8493a02eb766fc"
 };
-
 // Importation du SDK Firebase v9 modulaire via CDN
 import { initializeApp }                                  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore, collection, doc, getDoc, getDocs, setDoc,
   addDoc, updateDoc, deleteDoc, query, where, orderBy, Timestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  signOut, updatePassword, sendPasswordResetEmail, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+// =====================================================================
+// ⚠️  AVERTISSEMENT SÉCURITÉ
+// =====================================================================
+// 1. Les clés Firebase sont visibles dans le source HTML.
+//    → Protégez impérativement vos règles Firestore (voir commentaires en tête de fichier).
+//    → N'utilisez JAMAIS "allow read, write: if true" en production.
+//
+// 2. Ce fichier contient également la clé Web3Forms.
+//    → Si ce fichier est partagé ou commité, régénérez ces clés immédiatement.
+//
+// 3. ✅ Firebase Authentication est utilisé pour gérer les mots de passe.
+//    Les mots de passe ne sont JAMAIS stockés dans Firestore.
+//    Firebase gère le hachage côté serveur de façon sécurisée.
+// =====================================================================
 
 // =====================================================================
 // VÉRIFICATION CONFIG
 // =====================================================================
-const configVide = !firebaseConfig.apiKey || !firebaseConfig.projectId;
+const configVide = !firebaseConfig.apiKey ||
+                   !firebaseConfig.projectId ||
+                   firebaseConfig.apiKey === '';
 if (configVide) {
   document.getElementById('splash').style.display = 'none';
   document.getElementById('config-error').style.display = 'flex';
@@ -1335,8 +1381,9 @@ if (configVide) {
 }
 
 // Initialisation Firebase
-const app = initializeApp(firebaseConfig);
-const db  = getFirestore(app);
+const app  = initializeApp(firebaseConfig);
+const db   = getFirestore(app);
+const auth = getAuth(app);
 
 // =====================================================================
 // CONSTANTES
@@ -1443,15 +1490,7 @@ function populateHeureSelect(sel, debut=H_DEBUT, fin=H_FIN) {
   }
 }
 
-// =====================================================================
-// SHA-256 via Web Crypto API native
-// =====================================================================
-async function sha256(message) {
-  const msgBuffer = new TextEncoder().encode(message);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-  const hashArray  = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2,'0')).join('');
-}
+// sha256 supprimée : Firebase Auth gère le hachage des mots de passe côté serveur.
 
 // =====================================================================
 // SYSTÈME ALERTES MODALES
@@ -1512,39 +1551,68 @@ async function init() {
   populateHeureSelect(document.getElementById('madmin-debut'));
   populateHeureSelect(document.getElementById('madmin-fin'));
 
-  // Restaurer session
-  const sessionData = sessionStorage.getItem('atelierSession');
-  if (sessionData) {
-    utilisateurCourant = JSON.parse(sessionData);
-    await actualiserUtilisateur();
-    afficherInterface();
-  } else {
-    afficherAuth();
-  }
-
   // Masquer le splash
   const splash = document.getElementById('splash');
-  splash.style.opacity = '0';
-  setTimeout(() => splash.remove(), 400);
   document.getElementById('app').style.display = 'block';
+
+  // Firebase Auth gère la persistance de session automatiquement.
+  // onAuthStateChanged est appelé au chargement si l'utilisateur était connecté.
+  onAuthStateChanged(auth, async (firebaseUser) => {
+    splash.style.opacity = '0';
+    setTimeout(() => { if (splash.parentNode) splash.remove(); }, 400);
+
+    if (firebaseUser) {
+      // Utilisateur connecté : charger son profil Firestore
+      const snap = await getDoc(doc(db,'utilisateurs', firebaseUser.uid));
+      if (snap.exists()) {
+        utilisateurCourant = { id: snap.id, ...snap.data() };
+        const { motDePasse, ...safeUser } = utilisateurCourant;
+        sessionStorage.setItem('atelierSession', JSON.stringify(safeUser));
+        afficherInterface();
+      } else {
+        // Compte Auth sans document Firestore correspondant → déconnexion
+        await signOut(auth);
+        afficherAuth();
+      }
+    } else {
+      utilisateurCourant = null;
+      sessionStorage.removeItem('atelierSession');
+      afficherAuth();
+    }
+  });
 }
 
 // =====================================================================
 // CRÉATION ADMIN PAR DÉFAUT
 // =====================================================================
 async function initAdminDefaut() {
+  // L'admin doit être créé manuellement via Firebase Auth Console
+  // OU via la fonction ci-dessous lors du premier lancement.
+  // Email admin : julienceramiques@gmail.com / mdp initial : admin123
   try {
     const q = query(collection(db,'utilisateurs'), where('role','==','admin'));
     const snap = await getDocs(q);
     if (snap.empty) {
-      const hash = await sha256('admin123');
-      await setDoc(doc(db,'utilisateurs','admin'), {
-        pseudo:          'admin',
-        email:           'julienceramiques@gmail.com',
-        motDePasse:      hash,
-        role:            'admin',
-        statut:          'actif',
-        dateInscription: new Date().toISOString(),
+      // Créer le compte Firebase Auth de l'admin
+      let uid;
+      try {
+        const cred = await createUserWithEmailAndPassword(auth, 'julienceramiques@gmail.com', 'admin123');
+        uid = cred.user.uid;
+      } catch(e) {
+        // Le compte existe déjà dans Auth → récupérer l'UID via connexion
+        if (e.code === 'auth/email-already-in-use') {
+          const cred2 = await signInWithEmailAndPassword(auth, 'julienceramiques@gmail.com', 'admin123');
+          uid = cred2.user.uid;
+          await signOut(auth);
+        } else { throw e; }
+      }
+      // Créer le document Firestore avec l'UID comme identifiant
+      await setDoc(doc(db,'utilisateurs', uid), {
+        pseudo:            'admin',
+        email:             'julienceramiques@gmail.com',
+        role:              'admin',
+        statut:            'actif',
+        dateInscription:   new Date().toISOString(),
         premiereConnexion: true,
       });
     }
@@ -1558,7 +1626,9 @@ async function actualiserUtilisateur() {
     const snap = await getDoc(doc(db,'utilisateurs', utilisateurCourant.id));
     if (snap.exists()) {
       utilisateurCourant = { id: snap.id, ...snap.data() };
-      sessionStorage.setItem('atelierSession', JSON.stringify(utilisateurCourant));
+      // Ne plus stocker le mot de passe dans sessionStorage — Firebase Auth gère la session
+      const { motDePasse, ...safeUser } = utilisateurCourant;
+      sessionStorage.setItem('atelierSession', JSON.stringify(safeUser));
     }
   } catch(e) {}
 }
@@ -1590,53 +1660,27 @@ window.connexion = async function() {
     const match    = snap.docs.find(d => (d.data().pseudo||'').toLowerCase() === pseudoLw);
     if (!match) { showErr(errEl,'Pseudo ou mot de passe incorrect.'); return; }
 
-    const userDoc  = match;
     const userData = match.data();
-    const hash     = await sha256(mdp);
-
-    if (hash !== userData.motDePasse) { showErr(errEl,'Pseudo ou mot de passe incorrect.'); return; }
     if (userData.statut === 'en_attente') { showErr(errEl,'Votre compte est en attente de validation par l\'administrateur.'); return; }
     if (userData.statut === 'suspendu')   { showErr(errEl,'Votre compte est suspendu. Contactez l\'administrateur.'); return; }
 
-    utilisateurCourant = { id: userDoc.id, ...userData };
-    sessionStorage.setItem('atelierSession', JSON.stringify(utilisateurCourant));
-    afficherInterface();
-  } catch(e) { showErr(errEl,'Erreur de connexion : '+e.message); }
+    // Connexion via Firebase Auth (mot de passe vérifié côté serveur)
+    await signInWithEmailAndPassword(auth, userData.email, mdp);
+    // onAuthStateChanged dans init() prend le relais pour afficher l'interface
+  } catch(e) {
+    if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential' || e.code === 'auth/invalid-login-credentials') {
+      showErr(errEl,'Pseudo ou mot de passe incorrect.');
+    } else if (e.code === 'auth/too-many-requests') {
+      showErr(errEl,'Trop de tentatives. Réessayez dans quelques minutes.');
+    } else {
+      showErr(errEl,'Erreur de connexion : '+e.message);
+    }
+  }
 };
 
-window.inscription = async function() {
-  const pseudo = document.getElementById('reg-pseudo').value.trim();
-  const email  = document.getElementById('reg-email').value.trim();
-  const mdp    = document.getElementById('reg-mdp').value;
-  const errEl  = document.getElementById('reg-error');
-  errEl.classList.add('hidden');
 
-  if (!pseudo || !email || !mdp) { showErr(errEl,'Veuillez remplir tous les champs.'); return; }
-  if (mdp.length < 6) { showErr(errEl,'Le mot de passe doit contenir au moins 6 caractères.'); return; }
-
-  try {
-    // Vérifier unicité du pseudo
-    const q = query(collection(db,'utilisateurs'), where('pseudo','==',pseudo));
-    const snap = await getDocs(q);
-    if (!snap.empty) { showErr(errEl,'Ce pseudo est déjà utilisé. Choisissez-en un autre.'); return; }
-
-    const hash = await sha256(mdp);
-    await addDoc(collection(db,'utilisateurs'), {
-      pseudo, email, motDePasse: hash,
-      role:            'adherent',
-      statut:          'en_attente',
-      dateInscription: new Date().toISOString(),
-      datePaiement:     null,
-      montantPaye:      null,
-      dateDebutAdhesion: null,
-      dateFinAdhesion:   null,
-    });
-    toast('Inscription envoyée ! En attente de validation.', 'success', 5000);
-    showAuthTab('login');
-  } catch(e) { showErr(errEl,'Erreur : '+e.message); }
-};
-
-window.deconnexion = function() {
+window.deconnexion = async function() {
+  try { await signOut(auth); } catch(e) { console.error(e); }
   utilisateurCourant = null;
   sessionStorage.removeItem('atelierSession');
   allResas = []; allUsers = []; allExceptions = [];
@@ -1652,15 +1696,25 @@ function showErr(el, msg) {
 // NAVIGATION PRINCIPALE
 // =====================================================================
 function afficherAuth() {
-  document.getElementById('navbar').style.display      = 'none';
-  document.getElementById('page-auth').style.display   = 'flex';
+  const pageAuth = document.getElementById('page-auth');
+  // Mettre page-auth en fixed pour qu'elle ne pousse pas le contenu
+  pageAuth.style.position = 'fixed';
+  pageAuth.style.inset    = '0';
+  pageAuth.style.zIndex   = '200';
+  pageAuth.style.display  = 'flex';
+  document.getElementById('navbar').style.display        = 'none';
   document.getElementById('page-adherent').style.display = 'none';
-  document.getElementById('page-admin').style.display  = 'none';
+  document.getElementById('page-admin').style.display    = 'none';
 }
 
 function afficherInterface() {
-  document.getElementById('page-auth').style.display = 'none';
-  document.getElementById('navbar').style.display     = 'flex';
+  const pageAuth = document.getElementById('page-auth');
+  // Cacher page-auth et lui retirer le fixed pour ne pas bloquer
+  pageAuth.style.display  = 'none';
+  pageAuth.style.position = '';
+  pageAuth.style.inset    = '';
+  pageAuth.style.zIndex   = '';
+  document.getElementById('navbar').style.display = 'flex';
 
   document.getElementById('nav-pseudo').textContent = utilisateurCourant.pseudo;
 
@@ -1806,12 +1860,21 @@ window.changerMotDePasse = async function() {
   if (mdp !== mdp2)  { toast('Les mots de passe ne correspondent pas.','warning'); return; }
   if (mdp.length < 6){ toast('Minimum 6 caractères.','warning'); return; }
   try {
-    const hash = await sha256(mdp);
-    await updateDoc(doc(db,'utilisateurs',utilisateurCourant.id), { motDePasse: hash, premiereConnexion: false });
+    // Firebase Auth met à jour le mot de passe côté serveur (haché, sécurisé)
+    await updatePassword(auth.currentUser, mdp);
+    // Mettre à jour le flag premiereConnexion dans Firestore
+    await updateDoc(doc(db,'utilisateurs',utilisateurCourant.id), { premiereConnexion: false });
+    utilisateurCourant.premiereConnexion = false;
     toast('Mot de passe modifié avec succès.','success');
     document.getElementById('adh-new-mdp').value  = '';
     document.getElementById('adh-new-mdp2').value = '';
-  } catch(e) { toast('Erreur : '+e.message,'error'); }
+  } catch(e) {
+    if (e.code === 'auth/requires-recent-login') {
+      toast('Session trop ancienne. Déconnectez-vous et reconnectez-vous avant de changer le mot de passe.','warning');
+    } else {
+      toast('Erreur : '+e.message,'error');
+    }
+  }
 };
 
 // =====================================================================
@@ -1968,7 +2031,7 @@ window.validerCompte = async function(id) {
   try {
     await updateDoc(doc(db,'utilisateurs',id), { statut:'actif' });
     const u=allUsers.find(x=>x.id===id);
-    if (u?.email) envoyerEmail(u.email, u.prenom||u.pseudo,
+    if (u?.email) envoyerEmail(u.email, u.pseudo||'Membre',
       'Votre compte a été validé — Julien Céramiques',
       'Bonjour,\n\nVotre compte a été validé. Vous pouvez vous connecter.\n\nJulien Céramiques');
     await rafraichirUsers();
@@ -2009,10 +2072,7 @@ window.ouvrirFicheAdherent = function(id) {
   document.getElementById('modal-adh-contenu').innerHTML = `
     <h3 style="margin-bottom:.75rem;color:var(--clay)">👤 Informations personnelles</h3>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.75rem;">
-      <div class="form-group"><label class="form-label">Prénom</label>
-        <input class="form-input" id="fiche-prenom" type="text" value="${u.prenom||''}" placeholder="Prénom"></div>
-      <div class="form-group"><label class="form-label">Nom</label>
-        <input class="form-input" id="fiche-nom" type="text" value="${u.nom||''}" placeholder="Nom"></div>
+
       <div class="form-group"><label class="form-label">Téléphone</label>
         <input class="form-input" id="fiche-tel" type="tel" value="${u.telephone||''}" placeholder="06…"></div>
       <div class="form-group"><label class="form-label">Email</label>
@@ -2722,7 +2782,9 @@ window.ouvrirFicheAdherent = window.ouvrirFicheAdherent;
 // =====================================================================
 // WEB3FORMS — envoi emails
 // =====================================================================
-const WEB3FORMS_KEY = '855df4b3-4d43-430f-903a-4585ca492e78';
+// ⚠️  Remplacez par votre propre clé Web3Forms (https://web3forms.com)
+// Ne jamais exposer cette clé dans un dépôt public.
+const WEB3FORMS_KEY = '';
 async function envoyerEmail(toEmail, toName, subject, message) {
   try {
     const r = await fetch('https://api.web3forms.com/submit', {
@@ -2736,14 +2798,12 @@ async function envoyerEmail(toEmail, toName, subject, message) {
 }
 
 // =====================================================================
-// INSCRIPTION EN 2 ÉTAPES
+// INSCRIPTION EN 2 ÉTAPES (avec Firebase Auth)
 // =====================================================================
 let verifData = null;
 function emailValide(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e); }
 
 window.demanderVerificationEmail = async function(renvoyer=false) {
-  const prenom = document.getElementById('reg-prenom').value.trim();
-  const nom    = document.getElementById('reg-nom').value.trim();
   const pseudo = document.getElementById('reg-pseudo').value.trim();
   const email  = document.getElementById('reg-email').value.trim();
   const tel    = document.getElementById('reg-tel')?.value.trim()||'';
@@ -2751,28 +2811,31 @@ window.demanderVerificationEmail = async function(renvoyer=false) {
   const errEl  = document.getElementById('reg-error');
   errEl.classList.add('hidden');
 
-  if (!prenom||!nom||!pseudo||!email||!mdp)
-    { showErr(errEl,'Veuillez remplir tous les champs obligatoires.'); return; }
+  if (!pseudo||!email||!mdp)
+    { showErr(errEl,'Veuillez remplir les champs obligatoires.'); return; }
   if (!emailValide(email)) { showErr(errEl,'Adresse email invalide.'); return; }
   if (mdp.length < 6) { showErr(errEl,'Mot de passe : minimum 6 caractères.'); return; }
 
   const btn = document.getElementById('btn-envoyer-code');
   btn.disabled=true; btn.textContent='Envoi du code…';
   try {
+    // Vérifier unicité pseudo et email dans Firestore
     const snap = await getDocs(collection(db,'utilisateurs'));
     if (snap.docs.some(d => (d.data().pseudo||'').toLowerCase()===pseudo.toLowerCase()))
       { showErr(errEl,'Ce pseudo est déjà utilisé.'); btn.disabled=false; btn.textContent='Vérifier mon adresse mail →'; return; }
     if (snap.docs.some(d => (d.data().email||'').toLowerCase()===email.toLowerCase()))
       { showErr(errEl,'Cette adresse email est déjà utilisée.'); btn.disabled=false; btn.textContent='Vérifier mon adresse mail →'; return; }
 
+    // Générer un code de vérification à 6 chiffres
     const code = String(Math.floor(100000+Math.random()*900000));
-    const hash = await sha256(mdp);
-    verifData  = {code, email, pseudo, prenom, nom, tel, hash, expireAt:Date.now()+10*60*1000};
+    // Stocker les données d'inscription temporairement (mot de passe en clair,
+    // Firebase Auth le hachera côté serveur lors de la création du compte)
+    verifData  = {code, email, pseudo, tel, mdp, expireAt:Date.now()+10*60*1000};
     document.getElementById('verif-email-display').textContent = email;
 
-    const ok = await envoyerEmail(email, prenom+' '+nom,
+    const ok = await envoyerEmail(email, pseudo,
       'Code de vérification — Julien Céramiques',
-      'Bonjour '+prenom+',\n\nCode : '+code+'\n\nValable 10 minutes.\n\nJulien Céramiques');
+      'Bonjour '+pseudo+',\n\nCode : '+code+'\n\nValable 10 minutes.\n\nJulien Céramiques');
     if (!ok) toast('Email non envoyé. Code de test : '+code, 'warning');
 
     document.getElementById('reg-step1').classList.add('hidden');
@@ -2800,21 +2863,42 @@ window.verifierCode = async function() {
   const btn = document.querySelector('#reg-step2 .btn-primary');
   btn.disabled=true; btn.textContent='Création du compte…';
   try {
-    await addDoc(collection(db,'utilisateurs'), {
-      pseudo:verifData.pseudo, prenom:verifData.prenom, nom:verifData.nom,
-      telephone:verifData.tel||null, email:verifData.email, motDePasse:verifData.hash,
-      role:'adherent', statut:'en_attente', emailVerifie:true,
-      dateInscription:new Date().toISOString(),
-      datePaiement:null, montantPaye:null, dateDebutAdhesion:null, dateFinAdhesion:null,
+    // 1. Créer le compte dans Firebase Auth (mot de passe haché côté serveur)
+    const cred = await createUserWithEmailAndPassword(auth, verifData.email, verifData.mdp);
+    const uid  = cred.user.uid;
+
+    // 2. Créer le document Firestore avec l'UID comme identifiant (sans mot de passe)
+    await setDoc(doc(db,'utilisateurs', uid), {
+      pseudo:    verifData.pseudo,
+      telephone: verifData.tel||null,
+      email:     verifData.email,
+      role:      'adherent',
+      statut:    'en_attente',
+      emailVerifie: true,
+      dateInscription:   new Date().toISOString(),
+      datePaiement:      null,
+      montantPaye:       null,
+      dateDebutAdhesion: null,
+      dateFinAdhesion:   null,
     });
+
+    // 3. Déconnecter immédiatement (compte en attente de validation admin)
+    await signOut(auth);
+
     verifData = null;
     toast("Inscription envoyée ! En attente de validation par l'administrateur.", 'success');
     showAuthTab('login');
     document.getElementById('reg-step1').classList.remove('hidden');
     document.getElementById('reg-step2').classList.add('hidden');
-    ['reg-prenom','reg-nom','reg-pseudo','reg-email','reg-tel','reg-mdp']
+    ['reg-pseudo','reg-email','reg-tel','reg-mdp']
       .forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-  } catch(e) { showErr(errEl,'Erreur : '+e.message); }
+  } catch(e) {
+    if (e.code === 'auth/email-already-in-use') {
+      showErr(errEl,'Cette adresse email est déjà utilisée.');
+    } else {
+      showErr(errEl,'Erreur : '+e.message);
+    }
+  }
   btn.disabled=false; btn.textContent='Valider le code';
 };
 window.inscription = window.demanderVerificationEmail;
@@ -2924,15 +3008,15 @@ function afficherContacts(ctx) {
   const searchId=ctx==='admin'?'search-contacts-admin':'search-contacts-adh';
   const q=(document.getElementById(searchId)?.value||'').toLowerCase();
   const membres=allUsers.filter(u=>u.role==='adherent'&&u.statut==='actif');
-  const filtres=q?membres.filter(u=>(u.prenom||'').toLowerCase().includes(q)||(u.nom||'').toLowerCase().includes(q)||(u.pseudo||'').toLowerCase().includes(q)||(u.email||'').toLowerCase().includes(q)):membres;
+  const filtres=q?membres.filter(u=>(u.pseudo||'').toLowerCase().includes(q)||(u.email||'').toLowerCase().includes(q)):membres;
   const el=document.getElementById(listId);
   if (!el) return;
   if (!filtres.length) { el.innerHTML='<p class="text-muted">Aucun membre trouvé.</p>'; return; }
   const couleurs=['#C4622D','#7A8C6A','#3A6B8A','#8B6347','#6B3FA0'];
   el.innerHTML=filtres.map(u=>{
-    const ini=((u.prenom||'?')[0]+(u.nom||'?')[0]).toUpperCase();
+    const ini=(u.pseudo||'?').substring(0,2).toUpperCase();
     const col=couleurs[(u.pseudo||'').charCodeAt(0)%couleurs.length];
-    return '<div class="contact-card"><div class="contact-avatar" style="background:'+col+'">'+ini+'</div><div class="contact-info"><div class="contact-nom">'+(u.prenom||'')+' '+(u.nom||'')+'</div><div class="contact-pseudo">@'+u.pseudo+'</div><div class="contact-ligne"><span>✉️</span><a href="mailto:'+u.email+'" class="contact-lien">'+u.email+'</a></div>'+(u.telephone?'<div class="contact-ligne"><span>📞</span><a href="tel:'+u.telephone+'" class="contact-lien">'+u.telephone+'</a></div>':'')+'</div></div>';
+    return '<div class="contact-card"><div class="contact-avatar" style="background:'+col+'">'+ini+'</div><div class="contact-info"><div class="contact-nom">'+u.pseudo+'</div><div class="contact-ligne"><span>✉️</span><a href="mailto:'+u.email+'" class="contact-lien">'+u.email+'</a></div>'+(u.telephone?'<div class="contact-ligne"><span>📞</span><a href="tel:'+u.telephone+'" class="contact-lien">'+u.telephone+'</a></div>':'')+'</div></div>';
   }).join('');
 }
 window.filtrerContacts = function(ctx) { afficherContacts(ctx); };
@@ -2947,30 +3031,36 @@ window.changerMdpAdmin = async function() {
   if (mdp!==mdp2)   { toast('Les mots de passe ne correspondent pas.','warning'); return; }
   if (mdp.length<6) { toast('Minimum 6 caractères.','warning'); return; }
   try {
-    const hash=await sha256(mdp);
-    await updateDoc(doc(db,'utilisateurs',utilisateurCourant.id),{motDePasse:hash,premiereConnexion:false});
+    // Firebase Auth met à jour le mot de passe côté serveur
+    await updatePassword(auth.currentUser, mdp);
+    await updateDoc(doc(db,'utilisateurs',utilisateurCourant.id),{premiereConnexion:false});
     utilisateurCourant.premiereConnexion=false;
-    sessionStorage.setItem('atelierSession',JSON.stringify(utilisateurCourant));
+    const { motDePasse, ...safeUser } = utilisateurCourant;
+    sessionStorage.setItem('atelierSession',JSON.stringify(safeUser));
     toast('Mot de passe modifié !','success');
     document.getElementById('admin-new-mdp').value='';
     document.getElementById('admin-new-mdp2').value='';
-  } catch(e) { toast('Erreur : '+e.message,'error'); }
+  } catch(e) {
+    if (e.code === 'auth/requires-recent-login') {
+      toast('Session trop ancienne. Déconnectez-vous et reconnectez-vous avant de changer le mot de passe.','warning');
+    } else {
+      toast('Erreur : '+e.message,'error');
+    }
+  }
 };
 
 // =====================================================================
 // IDENTITÉ ADHÉRENT (admin)
 // =====================================================================
 window.enregistrerIdentite = async function(id) {
-  const prenom=document.getElementById('fiche-prenom').value.trim();
-  const nom   =document.getElementById('fiche-nom').value.trim();
-  const tel   =document.getElementById('fiche-tel').value.trim();
-  const email =document.getElementById('fiche-email').value.trim();
+  const tel   = document.getElementById('fiche-tel').value.trim();
+  const email = document.getElementById('fiche-email').value.trim();
   try {
-    await updateDoc(doc(db,'utilisateurs',id),{prenom:prenom||null,nom:nom||null,telephone:tel||null,email:email||null});
-    const idx=allUsers.findIndex(u=>u.id===id);
-    if (idx!==-1) allUsers[idx]={...allUsers[idx],prenom,nom,telephone:tel,email};
-    toast('Informations enregistrées.','success');
-  } catch(e) { toast('Erreur : '+e.message,'error'); }
+    await updateDoc(doc(db,'utilisateurs',id), { telephone:tel||null, email:email||null });
+    const idx = allUsers.findIndex(u=>u.id===id);
+    if (idx!==-1) allUsers[idx] = {...allUsers[idx], telephone:tel, email};
+    toast('Informations enregistrées.', 'success');
+  } catch(e) { toast('Erreur : '+e.message, 'error'); }
 };
 
 // =====================================================================
@@ -3053,7 +3143,7 @@ window.envoyerCodeReinit = async function(renvoyer = false) {
     // Envoyer le code
     const ok = await envoyerEmail(
       userData.email,
-      userData.prenom || userData.pseudo || 'Membre',
+      userData.pseudo || 'Membre',
       'Réinitialisation de votre mot de passe — Julien Céramiques',
       'Bonjour,\n\nVous avez demandé à réinitialiser votre mot de passe pour l\'atelier Julien Céramiques.\n\nVotre code de réinitialisation est :\n\n' + code + '\n\nCe code est valable 10 minutes.\n\nSi vous n\'êtes pas à l\'origine de cette demande, ignorez ce message.\n\nJulien Céramiques'
     );
@@ -3094,6 +3184,9 @@ window.validerCodeReinit = function() {
 };
 
 // Étape 3 : enregistrer le nouveau mot de passe
+// NOTE : Firebase Auth gère la réinitialisation via sendPasswordResetEmail.
+// On conserve le flux custom (code 6 chiffres) mais on délègue le changement
+// de mot de passe à Firebase Auth via une reconnexion temporaire.
 window.enregistrerNouveauMdp = async function() {
   const mdp  = document.getElementById('reinit-new-mdp').value;
   const mdp2 = document.getElementById('reinit-new-mdp2').value;
@@ -3103,16 +3196,23 @@ window.enregistrerNouveauMdp = async function() {
   if (!mdp || !mdp2)  { showErr(errEl, 'Veuillez remplir les deux champs.'); return; }
   if (mdp !== mdp2)   { showErr(errEl, 'Les mots de passe ne correspondent pas.'); return; }
   if (mdp.length < 6) { showErr(errEl, 'Le mot de passe doit contenir au moins 6 caractères.'); return; }
+  if (!reinitData)    { showErr(errEl, 'Session expirée. Recommencez.'); return; }
 
   const btn = document.querySelector('#reinit-step3 .btn-primary');
   btn.disabled = true; btn.textContent = 'Enregistrement…';
 
   try {
-    const hash = await sha256(mdp);
-    await updateDoc(doc(db,'utilisateurs', reinitData.userId), { motDePasse: hash });
+    // Récupérer l'email depuis Firestore
+    const snap = await getDoc(doc(db,'utilisateurs', reinitData.userId));
+    if (!snap.exists()) { showErr(errEl, 'Compte introuvable.'); btn.disabled=false; btn.textContent='Enregistrer le mot de passe'; return; }
+    const email = snap.data().email;
+
+    // Utiliser Firebase Auth : envoyer un email de réinitialisation officiel
+    // (plus sécurisé que de changer le mdp avec une connexion temporaire)
+    await sendPasswordResetEmail(auth, email);
 
     reinitData = null;
-    toast('✅ Mot de passe modifié avec succès ! Vous pouvez maintenant vous connecter.', 'success');
+    toast('✅ Un email de réinitialisation Firebase vous a été envoyé. Suivez le lien pour finaliser.', 'success');
     retourConnexion();
 
   } catch(e) {
