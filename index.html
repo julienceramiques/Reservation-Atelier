@@ -1330,14 +1330,7 @@ import {
 // =====================================================================
 // VÉRIFICATION CONFIG
 // =====================================================================
-const configVide = !firebaseConfig.apiKey ||
-                   !firebaseConfig.projectId ||
-                   firebaseConfig.apiKey === 'VOTRE_API_KEY';
-if (configVide) {
-  document.getElementById('splash').style.display = 'none';
-  document.getElementById('config-error').style.display = 'flex';
-  throw new Error('Firebase non configuré');
-}
+// Les erreurs Firebase seront capturées dans le catch de init()
 
 // Initialisation Firebase
 const app  = initializeApp(firebaseConfig);
