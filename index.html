@@ -856,12 +856,12 @@ tr:hover td { background: var(--cream); }
     <p class="mt-2">Recherchez le bloc <code>FIREBASE CONFIG</code> dans le fichier <strong>index.html</strong> et remplacez les valeurs vides par celles disponibles sur :</p>
     <p class="mt-1"><strong>console.firebase.google.com → Paramètres du projet → Vos applications</strong></p>
     <pre>const firebaseConfig = {
-  apiKey:            "",
-  authDomain:        "",
-  projectId:         "",
-  storageBucket:     "",
-  messagingSenderId: "",
-  appId:             ""
+  apiKey:            "AIzaSyC6xEpKOzBmeM9f7JroC4u6AGA44b-xFUM",
+  authDomain:        "syst-resa-atelier.firebaseapp.com",
+  projectId:         "syst-resa-atelier",
+  storageBucket:     "syst-resa-atelier.firebasestorage.app",
+  messagingSenderId: "255396165813",
+  appId:             "1:255396165813:web:5269d7cb8493a02eb766fc"
 };</pre>
   </div>
 </div>
@@ -1292,12 +1292,12 @@ tr:hover td { background: var(--cream); }
 // Paramètres du projet → Vos applications → SDK setup and configuration
 // =====================================================================
 const firebaseConfig = {
-  apiKey:            "",
-  authDomain:        "",
-  projectId:         "",
-  storageBucket:     "",
-  messagingSenderId: "",
-  appId:             ""
+  apiKey:            "AIzaSyC6xEpKOzBmeM9f7JroC4u6AGA44b-xFUM",
+  authDomain:        "syst-resa-atelier.firebaseapp.com",
+  projectId:         "syst-resa-atelier",
+  storageBucket:     "syst-resa-atelier.firebasestorage.app",
+  messagingSenderId: "255396165813",
+  appId:             "1:255396165813:web:5269d7cb8493a02eb766fc"
 };
 
 // Importation du SDK Firebase v9 modulaire via CDN
@@ -1332,7 +1332,7 @@ import {
 // =====================================================================
 const configVide = !firebaseConfig.apiKey ||
                    !firebaseConfig.projectId ||
-                   firebaseConfig.apiKey === '';
+                   firebaseConfig.apiKey === 'AIzaSyC6xEpKOzBmeM9f7JroC4u6AGA44b-xFUM';
 if (configVide) {
   document.getElementById('splash').style.display = 'none';
   document.getElementById('config-error').style.display = 'flex';
@@ -2743,7 +2743,7 @@ window.ouvrirFicheAdherent = window.ouvrirFicheAdherent;
 // =====================================================================
 // ⚠️  Remplacez par votre propre clé Web3Forms (https://web3forms.com)
 // Ne jamais exposer cette clé dans un dépôt public.
-const WEB3FORMS_KEY = '';
+const WEB3FORMS_KEY = '855df4b3-4d43-430f-903a-4585ca492e78';
 async function envoyerEmail(toEmail, toName, subject, message) {
   try {
     const r = await fetch('https://api.web3forms.com/submit', {
