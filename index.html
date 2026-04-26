@@ -3174,7 +3174,20 @@ function rafraichirModaleResa() {
   }
   const warn=document.getElementById('modal-resa-warning');
   const btnC=document.getElementById('btn-confirmer-resa');
-  if ((hSem+duree)>MAX_HEURES_SEM) {
+
+  // Vérifier chevauchement avec une résa existante
+  const chevauchement = allResas.find(r =>
+    r.userId === u.id &&
+    r.date === dateStr &&
+    parseFloat(r.heureDebut) < hFin &&
+    parseFloat(r.heureFin)   > hDebut
+  );
+
+  if (chevauchement) {
+    warn.innerHTML='<strong>⛔ Chevauchement</strong><br>Ce créneau chevauche votre réservation de <strong>'+heureStr(chevauchement.heureDebut)+' – '+heureStr(chevauchement.heureFin)+'</strong> ('+POSTES[chevauchement.typePoste]+').';
+    warn.classList.remove('hidden'); btnC.disabled=true;
+    if(btnPF) btnPF.disabled=true; if(btnMD) btnMD.disabled=true;
+  } else if ((hSem+duree)>MAX_HEURES_SEM) {
     warn.innerHTML='<strong>⛔ Quota dépassé</strong><br>Cette réservation porterait vos heures à <strong>'+formatHeures(hSem+duree)+'</strong> (max '+MAX_HEURES_SEM+'h).';
     warn.classList.remove('hidden'); btnC.disabled=true; if(btnPF) btnPF.disabled=true;
   } else {
