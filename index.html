@@ -1133,6 +1133,10 @@ tr:hover td { background: var(--cream); }
 
       <!-- Mon compte -->
       <div id="tab-adh-mon-compte" class="tab-content hidden">
+        <div class="card" style="margin-bottom:1.25rem;">
+          <div class="card-header"><h2>Mes informations</h2></div>
+          <div class="profile-grid" id="adh-compte-info-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;"></div>
+        </div>
         <div class="card">
           <div class="card-header"><h2>Mon compte</h2></div>
           <h3 style="margin-bottom:1rem;">Changer mon mot de passe</h3>
@@ -1832,6 +1836,7 @@ window.showAdherentTab = function(tab) {
   if (tab==='calendrier') renderCalendrier('adherent-wrap');
   else if (tab==='mes-reservations') afficherMesReservations();
   else if (tab==='contacts') afficherContacts('adh');
+  else if (tab==='mon-compte') afficherInfosMonCompte();
 };
 
 function afficherAlerteAdhesion() {
@@ -1860,15 +1865,6 @@ function afficherAlerteAdhesion() {
 function afficherDashboardAdherent() {
   const u = utilisateurCourant;
   document.getElementById('adh-pseudo-display').textContent = u.pseudo;
-
-  // Profil
-  const grid = document.getElementById('adh-profile-grid');
-  grid.innerHTML = `
-    <div class="profile-info-card"><div class="pil">Membre depuis</div><div class="pval">${formatDate(u.dateDebutAdhesion) || '—'}</div></div>
-    <div class="profile-info-card"><div class="pil">Fin d'adhésion</div><div class="pval">${formatDate(u.dateFinAdhesion) || '—'}</div></div>
-    <div class="profile-info-card"><div class="pil">Statut</div><div class="pval">${badgeStatut(calculerStatutAdhesion(u))}</div></div>
-    <div class="profile-info-card"><div class="pil">Email</div><div class="pval" style="font-size:.95rem">${u.email||'—'}</div></div>
-  `;
 
   // Heures semaine
   const heures = heuresSemaineCourante(utilisateurCourant.id);
@@ -1934,6 +1930,18 @@ window.annulerReservation = async function(id) {
     renderCalendrier(calContext === 'admin' ? 'admin-wrap' : 'adherent-wrap');
   } catch(e) { toast('Erreur : '+e.message, 'error'); }
 };
+
+function afficherInfosMonCompte() {
+  const u = utilisateurCourant;
+  const grid = document.getElementById('adh-compte-info-grid');
+  if (!grid) return;
+  grid.innerHTML = `
+    <div class="profile-info-card"><div class="pil">Email</div><div class="pval" style="font-size:.95rem">${u.email||'—'}</div></div>
+    <div class="profile-info-card"><div class="pil">Membre depuis</div><div class="pval">${formatDate(u.dateDebutAdhesion)||'—'}</div></div>
+    <div class="profile-info-card"><div class="pil">Fin d'adhésion</div><div class="pval">${formatDate(u.dateFinAdhesion)||'—'}</div></div>
+    <div class="profile-info-card"><div class="pil">Statut</div><div class="pval">${badgeStatut(calculerStatutAdhesion(u))}</div></div>
+  `;
+}
 
 window.changerMotDePasse = async function() {
   const mdp  = document.getElementById('adh-new-mdp').value;
