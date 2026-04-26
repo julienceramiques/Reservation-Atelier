@@ -543,11 +543,26 @@ tr:hover td { background: var(--cream); }
   margin-bottom: 1.25rem;
   flex-wrap: wrap;
 }
-.calendar-controls h3 {
-  flex: 1;
-  min-width: 160px;
-  color: var(--earth);
+.cal-nav {
+  display: flex; align-items: center; gap: .25rem;
 }
+.calendar-controls h3 {
+  color: var(--earth);
+  margin: 0;
+  font-size: 1.1rem;
+}
+.btn-icon {
+  font-size: 1.6rem !important;
+  padding: .2rem .6rem !important;
+  line-height: 1;
+  color: var(--terracotta);
+  border: 1.5px solid var(--beige-dk);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.btn-icon:hover { background: var(--beige); }
 .view-toggle {
   display: flex;
   background: var(--beige);
@@ -2341,6 +2356,11 @@ function renderCalendrier(wrapperId) {
   const titre = document.createElement('h3');
   titre.textContent = titreCal();
 
+  // Grouper flèches + titre ensemble
+  const calNav = document.createElement('div');
+  calNav.className = 'cal-nav';
+  calNav.append(btnPrev, titre, btnNext);
+
   const toggleView = document.createElement('div');
   toggleView.className = 'view-toggle';
   ['Semaine','Mois'].forEach((label, i) => {
@@ -2357,9 +2377,9 @@ function renderCalendrier(wrapperId) {
     btnAdd.className = 'btn btn-primary btn-sm';
     btnAdd.textContent = '+ Réservation';
     btnAdd.onclick = ouvrirModaleResaAdmin;
-    ctrl.append(btnPrev, titre, btnNext, toggleView, btnAdd);
+    ctrl.append(calNav, toggleView, btnAdd);
   } else {
-    ctrl.append(btnPrev, titre, btnNext, toggleView);
+    ctrl.append(calNav, toggleView);
   }
 
   wrap.appendChild(ctrl);
