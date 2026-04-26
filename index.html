@@ -1464,7 +1464,7 @@ const POSTES_ABREV = {
 };
 const MAX_PERSONNES   = 3;    // max simultané
 const MAX_HEURES_SEM  = 6;    // quota hebdo
-const DELAI_ANNUL_H   = 2;    // heures min avant annulation (modifiable)
+const DELAI_ANNUL_H   = 8;    // heures min avant annulation
 const JOURS_EXPIRE    = 15;   // alerte renouvellement
 const DUREE_ADH_MOIS  = 3;    // durée standard adhésion
 
@@ -1907,14 +1907,19 @@ function afficherMesReservations() {
 function itemResa(r, avecBoutonAnnuler) {
   const debut     = slotToDate(r.date, r.heureDebut);
   const fin       = slotToDate(r.date, r.heureFin);
-  const canCancel = avecBoutonAnnuler && (debut - new Date()) > DELAI_ANNUL_H * 3600000;
+  const delaiOk   = (debut - new Date()) > DELAI_ANNUL_H * 3600000;
+  const futur     = debut > new Date();
   return `<div class="resa-item">
     <div class="resa-date">${pad(debut.getDate())} ${moisNoms[debut.getMonth()].substring(0,3)}</div>
     <div class="resa-details">
       <strong>${heureStr(r.heureDebut)} – ${heureStr(r.heureFin)}</strong>
       <span>${POSTES[r.typePoste]||r.typePoste}</span>
     </div>
-    ${canCancel ? `<button class="btn btn-danger btn-sm" onclick="annulerReservation('${r.id}')">Annuler</button>` : ''}
+    ${avecBoutonAnnuler && futur && delaiOk
+      ? `<button class="btn btn-danger btn-sm" onclick="annulerReservation('${r.id}')">Annuler</button>`
+      : avecBoutonAnnuler && futur && !delaiOk
+        ? `<span style="font-size:.75rem;color:var(--clay-lt);font-style:italic;">Annulation impossible<br>moins de ${DELAI_ANNUL_H}h avant</span>`
+        : ''}
   </div>`;
 }
 
@@ -2513,10 +2518,13 @@ function renderSemaine(wrapperId) {
         slot.innerHTML = `<span style="font-size:.68rem;font-weight:600;">${POSTES_ABREV[maResa.typePoste]||'✓'}</span>`;
         if (calContext === 'adherent') {
           const debut = slotToDate(dateStr, h);
+          slot.style.cursor = 'pointer';
           if ((debut - new Date()) > DELAI_ANNUL_H * 3600000) {
             slot.title = 'Cliquez pour annuler';
-            slot.style.cursor = 'pointer';
             slot.onclick = () => annulerReservationCalendrier(maResa.id, wrapperId);
+          } else {
+            slot.title = `Annulation impossible moins de ${DELAI_ANNUL_H}h avant`;
+            slot.onclick = () => toast(`Annulation impossible : le créneau commence dans moins de ${DELAI_ANNUL_H}h.`, 'warning');
           }
         }
         if (calContext === 'admin') {
@@ -2694,6 +2702,16 @@ function clickCreneauAdherent(dateStr, hDebut, hFin, postesLibres, wrapperId) {
   }
   if (u.dateFinAdhesion&&strToDate(dateStr)>strToDate(u.dateFinAdhesion))
     { toast("Ce créneau dépasse la date de fin de votre adhésion.",'warning'); return; }
+
+  // Bloquer si un créneau existant chevauche celui-ci
+  const chevauchement = allResas.find(r =>
+    r.userId === u.id &&
+    r.date === dateStr &&
+    parseFloat(r.heureDebut) < hFin &&
+    parseFloat(r.heureFin)   > hDebut
+  );
+  if (chevauchement) { toast('Vous avez déjà réservé un poste sur ce créneau horaire.','warning'); return; }
+
   const lundi=lundiDeLaSemaine(strToDate(dateStr));
   const hSem=heuresSemaine(u.id,lundi);
   const dans7j=new Date(now); dans7j.setDate(dans7j.getDate()+7);
@@ -2713,12 +2731,12 @@ window.confirmerReservation = async function() {
   if (!poste) { toast('Sélectionnez un poste.','warning'); return; }
   if (slotToDate(dateStr,hDebut)<=new Date()) { toast('Créneau passé.','error'); fermerModale('modal-reservation'); return; }
 
-  // Vérifier que l'adhérent n'a pas déjà une résa sur ce créneau
+  // Vérifier qu'il n'y a pas déjà une résa qui chevauche ce créneau
   const dejaResa = allResas.find(r =>
     r.userId === utilisateurCourant.id &&
     r.date === dateStr &&
-    r.heureDebut === hDebut &&
-    r.heureFin === hFin
+    parseFloat(r.heureDebut) < hFin &&
+    parseFloat(r.heureFin)   > hDebut
   );
   if (dejaResa) { toast('Vous avez déjà réservé un poste sur ce créneau.','warning'); fermerModale('modal-reservation'); return; }
 
