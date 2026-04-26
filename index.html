@@ -274,18 +274,20 @@ main#main {
    PAGE CONNEXION / INSCRIPTION
    ===================================================== */
 #page-auth {
-  min-height: 100vh;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
   display: none;
   align-items: center; justify-content: center;
   background: linear-gradient(135deg, var(--earth) 0%, var(--earth-lt) 50%, var(--clay) 100%);
   padding: 2rem;
-  margin: -2rem -2.5rem;
+  z-index: 200;
+  overflow-y: auto;
 }
 @media (min-width: 900px) {
-  #page-auth { margin: -2rem -4rem; }
+  #page-auth { margin: 0; }
 }
 @media (min-width: 1280px) {
-  #page-auth { margin: -2rem -6rem; }
+  #page-auth { margin: 0; }
 }
 .auth-wrapper {
   width: 100%; max-width: 420px;
