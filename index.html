@@ -1469,7 +1469,7 @@ const JOURS_EXPIRE    = 15;   // alerte renouvellement
 const DUREE_ADH_MOIS  = 3;    // durée standard adhésion
 
 // Jours ouverts par défaut : 1=Lun … 6=Sam (0=Dim fermé)
-const JOURS_OUVERTS = [1,2,3,4,5,6];
+const JOURS_OUVERTS = [1,2,3,4,5]; // Lun à Ven (Sam fermé sauf exception)
 const H_DEBUT = 8;   // 8h00
 const H_FIN   = 19;  // 19h00
 
@@ -1910,7 +1910,7 @@ function itemResa(r, avecBoutonAnnuler) {
   const delaiOk   = (debut - new Date()) > DELAI_ANNUL_H * 3600000;
   const futur     = debut > new Date();
   return `<div class="resa-item">
-    <div class="resa-date">${pad(debut.getDate())} ${moisNoms[debut.getMonth()].substring(0,3)}</div>
+    <div class="resa-date">${joursNoms[debut.getDay()]} ${pad(debut.getDate())} ${moisNoms[debut.getMonth()].substring(0,3)}</div>
     <div class="resa-details">
       <strong>${heureStr(r.heureDebut)} – ${heureStr(r.heureFin)}</strong>
       <span>${POSTES[r.typePoste]||r.typePoste}</span>
