@@ -108,7 +108,8 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { font-size: 16px; scroll-behavior: smooth; overflow-x: hidden; }
+html { font-size: 16px; scroll-behavior: smooth; }
+*, *::before, *::after { box-sizing: border-box; }
 
 body {
   font-family: var(--font-body);
@@ -116,8 +117,7 @@ body {
   color: var(--earth);
   min-height: 100vh;
   line-height: 1.6;
-  overflow-x: hidden;
-  width: 100%;
+  overflow-x: clip;
 }
 
 /* =====================================================
@@ -779,9 +779,6 @@ tr:hover td { background: var(--cream); }
   .stats-grid { grid-template-columns: repeat(2,1fr); }
   .tabs-nav { gap: .25rem; }
   .tab-btn { font-size: .78rem; padding: .45rem .6rem; min-width: 90px; }
-  .tab-content { padding-left: .5rem; padding-right: .5rem; }
-  * { max-width: 100%; box-sizing: border-box; }
-  img, table, .week-grid, .month-grid { max-width: 100%; }
 }
 
 /* =====================================================
