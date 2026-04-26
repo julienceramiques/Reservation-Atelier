@@ -1374,10 +1374,10 @@ tr:hover td { background: var(--cream); }
     <div class="form-group">
       <label class="form-label">Type de poste</label>
       <select class="form-select" id="madmin-poste">
-        <option value="tour_1">Tour de potier 1</option>
-        <option value="tour_2">Tour de potier 2</option>
-        <option value="table_1">Table argile 1</option>
-        <option value="table_2">Table argile 2</option>
+        <option value="tour_1">Tour RK3e</option>
+        <option value="tour_2">Tour RK55</option>
+        <option value="table_1">Table Place 1</option>
+        <option value="table_2">Table Place 2</option>
       </select>
     </div>
     <div style="display:flex;gap:.75rem;margin-top:1rem;">
@@ -1451,10 +1451,16 @@ await setPersistence(auth, browserSessionPersistence);
 // CONSTANTES
 // =====================================================================
 const POSTES = {
-  tour_1:  'Tour de potier 1',
-  tour_2:  'Tour de potier 2',
-  table_1: 'Table argile 1',
-  table_2: 'Table argile 2',
+  tour_1:  'Tour RK3e',
+  tour_2:  'Tour RK55',
+  table_1: 'Table Place 1',
+  table_2: 'Table Place 2',
+};
+const POSTES_ABREV = {
+  tour_1:  'RK3e',
+  tour_2:  'RK55',
+  table_1: 'Tbl 1',
+  table_2: 'Tbl 2',
 };
 const MAX_PERSONNES   = 3;    // max simultané
 const MAX_HEURES_SEM  = 6;    // quota hebdo
@@ -1881,7 +1887,7 @@ function afficherDashboardAdherent() {
   if (prochains.length === 0) {
     el.innerHTML = '<p class="text-muted">Aucune réservation à venir.</p>';
   } else {
-    el.innerHTML = prochains.map(r => itemResa(r, false)).join('');
+    el.innerHTML = prochains.map(r => itemResa(r, true)).join('');
   }
 }
 
@@ -2504,7 +2510,15 @@ function renderSemaine(wrapperId) {
 
       if (maResa) {
         slot.className += ' slot-mine';
-        slot.innerHTML = `<span title="${POSTES[maResa.typePoste]}">✓</span>`;
+        slot.innerHTML = `<span style="font-size:.68rem;font-weight:600;">${POSTES_ABREV[maResa.typePoste]||'✓'}</span>`;
+        if (calContext === 'adherent') {
+          const debut = slotToDate(dateStr, h);
+          if ((debut - new Date()) > DELAI_ANNUL_H * 3600000) {
+            slot.title = 'Cliquez pour annuler';
+            slot.style.cursor = 'pointer';
+            slot.onclick = () => annulerReservationCalendrier(maResa.id, wrapperId);
+          }
+        }
         if (calContext === 'admin') {
           slot.style.cursor = 'pointer';
           slot.onclick = () => confirmerSuppressionResa(maResa.id);
@@ -2698,6 +2712,16 @@ window.confirmerReservation = async function() {
   const poste=posteSelectionne;
   if (!poste) { toast('Sélectionnez un poste.','warning'); return; }
   if (slotToDate(dateStr,hDebut)<=new Date()) { toast('Créneau passé.','error'); fermerModale('modal-reservation'); return; }
+
+  // Vérifier que l'adhérent n'a pas déjà une résa sur ce créneau
+  const dejaResa = allResas.find(r =>
+    r.userId === utilisateurCourant.id &&
+    r.date === dateStr &&
+    r.heureDebut === hDebut &&
+    r.heureFin === hFin
+  );
+  if (dejaResa) { toast('Vous avez déjà réservé un poste sur ce créneau.','warning'); fermerModale('modal-reservation'); return; }
+
   const lundi=lundiDeLaSemaine(strToDate(dateStr));
   const hSem=heuresSemaine(utilisateurCourant.id,lundi);
   if (hSem+dureeH(hDebut,hFin)>MAX_HEURES_SEM) { toast('Quota '+MAX_HEURES_SEM+'h dépassé.','error'); return; }
@@ -2715,6 +2739,18 @@ window.confirmerReservation = async function() {
     renderCalendrier(wrapperId);
     afficherDashboardAdherent();
   } catch(e) { toast('Erreur : '+e.message,'error'); }
+};
+
+// Annulation depuis le calendrier (clic sur slot coloré)
+window.annulerReservationCalendrier = async function(id, wrapperId) {
+  if (!await confirmer('Annuler cette réservation ?','danger','Annulation')) return;
+  try {
+    await deleteDoc(doc(db,'reservations',id));
+    allResas = allResas.filter(r => r.id !== id);
+    toast('Réservation annulée.', 'success');
+    renderCalendrier(wrapperId);
+    afficherDashboardAdherent();
+  } catch(e) { toast('Erreur : '+e.message, 'error'); }
 };
 
 
@@ -3070,10 +3106,10 @@ const SVG_TABLE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" w
   <rect x="10" y="42" width="44" height="3" rx="1.5" fill="#8B6347"/>
 </svg>`;
 const POSTES_ICONES = {
-  tour_1: {svg:SVG_TOUR,  nom:'Tour 1',  desc:'Tour de potier'},
-  tour_2: {svg:SVG_TOUR,  nom:'Tour 2',  desc:'Tour de potier'},
-  table_1:{svg:SVG_TABLE, nom:'Table 1', desc:'Table argile'},
-  table_2:{svg:SVG_TABLE, nom:'Table 2', desc:'Table argile'},
+  tour_1: {svg:SVG_TOUR,  nom:'Tour RK3e',     desc:''},
+  tour_2: {svg:SVG_TOUR,  nom:'Tour RK55',     desc:''},
+  table_1:{svg:SVG_TABLE, nom:'Table Place 1', desc:''},
+  table_2:{svg:SVG_TABLE, nom:'Table Place 2', desc:''},
 };
 let posteSelectionne = null;
 
