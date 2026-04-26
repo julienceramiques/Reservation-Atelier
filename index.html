@@ -757,6 +757,10 @@ tr:hover td { background: var(--cream); }
 .resa-item .resa-details { flex: 1; min-width: 150px; }
 .resa-item .resa-details strong { color: var(--earth); font-size: .9rem; display: block; }
 .resa-item .resa-details span  { color: var(--clay-lt); font-size: .8rem; }
+.resa-actions { display: flex; gap: .5rem; flex-wrap: wrap; width: 100%; margin-top: .25rem; }
+@media (min-width: 500px) {
+  .resa-actions { width: auto; margin-top: 0; }
+}
 
 /* =====================================================
    GRILLE PROFIL
@@ -2014,8 +2018,10 @@ function afficherDashboardAdmin() {
       <div class="resa-item">
         <div class="resa-date" style="font-size:1rem">${u.pseudo}</div>
         <div class="resa-details"><strong>${u.email||'—'}</strong><span>Inscrit le ${formatDate(u.dateInscription?.substring(0,10))}</span></div>
-        <button class="btn btn-success btn-sm" onclick="validerCompte('${u.id}')">Valider</button>
-        <button class="btn btn-danger btn-sm"  onclick="supprimerCompte('${u.id}','${u.pseudo}')">Refuser</button>
+        <div class="resa-actions">
+          <button class="btn btn-success btn-sm" onclick="validerCompte('${u.id}')">Valider</button>
+          <button class="btn btn-danger btn-sm"  onclick="supprimerCompte('${u.id}','${u.pseudo}')">Refuser</button>
+        </div>
       </div>`).join('');
   } else { secAtt.classList.add('hidden'); }
 
