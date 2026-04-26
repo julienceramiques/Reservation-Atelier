@@ -117,7 +117,6 @@ body {
   color: var(--earth);
   min-height: 100vh;
   line-height: 1.6;
-  overflow-x: clip;
 }
 
 /* =====================================================
@@ -181,7 +180,7 @@ p  { color: var(--earth-lt); }
 /* =====================================================
    LAYOUT PRINCIPAL
    ===================================================== */
-#app { display: none; min-height: 100vh; }
+#app { display: none; }
 
 /* Navbar */
 nav#navbar {
@@ -280,6 +279,13 @@ main#main {
   align-items: center; justify-content: center;
   background: linear-gradient(135deg, var(--earth) 0%, var(--earth-lt) 50%, var(--clay) 100%);
   padding: 2rem;
+  margin: -2rem -2.5rem;
+}
+@media (min-width: 900px) {
+  #page-auth { margin: -2rem -4rem; }
+}
+@media (min-width: 1280px) {
+  #page-auth { margin: -2rem -6rem; }
 }
 .auth-wrapper {
   width: 100%; max-width: 420px;
@@ -927,8 +933,7 @@ tr:hover td { background: var(--cream); }
   </div>
 
     <!-- ===== PAGE AUTH ===== -->
-    <div id="page-auth" style="min-height:100vh;display:none;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--earth) 0%,var(--earth-lt) 50%,var(--clay) 100%);padding:2rem;margin:-2rem -1.5rem;">
-      <div class="auth-wrapper">
+    <div id="page-auth" style="display:none;">      <div class="auth-wrapper">
         <div class="auth-logo">
           <h1>🏺 Julien Céramiques</h1>
           <p>Atelier Céramique — Espace membres</p>
