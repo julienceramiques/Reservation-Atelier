@@ -115,9 +115,8 @@ body {
   font-family: var(--font-body);
   background: var(--cream);
   color: var(--earth);
-  height: 100vh;
+  min-height: 100vh;
   line-height: 1.6;
-  overflow-y: hidden;
 }
 
 /* =====================================================
@@ -259,10 +258,6 @@ main#main {
   padding-top: 1.5rem;
   padding-left: 1rem;
   padding-right: 1rem;
-}
-#tab-adh-calendrier, #tab-admin-calendrier {
-  overflow-y: auto;
-  max-height: calc(100vh - 120px);
 }
 @media (min-width: 900px) {
   .tab-content {
@@ -1760,10 +1755,12 @@ function afficherAuth() {
   document.getElementById('tabs-admin').style.display     = 'none';
   document.getElementById('page-adherent').style.display  = 'none';
   document.getElementById('page-admin').style.display     = 'none';
+  document.body.style.overflow = 'hidden';
 }
 
 function afficherInterface() {
   document.getElementById('page-auth').style.display = 'none';
+  document.body.style.overflow = '';
   document.getElementById('navbar').style.display = 'flex';
 
   document.getElementById('nav-pseudo').textContent = utilisateurCourant.pseudo;
