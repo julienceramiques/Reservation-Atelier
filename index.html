@@ -936,7 +936,10 @@ tr:hover td { background: var(--cream); }
             </div>
             <div class="form-group">
               <label class="form-label">Mot de passe</label>
-              <input class="form-input" id="login-mdp" type="password" placeholder="••••••••" autocomplete="current-password">
+              <div class="mdp-wrap">
+                <input class="form-input" id="login-mdp" type="password" placeholder="••••••••" autocomplete="current-password">
+                <button type="button" class="btn-eye" onclick="toggleMdp('login-mdp',this)" title="Voir le mot de passe">👁</button>
+              </div>
             </div>
             <div id="login-error" class="alert alert-danger hidden" style="font-size:.85rem;padding:.6rem .85rem;"></div>
             <button class="btn btn-primary btn-full mt-2" onclick="connexion()">Se connecter</button>
@@ -990,13 +993,26 @@ tr:hover td { background: var(--cream); }
                 <input class="form-input" id="reg-email" type="email" placeholder="votre@email.com">
               </div>
               <div class="form-group">
-                <label class="form-label">Mot de passe</label>
-                <input class="form-input" id="reg-mdp" type="password" placeholder="Min. 6 caractères">
-              </div>
-              <div class="form-group">
                 <label class="form-label">Téléphone <span style="font-weight:400;color:var(--clay-lt);font-size:.85rem;">(facultatif)</span></label>
                 <input class="form-input" id="reg-tel" type="tel" placeholder="Ex : 06 12 34 56 78 ou +352 621 000" maxlength="20">
               </div>
+              <div class="form-group">
+                <label class="form-label">Mot de passe</label>
+                <div class="mdp-wrap">
+                  <input class="form-input" id="reg-mdp" type="password" placeholder="Min. 6 caractères">
+                  <button type="button" class="btn-eye" onclick="toggleMdp('reg-mdp',this)" title="Voir le mot de passe">👁</button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Confirmer le mot de passe</label>
+                <div class="mdp-wrap">
+                  <input class="form-input" id="reg-mdp2" type="password" placeholder="Répétez votre mot de passe">
+                  <button type="button" class="btn-eye" onclick="toggleMdp('reg-mdp2',this)" title="Voir le mot de passe">👁</button>
+                </div>
+              </div>
+              <p style="font-size:.78rem;color:var(--clay-lt);margin:.5rem 0 1rem;line-height:1.5;border-left:3px solid var(--clay-lt);padding-left:.75rem;">
+                ℹ️ Votre pseudo, email et téléphone seront visibles par les autres adhérents de l'atelier.
+              </p>
               <div id="reg-error" class="alert alert-danger hidden" style="font-size:.85rem;padding:.6rem .85rem;"></div>
               <button class="btn btn-primary btn-full mt-2" id="btn-envoyer-code" onclick="demanderVerificationEmail()">Vérifier mon adresse mail →</button>
               <p class="text-muted text-center mt-2" style="font-size:.8rem;">Un code de vérification sera envoyé à votre adresse mail.</p>
@@ -1550,8 +1566,7 @@ window.fermerModale = fermerModale;
 // INITIALISATION DE L'APPLICATION
 // =====================================================================
 async function init() {
-  // Vérifier/créer l'admin par défaut
-  await initAdminDefaut();
+  // initAdminDefaut supprimé : le compte admin existe déjà en base.
 
   // Peupler les selects d'heures
   populateHeureSelect(document.getElementById('exc-debut'));
@@ -2830,6 +2845,7 @@ window.demanderVerificationEmail = async function(renvoyer=false) {
   const email  = document.getElementById('reg-email').value.trim();
   const tel    = document.getElementById('reg-tel')?.value.trim()||'';
   const mdp    = document.getElementById('reg-mdp').value;
+  const mdp2   = document.getElementById('reg-mdp2').value;
   const errEl  = document.getElementById('reg-error');
   errEl.classList.add('hidden');
 
@@ -2837,6 +2853,7 @@ window.demanderVerificationEmail = async function(renvoyer=false) {
     { showErr(errEl,'Veuillez remplir les champs obligatoires.'); return; }
   if (!emailValide(email)) { showErr(errEl,'Adresse email invalide.'); return; }
   if (mdp.length < 6) { showErr(errEl,'Mot de passe : minimum 6 caractères.'); return; }
+  if (mdp !== mdp2) { showErr(errEl,'Les mots de passe ne correspondent pas.'); return; }
   const telDigits = tel.replace(/[\s\-\.\+]/g,'');
   if (tel && (!/^\d+$/.test(telDigits) || telDigits.length < 8 || telDigits.length > 15))
     { showErr(errEl,'Numéro de téléphone invalide (8 à 15 chiffres, espaces et + acceptés).'); return; }
@@ -2920,7 +2937,7 @@ window.verifierCode = async function() {
     showAuthTab('login');
     document.getElementById('reg-step1').classList.remove('hidden');
     document.getElementById('reg-step2').classList.add('hidden');
-    ['reg-pseudo','reg-email','reg-tel','reg-mdp']
+    ['reg-pseudo','reg-email','reg-tel','reg-mdp','reg-mdp2']
       .forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
   } catch(e) {
     if (e.code === 'auth/email-already-in-use') {
