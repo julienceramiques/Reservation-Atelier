@@ -232,6 +232,7 @@ main#main {
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem 2.5rem;
+  overflow-x: clip;
 }
 
 /* Marges confortables sur écrans larges */
@@ -256,6 +257,8 @@ main#main {
    ===================================================== */
 .tab-content {
   padding-top: 1.5rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
 }
 @media (min-width: 900px) {
   .tab-content {
@@ -563,7 +566,7 @@ tr:hover td { background: var(--cream); }
 }
 
 /* Vue Semaine */
-.week-grid { overflow-x: auto; }
+.week-grid { overflow-x: auto; max-width: 100%; }
 .week-table {
   width: 100%;
   border-collapse: collapse;
