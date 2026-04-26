@@ -3175,19 +3175,7 @@ function rafraichirModaleResa() {
   const warn=document.getElementById('modal-resa-warning');
   const btnC=document.getElementById('btn-confirmer-resa');
 
-  // Vérifier chevauchement avec une résa existante
-  const chevauchement = allResas.find(r =>
-    r.userId === u.id &&
-    r.date === dateStr &&
-    parseFloat(r.heureDebut) < hFin &&
-    parseFloat(r.heureFin)   > hDebut
-  );
-
-  if (chevauchement) {
-    warn.innerHTML='<strong>⛔ Chevauchement</strong><br>Ce créneau chevauche votre réservation de <strong>'+heureStr(chevauchement.heureDebut)+' – '+heureStr(chevauchement.heureFin)+'</strong> ('+POSTES[chevauchement.typePoste]+').';
-    warn.classList.remove('hidden'); btnC.disabled=true;
-    if(btnPF) btnPF.disabled=true; if(btnMD) btnMD.disabled=true;
-  } else if ((hSem+duree)>MAX_HEURES_SEM) {
+  if ((hSem+duree)>MAX_HEURES_SEM) {
     warn.innerHTML='<strong>⛔ Quota dépassé</strong><br>Cette réservation porterait vos heures à <strong>'+formatHeures(hSem+duree)+'</strong> (max '+MAX_HEURES_SEM+'h).';
     warn.classList.remove('hidden'); btnC.disabled=true; if(btnPF) btnPF.disabled=true;
   } else {
@@ -3196,15 +3184,34 @@ function rafraichirModaleResa() {
 }
 window.etendreDebut = function(delta) {
   if (!resaEnCours) return;
-  const n=Math.round((resaEnCours.hDebut+delta)*2)/2;
-  if (n<H_DEBUT||n>=resaEnCours.hFin) return;
-  resaEnCours.hDebut=n; rafraichirModaleResa();
+  const n = Math.round((resaEnCours.hDebut + delta) * 2) / 2;
+  if (n < H_DEBUT || n >= resaEnCours.hFin) return;
+  // Vérifier chevauchement avec nouvelle heure de début
+  const chevauche = allResas.find(r =>
+    r.userId === utilisateurCourant.id &&
+    r.date === resaEnCours.dateStr &&
+    parseFloat(r.heureDebut) < resaEnCours.hFin &&
+    parseFloat(r.heureFin)   > n
+  );
+  if (chevauche) { toast('Chevauchement avec une réservation existante.', 'warning'); return; }
+  resaEnCours.hDebut = n;
+  rafraichirModaleResa();
 };
+
 window.etendreFin = function(delta) {
   if (!resaEnCours) return;
-  const n=Math.round((resaEnCours.hFin+delta)*2)/2;
-  if (n>H_FIN||n<=resaEnCours.hDebut) return;
-  resaEnCours.hFin=n; rafraichirModaleResa();
+  const n = Math.round((resaEnCours.hFin + delta) * 2) / 2;
+  if (n > H_FIN || n <= resaEnCours.hDebut) return;
+  // Vérifier chevauchement avec nouvelle heure de fin
+  const chevauche = allResas.find(r =>
+    r.userId === utilisateurCourant.id &&
+    r.date === resaEnCours.dateStr &&
+    parseFloat(r.heureDebut) < n &&
+    parseFloat(r.heureFin)   > resaEnCours.hDebut
+  );
+  if (chevauche) { toast('Chevauchement avec une réservation existante.', 'warning'); return; }
+  resaEnCours.hFin = n;
+  rafraichirModaleResa();
 };
 
 // =====================================================================
