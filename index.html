@@ -2982,7 +2982,53 @@ window.verifierCode = async function() {
       .forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
   } catch(e) {
     if (e.code === 'auth/email-already-in-use') {
-      showErr(errEl,'Cette adresse email est déjà utilisée.');
+      // Le compte Firebase Auth existe encore (adhérent supprimé par l'admin)
+      // On tente de se reconnecter avec les mêmes identifiants
+      try {
+        const cred = await signInWithEmailAndPassword(auth, verifData.email, verifData.mdp);
+        const uid  = cred.user.uid;
+
+        // Vérifier qu'il n'y a pas déjà un document Firestore actif pour cet uid
+        const snap = await getDoc(doc(db,'utilisateurs', uid));
+        if (snap.exists() && snap.data().statut !== 'suspendu') {
+          // Compte déjà actif — ce n'est pas un ancien adhérent supprimé
+          await signOut(auth);
+          showErr(errEl,'Cette adresse email est déjà utilisée par un compte actif.');
+          btn.disabled=false; btn.textContent='Valider le code'; return;
+        }
+
+        // Recréer le document Firestore avec le nouvel UID
+        await setDoc(doc(db,'utilisateurs', uid), {
+          pseudo:            verifData.pseudo,
+          pseudoLower:       verifData.pseudo.toLowerCase(),
+          telephone:         verifData.tel||null,
+          email:             verifData.email,
+          role:              'adherent',
+          statut:            'en_attente',
+          emailVerifie:      true,
+          dateInscription:   new Date().toISOString(),
+          datePaiement:      null,
+          montantPaye:       null,
+          dateDebutAdhesion: null,
+          dateFinAdhesion:   null,
+        });
+
+        await signOut(auth);
+        verifData = null;
+        toast("Inscription envoyée ! En attente de validation par l'administrateur.", 'success');
+        showAuthTab('login');
+        document.getElementById('reg-step1').classList.remove('hidden');
+        document.getElementById('reg-step2').classList.add('hidden');
+        ['reg-pseudo','reg-email','reg-tel','reg-mdp','reg-mdp2']
+          .forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+
+      } catch(e2) {
+        if (e2.code === 'auth/wrong-password' || e2.code === 'auth/invalid-credential' || e2.code === 'auth/invalid-login-credentials') {
+          showErr(errEl,'Cette adresse email est déjà associée à un compte. Si vous avez déjà été membre, utilisez votre ancien mot de passe.');
+        } else {
+          showErr(errEl,'Erreur : '+e2.message);
+        }
+      }
     } else {
       showErr(errEl,'Erreur : '+e.message);
     }
