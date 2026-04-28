@@ -1145,13 +1145,72 @@ tr:hover td { background: var(--cream); }
 
       <!-- Mon compte -->
       <div id="tab-adh-mon-compte" class="tab-content hidden">
+
+        <!-- Bloc : Mes informations -->
         <div class="card" style="margin-bottom:1.25rem;">
           <div class="card-header"><h2>Mes informations</h2></div>
           <div class="profile-grid" id="adh-compte-info-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;"></div>
         </div>
+
+        <!-- Bloc : Modifier mes informations -->
+        <div class="card" style="margin-bottom:1.25rem;">
+          <div class="card-header"><h2>Modifier mes informations</h2></div>
+
+          <!-- Téléphone -->
+          <h3 style="margin-bottom:.75rem;">📱 Numéro de téléphone</h3>
+          <div class="form-group" style="max-width:360px">
+            <label class="form-label">Téléphone <span style="font-weight:400;color:var(--clay-lt);font-size:.85rem;">(facultatif)</span></label>
+            <input class="form-input" id="adh-new-tel" type="tel" placeholder="Ex : 06 12 34 56 78" maxlength="20">
+          </div>
+          <button class="btn btn-primary" onclick="changerTelephone()">Mettre à jour le téléphone</button>
+
+          <hr class="separator" style="margin:1.5rem 0;">
+
+          <!-- Adresse email -->
+          <h3 style="margin-bottom:.75rem;">✉️ Adresse email</h3>
+          <div id="adh-email-step1">
+            <p style="font-size:.88rem;color:var(--earth-lt);margin-bottom:.75rem;">Un email de confirmation sera envoyé à votre nouvelle adresse. Vous devrez cliquer sur le lien qu'il contient pour valider le changement.</p>
+            <div class="form-group" style="max-width:360px">
+              <label class="form-label">Nouvelle adresse email</label>
+              <input class="form-input" id="adh-new-email" type="email" placeholder="nouvelle@email.com">
+            </div>
+            <div id="adh-email-error" class="alert alert-danger hidden" style="font-size:.85rem;padding:.6rem .85rem;max-width:360px;"></div>
+            <button class="btn btn-primary" onclick="demanderChangementEmail()">Envoyer le lien de confirmation →</button>
+          </div>
+          <div id="adh-email-step2" class="hidden">
+            <div class="alert alert-success" style="max-width:420px;font-size:.88rem;">
+              ✅ Un lien de confirmation a été envoyé à <strong id="adh-email-new-display"></strong>.<br>
+              Cliquez sur ce lien pour finaliser le changement. Votre email actuel reste actif tant que vous n'avez pas confirmé.<br>
+              <span style="color:var(--clay-lt);">Vérifiez vos spams si besoin.</span>
+            </div>
+            <button class="btn btn-ghost mt-1" style="font-size:.85rem;" onclick="document.getElementById('adh-email-step2').classList.add('hidden');document.getElementById('adh-email-step1').classList.remove('hidden');">← Modifier l'adresse saisie</button>
+          </div>
+
+          <hr class="separator" style="margin:1.5rem 0;">
+
+          <!-- Demande de changement de pseudo -->
+          <h3 style="margin-bottom:.75rem;">🏷️ Pseudo</h3>
+          <div id="adh-pseudo-step1">
+            <p style="font-size:.88rem;color:var(--earth-lt);margin-bottom:.75rem;">Le pseudo ne peut pas être modifié directement. Vous pouvez soumettre une demande à l'administrateur, qui la validera ou la refusera.</p>
+            <div id="adh-pseudo-demande-en-cours" class="alert alert-info hidden" style="font-size:.88rem;max-width:420px;"></div>
+            <div id="adh-pseudo-form" style="max-width:360px;">
+              <div class="form-group">
+                <label class="form-label">Nouveau pseudo souhaité</label>
+                <input class="form-input" id="adh-new-pseudo" type="text" placeholder="Nouveau pseudo">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Motif <span style="font-weight:400;color:var(--clay-lt);font-size:.85rem;">(facultatif)</span></label>
+                <input class="form-input" id="adh-pseudo-motif" type="text" placeholder="Ex : faute d'orthographe, changement de prénom…">
+              </div>
+              <div id="adh-pseudo-error" class="alert alert-danger hidden" style="font-size:.85rem;padding:.6rem .85rem;"></div>
+              <button class="btn btn-primary" onclick="demanderChangementPseudo()">Envoyer la demande</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bloc : Changer mon mot de passe -->
         <div class="card">
-          <div class="card-header"><h2>Mon compte</h2></div>
-          <h3 style="margin-bottom:1rem;">Changer mon mot de passe</h3>
+          <div class="card-header"><h2>Changer mon mot de passe</h2></div>
           <div class="form-group" style="max-width:360px">
             <label class="form-label">Nouveau mot de passe</label>
             <div class="mdp-wrap">
@@ -1180,6 +1239,11 @@ tr:hover td { background: var(--cream); }
         <div id="admin-attente-section" class="hidden">
           <h3 style="margin-bottom:.75rem;color:var(--danger)">⏳ Comptes en attente de validation</h3>
           <div id="admin-attente-list" class="resa-list mb-2"></div>
+          <hr class="separator">
+        </div>
+        <div id="admin-pseudo-section" class="hidden">
+          <h3 style="margin-bottom:.75rem;color:var(--terracotta)">🏷️ Demandes de changement de pseudo</h3>
+          <div id="admin-pseudo-list" class="resa-list mb-2"></div>
           <hr class="separator">
         </div>
         <div id="admin-expiration-section" class="hidden">
@@ -1431,7 +1495,7 @@ import {
 import {
   getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
   signOut, updatePassword, sendPasswordResetEmail, onAuthStateChanged,
-  browserSessionPersistence, setPersistence
+  browserSessionPersistence, setPersistence, verifyBeforeUpdateEmail
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 // =====================================================================
@@ -1650,6 +1714,22 @@ async function init() {
       const snap = await getDoc(doc(db,'utilisateurs', firebaseUser.uid));
       if (snap.exists()) {
         utilisateurCourant = { id: snap.id, ...snap.data() };
+
+        // Synchroniser l'email Firestore si le changement d'email a été confirmé
+        // (verifyBeforeUpdateEmail met à jour l'email Firebase Auth après clic sur le lien)
+        const emailFirebase  = (firebaseUser.email || '').toLowerCase();
+        const emailFirestore = (utilisateurCourant.email || '').toLowerCase();
+        const emailEnAttente = (utilisateurCourant.emailEnAttente || '').toLowerCase();
+        if (emailFirebase && emailFirebase !== emailFirestore && emailFirebase === emailEnAttente) {
+          // L'utilisateur a cliqué sur le lien de confirmation → mettre à jour Firestore
+          await updateDoc(doc(db,'utilisateurs', firebaseUser.uid), {
+            email: emailFirebase,
+            emailEnAttente: null,
+          });
+          utilisateurCourant.email = emailFirebase;
+          utilisateurCourant.emailEnAttente = null;
+        }
+
         const { motDePasse, ...safeUser } = utilisateurCourant;
         sessionStorage.setItem('atelierSession', JSON.stringify(safeUser));
         afficherInterface();
@@ -1949,12 +2029,169 @@ function afficherInfosMonCompte() {
   const grid = document.getElementById('adh-compte-info-grid');
   if (!grid) return;
   grid.innerHTML = `
-    <div class="profile-info-card"><div class="pil">Email</div><div class="pval" style="font-size:.95rem">${u.email||'—'}</div></div>
+    <div class="profile-info-card"><div class="pil">Pseudo</div><div class="pval">${u.pseudo||'—'}</div></div>
+    <div class="profile-info-card"><div class="pil">Email</div><div class="pval" style="font-size:.9rem">${u.email||'—'}</div></div>
+    <div class="profile-info-card"><div class="pil">Téléphone</div><div class="pval">${u.telephone||'—'}</div></div>
     <div class="profile-info-card"><div class="pil">Membre depuis</div><div class="pval">${formatDate(u.dateDebutAdhesion)||'—'}</div></div>
     <div class="profile-info-card"><div class="pil">Fin d'adhésion</div><div class="pval">${formatDate(u.dateFinAdhesion)||'—'}</div></div>
     <div class="profile-info-card"><div class="pil">Statut</div><div class="pval">${badgeStatut(calculerStatutAdhesion(u))}</div></div>
   `;
+  // Pré-remplir le champ téléphone avec la valeur actuelle
+  const telInput = document.getElementById('adh-new-tel');
+  if (telInput) telInput.value = u.telephone || '';
+  // Réinitialiser les formulaires email et pseudo
+  document.getElementById('adh-email-step1')?.classList.remove('hidden');
+  document.getElementById('adh-email-step2')?.classList.add('hidden');
+  document.getElementById('adh-new-email') && (document.getElementById('adh-new-email').value = '');
+  document.getElementById('adh-email-error')?.classList.add('hidden');
+  document.getElementById('adh-new-pseudo') && (document.getElementById('adh-new-pseudo').value = '');
+  document.getElementById('adh-pseudo-motif') && (document.getElementById('adh-pseudo-motif').value = '');
+  document.getElementById('adh-pseudo-error')?.classList.add('hidden');
+  // Vérifier s'il y a une demande de pseudo en cours
+  verifierDemandePseudoEnCours();
 }
+
+// =====================================================================
+// MODIFIER LE TÉLÉPHONE
+// =====================================================================
+window.changerTelephone = async function() {
+  const tel = document.getElementById('adh-new-tel').value.trim();
+  // Si vide on autorise (suppression du téléphone)
+  if (tel) {
+    const telDigits = tel.replace(/[\s\-\.\+]/g,'');
+    if (!/^\d+$/.test(telDigits) || telDigits.length < 8 || telDigits.length > 15) {
+      toast('Numéro invalide (8 à 15 chiffres, espaces et + acceptés).','warning'); return;
+    }
+  }
+  try {
+    const valeur = tel || null;
+    await updateDoc(doc(db,'utilisateurs', utilisateurCourant.id), { telephone: valeur });
+    utilisateurCourant.telephone = valeur;
+    toast('Téléphone mis à jour.','success');
+    afficherInfosMonCompte();
+  } catch(e) {
+    toast('Erreur : '+e.message,'error');
+  }
+};
+
+// =====================================================================
+// MODIFIER L'EMAIL — via verifyBeforeUpdateEmail (Firebase Auth)
+// =====================================================================
+window.demanderChangementEmail = async function() {
+  const newEmail = document.getElementById('adh-new-email').value.trim().toLowerCase();
+  const errEl    = document.getElementById('adh-email-error');
+  errEl.classList.add('hidden');
+
+  if (!newEmail) { showErr(errEl,'Veuillez saisir une adresse email.'); return; }
+  if (!emailValide(newEmail)) { showErr(errEl,'Adresse email invalide.'); return; }
+  if (newEmail === (utilisateurCourant.email||'').toLowerCase()) {
+    showErr(errEl,"C'est déjà votre adresse email actuelle."); return;
+  }
+
+  // Vérifier que cet email n'est pas déjà utilisé dans Firestore
+  try {
+    const snap = await getDocs(query(collection(db,'utilisateurs'), where('email','==',newEmail)));
+    if (!snap.empty) { showErr(errEl,'Cette adresse email est déjà utilisée par un autre compte.'); return; }
+
+    // Envoyer l'email de vérification via Firebase Auth
+    // L'email actuel reste actif tant que le lien n'est pas cliqué (sécurisé)
+    await verifyBeforeUpdateEmail(auth.currentUser, newEmail);
+
+    // Stocker le nouvel email en attente dans Firestore pour mise à jour après confirmation
+    await updateDoc(doc(db,'utilisateurs', utilisateurCourant.id), {
+      emailEnAttente: newEmail
+    });
+
+    document.getElementById('adh-email-new-display').textContent = newEmail;
+    document.getElementById('adh-email-step1').classList.add('hidden');
+    document.getElementById('adh-email-step2').classList.remove('hidden');
+    toast('Email de confirmation envoyé !','success');
+  } catch(e) {
+    if (e.code === 'auth/requires-recent-login') {
+      showErr(errEl,'Session trop ancienne. Déconnectez-vous puis reconnectez-vous avant de changer l\'email.');
+    } else if (e.code === 'auth/email-already-in-use') {
+      showErr(errEl,'Cette adresse email est déjà associée à un compte.');
+    } else {
+      showErr(errEl,'Erreur : '+e.message);
+    }
+  }
+};
+
+// =====================================================================
+// DEMANDE DE CHANGEMENT DE PSEUDO
+// =====================================================================
+async function verifierDemandePseudoEnCours() {
+  const infoEl  = document.getElementById('adh-pseudo-demande-en-cours');
+  const formEl  = document.getElementById('adh-pseudo-form');
+  if (!infoEl || !formEl) return;
+  try {
+    const snap = await getDocs(query(
+      collection(db,'demandesPseudo'),
+      where('userId','==', utilisateurCourant.id),
+      where('statut','==','en_attente')
+    ));
+    if (!snap.empty) {
+      const d = snap.docs[0].data();
+      infoEl.innerHTML = `⏳ Demande en cours : <strong>${d.pseudoActuel}</strong> → <strong>${d.pseudoDemande}</strong><br>
+        <span style="font-size:.82rem;color:var(--earth-lt)">Soumise le ${formatDate(d.dateCreation?.substring(0,10))}. En attente de validation par l'administrateur.</span>`;
+      infoEl.classList.remove('hidden');
+      formEl.classList.add('hidden');
+    } else {
+      infoEl.classList.add('hidden');
+      formEl.classList.remove('hidden');
+    }
+  } catch(e) {
+    infoEl.classList.add('hidden');
+    formEl.classList.remove('hidden');
+  }
+}
+
+window.demanderChangementPseudo = async function() {
+  const newPseudo = document.getElementById('adh-new-pseudo').value.trim();
+  const motif     = document.getElementById('adh-pseudo-motif').value.trim();
+  const errEl     = document.getElementById('adh-pseudo-error');
+  errEl.classList.add('hidden');
+
+  if (!newPseudo) { showErr(errEl,'Veuillez saisir un pseudo.'); return; }
+  if (newPseudo.length < 2 || newPseudo.length > 30)
+    { showErr(errEl,'Le pseudo doit faire entre 2 et 30 caractères.'); return; }
+  if (newPseudo.toLowerCase() === utilisateurCourant.pseudo?.toLowerCase())
+    { showErr(errEl,"C'est déjà votre pseudo actuel."); return; }
+
+  try {
+    // Vérifier unicité du nouveau pseudo
+    const snap = await getDocs(query(
+      collection(db,'utilisateurs'),
+      where('pseudoLower','==', newPseudo.toLowerCase())
+    ));
+    if (!snap.empty) { showErr(errEl,'Ce pseudo est déjà utilisé.'); return; }
+
+    // Vérifier qu'il n'y a pas déjà une demande en attente
+    const snapDem = await getDocs(query(
+      collection(db,'demandesPseudo'),
+      where('userId','==', utilisateurCourant.id),
+      where('statut','==','en_attente')
+    ));
+    if (!snapDem.empty) { showErr(errEl,'Vous avez déjà une demande en attente.'); return; }
+
+    // Créer la demande dans Firestore
+    await addDoc(collection(db,'demandesPseudo'), {
+      userId:        utilisateurCourant.id,
+      pseudoActuel:  utilisateurCourant.pseudo,
+      pseudoDemande: newPseudo,
+      motif:         motif || null,
+      statut:        'en_attente',
+      dateCreation:  new Date().toISOString(),
+    });
+
+    toast('Demande envoyée ! L\'administrateur la traitera prochainement.','success');
+    document.getElementById('adh-new-pseudo').value  = '';
+    document.getElementById('adh-pseudo-motif').value = '';
+    verifierDemandePseudoEnCours();
+  } catch(e) {
+    showErr(errEl,'Erreur : '+e.message);
+  }
+};
 
 window.changerMotDePasse = async function() {
   const mdp  = document.getElementById('adh-new-mdp').value;
@@ -1991,7 +2228,7 @@ async function chargerAdmin() {
   } catch(e) {
     console.error('Erreur chargement admin:', e);
   }
-  afficherDashboardAdmin();
+  await afficherDashboardAdmin();
 
   calCurrentWeek  = lundiDeLaSemaine(new Date());
   calCurrentMonth = premierDuMois(new Date());
@@ -2029,7 +2266,7 @@ window.showAdminTab = function(tab) {
   if (tab==='contacts')   afficherContacts('admin');
 };
 
-function afficherDashboardAdmin() {
+async function afficherDashboardAdmin() {
   const actifs  = allUsers.filter(u => u.role==='adherent' && peutReserver(u)).length;
   const nonAdh  = allUsers.filter(u => u.role==='adherent' && calculerStatutAdhesion(u)==='non_adherent').length;
   const attente  = allUsers.filter(u => u.statut==='en_attente');
@@ -2057,6 +2294,42 @@ function afficherDashboardAdmin() {
       </div>`).join('');
   } else { secAtt.classList.add('hidden'); }
 
+  // Section demandes de pseudo
+  try {
+    const snapPseudo = await getDocs(query(
+      collection(db,'demandesPseudo'),
+      where('statut','==','en_attente')
+    ));
+    const secPseudo  = document.getElementById('admin-pseudo-section');
+    const listPseudo = document.getElementById('admin-pseudo-list');
+    const demandes   = snapPseudo.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (demandes.length > 0) {
+      secPseudo.classList.remove('hidden');
+      listPseudo.innerHTML = demandes.map(d => `
+        <div class="resa-item">
+          <div class="resa-date" style="font-size:1rem">🏷️ Changement de pseudo</div>
+          <div class="resa-details">
+            <strong>${d.pseudoActuel} → ${d.pseudoDemande}</strong>
+            <span>${d.motif ? 'Motif : '+d.motif : 'Aucun motif renseigné'}</span>
+            <span style="font-size:.8rem;color:var(--clay-lt);">Demande du ${formatDate(d.dateCreation?.substring(0,10))}</span>
+          </div>
+          <div class="resa-actions">
+            <button class="btn btn-success btn-sm" onclick="validerDemandePseudo('${d.id}','${d.userId}','${d.pseudoDemande}')">Accepter</button>
+            <button class="btn btn-danger btn-sm"  onclick="refuserDemandePseudo('${d.id}','${d.userId}','${d.pseudoDemande}')">Refuser</button>
+          </div>
+        </div>`).join('');
+      // Mettre à jour le badge admin
+      const badgeAdmin = document.getElementById('admin-badge-wait');
+      if (badgeAdmin) {
+        const totalUrgent = attente.length + demandes.length;
+        badgeAdmin.textContent = totalUrgent;
+        badgeAdmin.classList.toggle('hidden', totalUrgent === 0);
+      }
+    } else { secPseudo.classList.add('hidden'); }
+  } catch(e) {
+    document.getElementById('admin-pseudo-section')?.classList.add('hidden');
+  }
+
   // Section expiration
   const secExp = document.getElementById('admin-expiration-section');
   const listExp = document.getElementById('admin-expiration-list');
@@ -2083,6 +2356,56 @@ function afficherDashboardAdmin() {
     <div class="stat-card"><div class="stat-label">Expirent sous 15 j</div><div class="stat-value" style="color:var(--warning)">${expire15.length}</div></div>
   `;
 }
+
+// =====================================================================
+// VALIDER / REFUSER UNE DEMANDE DE CHANGEMENT DE PSEUDO (admin)
+// =====================================================================
+window.validerDemandePseudo = async function(demandeId, userId, nouveauPseudo) {
+  if (!confirm(`Accepter le changement de pseudo vers "${nouveauPseudo}" ?`)) return;
+  try {
+    // Vérifier une dernière fois que le pseudo n'a pas été pris entre-temps
+    const snap = await getDocs(query(
+      collection(db,'utilisateurs'),
+      where('pseudoLower','==', nouveauPseudo.toLowerCase())
+    ));
+    if (!snap.empty) {
+      toast('Ce pseudo a été pris entre-temps. La demande ne peut pas être acceptée.','error');
+      await afficherDashboardAdmin();
+      return;
+    }
+    // Mettre à jour le document utilisateur
+    await updateDoc(doc(db,'utilisateurs', userId), {
+      pseudo:      nouveauPseudo,
+      pseudoLower: nouveauPseudo.toLowerCase(),
+    });
+    // Mettre à jour la demande
+    await updateDoc(doc(db,'demandesPseudo', demandeId), {
+      statut:        'acceptee',
+      dateTraitement: new Date().toISOString(),
+    });
+    // Mettre à jour le cache local si c'est l'utilisateur courant
+    const u = allUsers.find(u => u.id === userId);
+    if (u) { u.pseudo = nouveauPseudo; u.pseudoLower = nouveauPseudo.toLowerCase(); }
+    toast('Pseudo mis à jour avec succès.','success');
+    await afficherDashboardAdmin();
+  } catch(e) {
+    toast('Erreur : '+e.message,'error');
+  }
+};
+
+window.refuserDemandePseudo = async function(demandeId, userId, pseudoDemande) {
+  if (!confirm(`Refuser la demande de pseudo "${pseudoDemande}" ?`)) return;
+  try {
+    await updateDoc(doc(db,'demandesPseudo', demandeId), {
+      statut:         'refusee',
+      dateTraitement: new Date().toISOString(),
+    });
+    toast('Demande refusée.','info');
+    await afficherDashboardAdmin();
+  } catch(e) {
+    toast('Erreur : '+e.message,'error');
+  }
+};
 
 function resasDeLaSemaine() {
   const lundi = lundiDeLaSemaine(new Date());
@@ -2272,7 +2595,7 @@ window.supprimerResa = async function(id) {
 
 async function rafraichirUsers() {
   await chargerUtilisateurs();
-  afficherDashboardAdmin();
+  await afficherDashboardAdmin();
   afficherTableauAdherents();
   const enAttente = allUsers.filter(u => u.statut==='en_attente').length;
   const badge = document.getElementById('nav-badge');
@@ -2833,7 +3156,7 @@ window.confirmerResaAdmin = async function() {
     toast('Réservation ajoutée.','success');
     fermerModale('modal-resa-admin');
     renderCalendrier('admin-wrap');
-    afficherDashboardAdmin();
+    await afficherDashboardAdmin();
   } catch(e) { toast('Erreur : '+e.message,'error'); }
 };
 
