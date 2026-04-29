@@ -1151,8 +1151,11 @@ tr:hover td { background: var(--cream); }
 
         <!-- Bloc : Mes informations -->
         <div class="card" style="margin-bottom:1.25rem;">
-          <div class="card-header"><h2>Mes informations</h2></div>
-          <div class="profile-grid" id="adh-compte-info-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;"></div>
+          <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
+            <h2 style="margin:0;">Mes informations</h2>
+            <span style="font-family:var(--font-display);font-size:1.3rem;color:var(--terracotta);">👤 <span id="adh-compte-pseudo-titre"></span></span>
+          </div>
+          <div class="profile-grid" id="adh-compte-info-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;"></div>
         </div>
 
         <!-- Bloc : Modifier mes informations -->
@@ -2047,9 +2050,10 @@ window.annulerReservation = async function(id) {
 function afficherInfosMonCompte() {
   const u = utilisateurCourant;
   const grid = document.getElementById('adh-compte-info-grid');
+  const pseudoTitre = document.getElementById('adh-compte-pseudo-titre');
   if (!grid) return;
+  if (pseudoTitre) pseudoTitre.textContent = u.pseudo || '';
   grid.innerHTML = `
-    <div class="profile-info-card"><div class="pil">Pseudo</div><div class="pval">${u.pseudo||'—'}</div></div>
     <div class="profile-info-card full-width"><div class="pil">Email</div><div class="pval" style="font-size:.95rem">${u.email||'—'}</div></div>
     <div class="profile-info-card"><div class="pil">Téléphone</div><div class="pval">${u.telephone||'—'}</div></div>
     <div class="profile-info-card"><div class="pil">Membre depuis</div><div class="pval">${formatDate(u.dateDebutAdhesion)||'—'}</div></div>
@@ -3579,6 +3583,11 @@ window.etendreDebut = function(delta) {
     parseFloat(r.heureFin)   > n
   );
   if (chevauche) { toast('Chevauchement avec une réservation existante.', 'warning'); return; }
+  // Vérifier quota hebdomadaire
+  const lundi = lundiDeLaSemaine(strToDate(resaEnCours.dateStr));
+  const hSem  = heuresSemaine(utilisateurCourant.id, lundi);
+  const nouvelleDuree = dureeH(n, resaEnCours.hFin);
+  if (hSem + nouvelleDuree > MAX_HEURES_SEM) { toast('Quota de ' + MAX_HEURES_SEM + 'h dépassé.', 'warning'); return; }
   resaEnCours.hDebut = n;
   // Recalculer les postes libres pour la nouvelle plage horaire
   resaEnCours.postesLibres = postesDisponibles(resaEnCours.dateStr, n, resaEnCours.hFin);
