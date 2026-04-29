@@ -1171,40 +1171,26 @@ tr:hover td { background: var(--cream); }
 
           <!-- Étape 1 : saisir la nouvelle adresse -->
           <div id="adh-email-step1">
-            <p style="font-size:.88rem;color:var(--earth-lt);margin-bottom:.75rem;">Un code de vérification à 6 chiffres sera envoyé à votre nouvelle adresse pour confirmer le changement.</p>
+            <p style="font-size:.88rem;color:var(--earth-lt);margin-bottom:.75rem;">Un lien de confirmation sera envoyé à votre nouvelle adresse. Cliquez dessus pour valider le changement. Votre adresse actuelle reste active jusque-là.</p>
             <div class="form-group" style="max-width:360px">
               <label class="form-label">Nouvelle adresse email</label>
               <input class="form-input" id="adh-new-email" type="email" placeholder="nouvelle@email.com" autocomplete="email">
             </div>
             <div id="adh-email-error" class="alert alert-danger hidden" style="font-size:.85rem;padding:.6rem .85rem;max-width:360px;margin-bottom:.75rem;"></div>
-            <button class="btn btn-primary" id="btn-adh-email-envoyer" onclick="demanderChangementEmail()">Envoyer le code →</button>
+            <button class="btn btn-primary" id="btn-adh-email-envoyer" onclick="demanderChangementEmail()">Envoyer le lien →</button>
           </div>
 
-          <!-- Étape 2 : saisir le code reçu -->
+          <!-- Étape 2 : confirmation envoyée -->
           <div id="adh-email-step2" class="hidden">
-            <div class="alert alert-info" style="font-size:.88rem;margin-bottom:1rem;">
-              📧 Un code à 6 chiffres a été envoyé à <strong id="adh-email-new-display"></strong>.<br>
-              <span style="color:var(--clay-lt);font-size:.82rem;">Vérifiez vos spams si vous ne le recevez pas.</span>
+            <div class="alert alert-success" style="font-size:.88rem;line-height:1.6;">
+              ✅ Un lien de confirmation a été envoyé à<br>
+              <strong id="adh-email-new-display" style="word-break:break-all;"></strong><br>
+              <span style="color:var(--earth-lt);">Cliquez sur ce lien pour finaliser. Vérifiez vos spams si besoin.</span>
             </div>
-            <div class="form-group" style="max-width:280px">
-              <label class="form-label">Code de vérification</label>
-              <input class="form-input" id="adh-email-code-input" type="text" placeholder="123456" maxlength="6"
-                style="font-size:1.4rem;letter-spacing:.3em;text-align:center;">
-            </div>
-            <div id="adh-email-code-error" class="alert alert-danger hidden" style="font-size:.85rem;padding:.6rem .85rem;max-width:280px;margin-bottom:.75rem;"></div>
-            <div style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;">
-              <button class="btn btn-primary" id="btn-adh-email-valider" onclick="validerCodeEmail()">Valider le code</button>
-              <button class="btn btn-ghost" style="font-size:.85rem;" onclick="demanderChangementEmail(true)">Renvoyer le code</button>
+            <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-top:.75rem;">
+              <button class="btn btn-ghost" style="font-size:.85rem;" onclick="demanderChangementEmail(true)">Renvoyer le lien</button>
               <button class="btn btn-ghost" style="font-size:.85rem;" onclick="retourSaisieEmail()">← Modifier l'adresse</button>
             </div>
-          </div>
-
-          <!-- Étape 3 : succès -->
-          <div id="adh-email-step3" class="hidden">
-            <div class="alert alert-success" style="font-size:.88rem;">
-              ✅ Votre adresse email a bien été mise à jour vers <strong id="adh-email-confirmed-display"></strong>.
-            </div>
-            <button class="btn btn-ghost mt-1" style="font-size:.85rem;" onclick="retourSaisieEmail()">Changer à nouveau</button>
           </div>
 
           <hr class="separator" style="margin:1.5rem 0;">
@@ -1516,7 +1502,7 @@ import {
 import {
   getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
   signOut, updatePassword, sendPasswordResetEmail, onAuthStateChanged,
-  browserSessionPersistence, setPersistence
+  browserSessionPersistence, setPersistence, verifyBeforeUpdateEmail
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 // =====================================================================
@@ -1735,6 +1721,14 @@ async function init() {
       const snap = await getDoc(doc(db,'utilisateurs', firebaseUser.uid));
       if (snap.exists()) {
         utilisateurCourant = { id: snap.id, ...snap.data() };
+
+        // Synchroniser l'email Firestore si le changement a été confirmé via Firebase Auth
+        const emailFirebase  = (firebaseUser.email || '').toLowerCase();
+        const emailFirestore = (utilisateurCourant.email || '').toLowerCase();
+        if (emailFirebase && emailFirebase !== emailFirestore) {
+          await updateDoc(doc(db,'utilisateurs', firebaseUser.uid), { email: emailFirebase });
+          utilisateurCourant.email = emailFirebase;
+        }
 
         const { motDePasse, ...safeUser } = utilisateurCourant;
         sessionStorage.setItem('atelierSession', JSON.stringify(safeUser));
@@ -2048,7 +2042,6 @@ function afficherInfosMonCompte() {
   // Réinitialiser les formulaires email et pseudo
   document.getElementById('adh-email-step1')?.classList.remove('hidden');
   document.getElementById('adh-email-step2')?.classList.add('hidden');
-  document.getElementById('adh-email-step3')?.classList.add('hidden');
   document.getElementById('adh-new-email') && (document.getElementById('adh-new-email').value = '');
   document.getElementById('adh-email-error')?.classList.add('hidden');
   document.getElementById('adh-new-pseudo') && (document.getElementById('adh-new-pseudo').value = '');
@@ -2082,112 +2075,63 @@ window.changerTelephone = async function() {
 };
 
 // =====================================================================
-// MODIFIER L'EMAIL — via code à 6 chiffres (même système que l'inscription)
+// MODIFIER L'EMAIL — via verifyBeforeUpdateEmail (Firebase Auth)
 // =====================================================================
-let verifEmailData = null; // stockage temporaire du code et du nouvel email
+let emailEnAttenteLocal = null; // mémorise le nouvel email pendant la session
 
 window.demanderChangementEmail = async function(renvoyer = false) {
   const newEmail = renvoyer
-    ? verifEmailData?.email
+    ? emailEnAttenteLocal
     : document.getElementById('adh-new-email').value.trim().toLowerCase();
   const errEl = document.getElementById('adh-email-error');
   errEl.classList.add('hidden');
 
-  if (!newEmail) { showErr(errEl,'Veuillez saisir une adresse email.'); return; }
-  if (!emailValide(newEmail)) { showErr(errEl,'Adresse email invalide.'); return; }
-  if (newEmail === (utilisateurCourant.email||'').toLowerCase()) {
-    showErr(errEl,"C'est déjà votre adresse email actuelle."); return;
+  if (!newEmail) { showErr(errEl, 'Veuillez saisir une adresse email.'); return; }
+  if (!emailValide(newEmail)) { showErr(errEl, 'Adresse email invalide.'); return; }
+  if (newEmail === (utilisateurCourant.email || '').toLowerCase()) {
+    showErr(errEl, "C'est déjà votre adresse email actuelle."); return;
   }
 
   const btn = document.getElementById('btn-adh-email-envoyer');
   if (btn) { btn.disabled = true; btn.textContent = 'Envoi…'; }
 
   try {
-    // Vérifier que cet email n'est pas déjà utilisé
-    const snap = await getDocs(query(collection(db,'utilisateurs'), where('email','==',newEmail)));
-    if (!snap.empty) {
-      showErr(errEl,'Cette adresse email est déjà utilisée par un autre compte.');
-      if (btn) { btn.disabled = false; btn.textContent = 'Envoyer le code →'; }
-      return;
+    // Vérifier que cet email n'est pas déjà utilisé dans Firestore
+    if (!renvoyer) {
+      const snap = await getDocs(query(collection(db, 'utilisateurs'), where('email', '==', newEmail)));
+      if (!snap.empty) {
+        showErr(errEl, 'Cette adresse email est déjà utilisée par un autre compte.');
+        if (btn) { btn.disabled = false; btn.textContent = 'Envoyer le lien →'; }
+        return;
+      }
     }
 
-    // Générer un code à 6 chiffres et le stocker temporairement
-    const code = String(Math.floor(100000 + Math.random() * 900000));
-    verifEmailData = { code, email: newEmail, expireAt: Date.now() + 10 * 60 * 1000 };
+    // Firebase envoie un lien à la nouvelle adresse — l'email actuel reste actif tant que non confirmé
+    await verifyBeforeUpdateEmail(auth.currentUser, newEmail);
+    emailEnAttenteLocal = newEmail;
 
-    // Envoyer le code par email via Web3Forms
-    const ok = await envoyerEmail(
-      newEmail,
-      utilisateurCourant.pseudo || 'Membre',
-      'Changement d\'adresse email — Julien Céramiques',
-      'Bonjour ' + (utilisateurCourant.pseudo || '') + ',\n\n' +
-      'Votre code de vérification pour changer votre adresse email :\n\n' +
-      code + '\n\nValable 10 minutes.\n\nSi vous n\'êtes pas à l\'origine de cette demande, ignorez ce message.\n\nJulien Céramiques'
-    );
-
-    if (!ok) {
-      showErr(errEl,'Échec d\'envoi. Vérifiez l\'adresse saisie ou réessayez.');
-      if (btn) { btn.disabled = false; btn.textContent = 'Envoyer le code →'; }
-      return;
-    }
-
-    // Passer à l'étape 2
+    // Afficher l'étape 2
     document.getElementById('adh-email-new-display').textContent = newEmail;
     document.getElementById('adh-email-step1').classList.add('hidden');
     document.getElementById('adh-email-step2').classList.remove('hidden');
-    document.getElementById('adh-email-step3').classList.add('hidden');
-    document.getElementById('adh-email-code-input').value = '';
-    document.getElementById('adh-email-code-error').classList.add('hidden');
-    setTimeout(() => document.getElementById('adh-email-code-input')?.focus(), 100);
-    if (renvoyer) toast('Code renvoyé !', 'success');
+    if (renvoyer) toast('Lien renvoyé !', 'success');
 
   } catch(e) {
-    showErr(errEl, 'Erreur : ' + e.message);
+    if (e.code === 'auth/requires-recent-login') {
+      showErr(errEl, 'Session trop ancienne. Déconnectez-vous puis reconnectez-vous avant de changer l\'email.');
+    } else if (e.code === 'auth/email-already-in-use') {
+      showErr(errEl, 'Cette adresse email est déjà associée à un compte Firebase.');
+    } else {
+      showErr(errEl, 'Erreur : ' + e.message);
+    }
   }
-  if (btn) { btn.disabled = false; btn.textContent = 'Envoyer le code →'; }
-};
-
-window.validerCodeEmail = async function() {
-  const saisi = document.getElementById('adh-email-code-input').value.trim();
-  const errEl  = document.getElementById('adh-email-code-error');
-  errEl.classList.add('hidden');
-
-  if (!verifEmailData) { showErr(errEl,'Session expirée. Recommencez.'); return; }
-  if (Date.now() > verifEmailData.expireAt) { showErr(errEl,'Code expiré. Cliquez sur "Renvoyer le code".'); return; }
-  if (saisi !== verifEmailData.code) { showErr(errEl,'Code incorrect.'); return; }
-
-  const btn = document.getElementById('btn-adh-email-valider');
-  if (btn) { btn.disabled = true; btn.textContent = 'Validation…'; }
-
-  try {
-    const nouvelEmail = verifEmailData.email;
-
-    // Mettre à jour Firestore
-    await updateDoc(doc(db,'utilisateurs', utilisateurCourant.id), {
-      email: nouvelEmail,
-      emailEnAttente: null,
-    });
-    utilisateurCourant.email = nouvelEmail;
-    verifEmailData = null;
-
-    // Afficher l'étape 3 (succès)
-    document.getElementById('adh-email-confirmed-display').textContent = nouvelEmail;
-    document.getElementById('adh-email-step2').classList.add('hidden');
-    document.getElementById('adh-email-step3').classList.remove('hidden');
-    toast('Adresse email mise à jour avec succès.', 'success');
-    // Rafraîchir le bloc d'infos
-    afficherInfosMonCompte();
-  } catch(e) {
-    showErr(errEl, 'Erreur : ' + e.message);
-    if (btn) { btn.disabled = false; btn.textContent = 'Valider le code'; }
-  }
+  if (btn) { btn.disabled = false; btn.textContent = 'Envoyer le lien →'; }
 };
 
 window.retourSaisieEmail = function() {
-  verifEmailData = null;
+  emailEnAttenteLocal = null;
   document.getElementById('adh-email-step1').classList.remove('hidden');
   document.getElementById('adh-email-step2').classList.add('hidden');
-  document.getElementById('adh-email-step3').classList.add('hidden');
   document.getElementById('adh-email-error').classList.add('hidden');
   document.getElementById('adh-new-email').value = '';
 };
