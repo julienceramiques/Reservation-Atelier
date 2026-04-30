@@ -3372,21 +3372,27 @@ window.inscription = window.demanderVerificationEmail;
 //     → Dashboard → votre formulaire → Settings → Allowed Domains
 //     et ajoutez votre domaine GitHub Pages (ex: julien.github.io)
 const WEB3FORMS_KEY = '855df4b3-4d43-430f-903a-4585ca492e78';
-async function notifierAdmin(pseudo, email, telephone) {
+async function notifierAdmin(pseudo, email, telephone, reinscription = false) {
   try {
-    const tel = telephone || 'non renseigné';
+    const tel     = telephone ? formatTel(telephone) : 'non renseigné';
+    const sujet   = reinscription
+      ? '🔄 Réinscription en attente d\'adhésion — ' + pseudo
+      : '🏺 Nouvelle inscription — ' + pseudo;
+    const intro   = reinscription
+      ? 'Un adhérent précédemment supprimé vient de se réinscrire.'
+      : 'Un nouvel adhérent vient de créer son compte.';
     const r = await fetch('https://api.web3forms.com/submit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify({
         access_key: WEB3FORMS_KEY,
-        subject:    '🏺 Nouvelle inscription en attente — ' + pseudo,
+        subject:    sujet,
         from_name:  'Julien Céramiques',
-        message:    'Un nouvel adhérent attend votre validation.\n\n'
+        message:    intro + '\n\n'
                   + 'Pseudo    : ' + pseudo + '\n'
                   + 'Email     : ' + email  + '\n'
                   + 'Téléphone : ' + tel    + '\n\n'
-                  + 'Connectez-vous à l\'espace admin pour valider ou refuser ce compte.',
+                  + 'Connectez-vous à l\'espace admin pour définir sa période d\'adhésion.',
       })
     });
     const d = await r.json();
@@ -3448,6 +3454,7 @@ window.soumettreinscription = async function() {
 
     // Créer le compte Firebase Auth
     let uid;
+    let estReinscription = false;
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, mdp);
       uid = cred.user.uid;
@@ -3463,6 +3470,7 @@ window.soumettreinscription = async function() {
             try {
               const cred2 = await signInWithEmailAndPassword(auth, email, mdp);
               uid = cred2.user.uid;
+              estReinscription = true;
               await signOut(auth);
             } catch(e2) {
               // Mot de passe différent → envoyer un lien de réinitialisation et guider
@@ -3482,6 +3490,7 @@ window.soumettreinscription = async function() {
           try {
             const cred2 = await signInWithEmailAndPassword(auth, email, mdp);
             uid = cred2.user.uid;
+            estReinscription = true;
             await signOut(auth);
           } catch(e2) {
             try { await sendPasswordResetEmail(auth, email); } catch(_) {}
@@ -3510,7 +3519,7 @@ window.soumettreinscription = async function() {
     });
 
     // Notifier l'admin par email (silencieux en cas d'échec)
-    notifierAdmin(pseudo, email, telDigits || null);
+    notifierAdmin(pseudo, email, telDigits || null, estReinscription);
 
     toast('Compte créé ! Vous êtes maintenant connecté.', 'success');
     // onAuthStateChanged prend le relais et affiche l'interface
