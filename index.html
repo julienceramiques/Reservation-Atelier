@@ -1031,7 +1031,8 @@ tr:hover td { background: var(--cream); }
               </p>
               <div id="reg-error" class="alert alert-danger hidden" style="font-size:.85rem;padding:.6rem .85rem;"></div>
               <button class="btn btn-primary btn-full mt-2" id="btn-inscrire" onclick="soumettreinscription()">Créer mon compte →</button>
-              <p class="text-muted text-center mt-2" style="font-size:.8rem;">Votre compte sera activé après validation par l'administrateur.</p>
+              <p class="text-muted text-center mt-2" style="font-size:.8rem;">Votre compte sera actif immédiatement après création.</p>
+              <p class="text-muted text-center mt-1" style="font-size:.78rem;color:var(--clay-lt);">⚠️ Si vous recevez un email de vérification Firebase, il peut arriver dans vos spams. Pensez à vérifier et à le marquer comme "non spam".</p>
             </div>
           </div>
         </div>
@@ -3452,7 +3453,7 @@ window.soumettreinscription = async function() {
             } catch(e2) {
               // Mot de passe différent → envoyer un lien de réinitialisation et guider
               try { await sendPasswordResetEmail(auth, email); } catch(_) {}
-              showErr(errEl, 'Ce courriel a déjà été utilisé avec un autre mot de passe. Un lien de réinitialisation vient de vous être envoyé à cette adresse. Réinitialisez votre mot de passe puis réessayez.');
+              showErr(errEl, 'Ce courriel a déjà été utilisé avec un autre mot de passe. Un lien de réinitialisation vient de vous être envoyé à cette adresse (vérifiez vos spams). Une fois votre mot de passe réinitialisé, revenez sur ce formulaire et inscrivez-vous avec votre nouveau mot de passe.');
               btn.disabled=false; btn.textContent='Créer mon compte →'; return;
             }
           } else if (statutExist === 'suspendu') {
@@ -3470,7 +3471,7 @@ window.soumettreinscription = async function() {
             await signOut(auth);
           } catch(e2) {
             try { await sendPasswordResetEmail(auth, email); } catch(_) {}
-            showErr(errEl, 'Ce courriel est déjà utilisé avec un autre mot de passe. Un lien de réinitialisation vient de vous être envoyé.');
+            showErr(errEl, 'Ce courriel est déjà utilisé avec un autre mot de passe. Un lien de réinitialisation vient de vous être envoyé (vérifiez vos spams). Une fois votre mot de passe réinitialisé, revenez sur ce formulaire et inscrivez-vous avec votre nouveau mot de passe.');
             btn.disabled=false; btn.textContent='Créer mon compte →'; return;
           }
         }
