@@ -1010,7 +1010,7 @@ tr:hover td { background: var(--cream); }
               </div>
               <div class="form-group">
                 <label class="form-label">Téléphone <span style="font-weight:400;color:var(--clay-lt);font-size:.85rem;">(facultatif)</span></label>
-                <input class="form-input" id="reg-tel" type="tel" placeholder="Ex : 06 12 34 56 78 ou +352 621 000" maxlength="20">
+                <input class="form-input" id="reg-tel" type="tel" placeholder="Ex : 0612345678" maxlength="10">
               </div>
               <div class="form-group">
                 <label class="form-label">Mot de passe</label>
@@ -1150,7 +1150,7 @@ tr:hover td { background: var(--cream); }
           <h3 style="margin-bottom:.75rem;">📱 Numéro de téléphone</h3>
           <div class="form-group" style="max-width:360px">
             <label class="form-label">Téléphone <span style="font-weight:400;color:var(--clay-lt);font-size:.85rem;">(facultatif)</span></label>
-            <input class="form-input" id="adh-new-tel" type="tel" placeholder="Ex : 06 12 34 56 78" maxlength="20">
+            <input class="form-input" id="adh-new-tel" type="tel" placeholder="Ex : 0612345678" maxlength="10">
           </div>
           <button class="btn btn-primary" onclick="changerTelephone()">Mettre à jour le téléphone</button>
 
@@ -1187,21 +1187,13 @@ tr:hover td { background: var(--cream); }
 
           <!-- Demande de changement de pseudo -->
           <h3 style="margin-bottom:.75rem;">🏷️ Pseudo</h3>
-          <div id="adh-pseudo-step1">
-            <p style="font-size:.88rem;color:var(--earth-lt);margin-bottom:.75rem;">Le pseudo ne peut pas être modifié directement. Vous pouvez soumettre une demande à l'administrateur, qui la validera ou la refusera.</p>
-            <div id="adh-pseudo-demande-en-cours" class="alert alert-info hidden" style="font-size:.88rem;max-width:420px;"></div>
-            <div id="adh-pseudo-form" style="max-width:360px;">
-              <div class="form-group">
-                <label class="form-label">Nouveau pseudo souhaité</label>
-                <input class="form-input" id="adh-new-pseudo" type="text" placeholder="Nouveau pseudo">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Motif <span style="font-weight:400;color:var(--clay-lt);font-size:.85rem;">(facultatif)</span></label>
-                <input class="form-input" id="adh-pseudo-motif" type="text" placeholder="Ex : faute d'orthographe, changement de prénom…">
-              </div>
-              <div id="adh-pseudo-error" class="alert alert-danger hidden" style="font-size:.85rem;padding:.6rem .85rem;"></div>
-              <button class="btn btn-primary" onclick="demanderChangementPseudo()">Envoyer la demande</button>
+          <div style="max-width:360px;">
+            <div class="form-group">
+              <label class="form-label">Nouveau pseudo</label>
+              <input class="form-input" id="adh-new-pseudo" type="text" placeholder="Nouveau pseudo">
             </div>
+            <div id="adh-pseudo-error" class="alert alert-danger hidden" style="font-size:.85rem;padding:.6rem .85rem;"></div>
+            <button class="btn btn-primary" onclick="changerPseudo()">Mettre à jour le pseudo</button>
           </div>
         </div>
 
@@ -1233,19 +1225,14 @@ tr:hover td { background: var(--cream); }
 
       <!-- Dashboard admin -->
       <div id="tab-admin-dashboard" class="tab-content">
-        <div id="admin-attente-section" class="hidden">
-          <h3 style="margin-bottom:.75rem;color:var(--danger)">⏳ Comptes en attente de validation</h3>
-          <div id="admin-attente-list" class="resa-list mb-2"></div>
-          <hr class="separator">
-        </div>
-        <div id="admin-pseudo-section" class="hidden">
-          <h3 style="margin-bottom:.75rem;color:var(--terracotta)">🏷️ Demandes de changement de pseudo</h3>
-          <div id="admin-pseudo-list" class="resa-list mb-2"></div>
-          <hr class="separator">
-        </div>
         <div id="admin-expiration-section" class="hidden">
           <h3 style="margin-bottom:.75rem;color:var(--warning)">⚠️ Adhésions expirant dans moins de 15 jours</h3>
           <div id="admin-expiration-list" class="resa-list mb-2"></div>
+          <hr class="separator">
+        </div>
+        <div id="admin-nouveaux-section" class="hidden">
+          <h3 style="margin-bottom:.75rem;color:var(--terracotta)">🆕 Nouveaux inscrits sans adhésion</h3>
+          <div id="admin-nouveaux-list" class="resa-list mb-2"></div>
           <hr class="separator">
         </div>
         <h3 style="margin-bottom:.75rem;">📈 Statistiques globales</h3>
@@ -1592,6 +1579,14 @@ function formatDate(d) {
   if (!d) return '—';
   if (typeof d === 'string') d = strToDate(d);
   return `${pad(d.getDate())} ${moisNoms[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+// Formate un numéro de téléphone à 10 chiffres : XX XX XX XX XX
+function formatTel(tel) {
+  if (!tel) return '—';
+  const digits = tel.replace(/\D/g, '');
+  if (digits.length !== 10) return tel;
+  return digits.match(/.{2}/g).join(' ');
 }
 
 function formatHeure(h, m=0) { return `${pad(h)}h${pad(m)}`; }
@@ -2039,7 +2034,7 @@ function afficherInfosMonCompte() {
   if (pseudoTitre) pseudoTitre.textContent = u.pseudo || '';
   grid.innerHTML = `
     <div class="profile-info-card full-width"><div class="pil">Email</div><div class="pval" style="font-size:.95rem">${u.email||'—'}</div></div>
-    <div class="profile-info-card"><div class="pil">Téléphone</div><div class="pval">${u.telephone||'—'}</div></div>
+    <div class="profile-info-card"><div class="pil">Téléphone</div><div class="pval">${formatTel(u.telephone)}</div></div>
     <div class="profile-info-card"><div class="pil">Membre depuis</div><div class="pval">${formatDate(u.dateDebutAdhesion)||'—'}</div></div>
     <div class="profile-info-card"><div class="pil">Fin d'adhésion</div><div class="pval">${formatDate(u.dateFinAdhesion)||'—'}</div></div>
     <div class="profile-info-card"><div class="pil">Statut</div><div class="pval">${badgeStatut(calculerStatutAdhesion(u))}</div></div>
@@ -2053,10 +2048,7 @@ function afficherInfosMonCompte() {
   document.getElementById('adh-new-email') && (document.getElementById('adh-new-email').value = '');
   document.getElementById('adh-email-error')?.classList.add('hidden');
   document.getElementById('adh-new-pseudo') && (document.getElementById('adh-new-pseudo').value = '');
-  document.getElementById('adh-pseudo-motif') && (document.getElementById('adh-pseudo-motif').value = '');
   document.getElementById('adh-pseudo-error')?.classList.add('hidden');
-  // Vérifier s'il y a une demande de pseudo en cours
-  verifierDemandePseudoEnCours();
 }
 
 // =====================================================================
@@ -2064,15 +2056,12 @@ function afficherInfosMonCompte() {
 // =====================================================================
 window.changerTelephone = async function() {
   const tel = document.getElementById('adh-new-tel').value.trim();
-  // Si vide on autorise (suppression du téléphone)
-  if (tel) {
-    const telDigits = tel.replace(/[\s\-\.\+]/g,'');
-    if (!/^\d+$/.test(telDigits) || telDigits.length < 8 || telDigits.length > 15) {
-      toast('Numéro invalide (8 à 15 chiffres, espaces et + acceptés).','warning'); return;
-    }
+  const telDigits = tel.replace(/\D/g, '');
+  if (tel && !/^\d{10}$/.test(telDigits)) {
+    toast('Le numéro de téléphone doit contenir exactement 10 chiffres.','warning'); return;
   }
   try {
-    const valeur = tel || null;
+    const valeur = telDigits || null; // stocker les chiffres seuls, l'affichage formate
     await updateDoc(doc(db,'utilisateurs', utilisateurCourant.id), { telephone: valeur });
     utilisateurCourant.telephone = valeur;
     toast('Téléphone mis à jour.','success');
@@ -2153,35 +2142,8 @@ window.retourSaisieEmail = function() {
 // =====================================================================
 // DEMANDE DE CHANGEMENT DE PSEUDO
 // =====================================================================
-async function verifierDemandePseudoEnCours() {
-  const infoEl  = document.getElementById('adh-pseudo-demande-en-cours');
-  const formEl  = document.getElementById('adh-pseudo-form');
-  if (!infoEl || !formEl) return;
-  try {
-    const snap = await getDocs(query(
-      collection(db,'demandesPseudo'),
-      where('userId','==', utilisateurCourant.id),
-      where('statut','==','en_attente')
-    ));
-    if (!snap.empty) {
-      const d = snap.docs[0].data();
-      infoEl.innerHTML = `⏳ Demande en cours : <strong>${d.pseudoActuel}</strong> → <strong>${d.pseudoDemande}</strong><br>
-        <span style="font-size:.82rem;color:var(--earth-lt)">Soumise le ${formatDate(d.dateCreation?.substring(0,10))}. En attente de validation par l'administrateur.</span>`;
-      infoEl.classList.remove('hidden');
-      formEl.classList.add('hidden');
-    } else {
-      infoEl.classList.add('hidden');
-      formEl.classList.remove('hidden');
-    }
-  } catch(e) {
-    infoEl.classList.add('hidden');
-    formEl.classList.remove('hidden');
-  }
-}
-
-window.demanderChangementPseudo = async function() {
+window.changerPseudo = async function() {
   const newPseudo = document.getElementById('adh-new-pseudo').value.trim();
-  const motif     = document.getElementById('adh-pseudo-motif').value.trim();
   const errEl     = document.getElementById('adh-pseudo-error');
   errEl.classList.add('hidden');
 
@@ -2192,35 +2154,21 @@ window.demanderChangementPseudo = async function() {
     { showErr(errEl,"C'est déjà votre pseudo actuel."); return; }
 
   try {
-    // Vérifier unicité du nouveau pseudo
     const snap = await getDocs(query(
       collection(db,'utilisateurs'),
       where('pseudoLower','==', newPseudo.toLowerCase())
     ));
     if (!snap.empty) { showErr(errEl,'Ce pseudo est déjà utilisé.'); return; }
 
-    // Vérifier qu'il n'y a pas déjà une demande en attente
-    const snapDem = await getDocs(query(
-      collection(db,'demandesPseudo'),
-      where('userId','==', utilisateurCourant.id),
-      where('statut','==','en_attente')
-    ));
-    if (!snapDem.empty) { showErr(errEl,'Vous avez déjà une demande en attente.'); return; }
-
-    // Créer la demande dans Firestore
-    await addDoc(collection(db,'demandesPseudo'), {
-      userId:        utilisateurCourant.id,
-      pseudoActuel:  utilisateurCourant.pseudo,
-      pseudoDemande: newPseudo,
-      motif:         motif || null,
-      statut:        'en_attente',
-      dateCreation:  new Date().toISOString(),
+    await updateDoc(doc(db,'utilisateurs', utilisateurCourant.id), {
+      pseudo:      newPseudo,
+      pseudoLower: newPseudo.toLowerCase(),
     });
-
-    toast('Demande envoyée ! L\'administrateur la traitera prochainement.','success');
-    document.getElementById('adh-new-pseudo').value  = '';
-    document.getElementById('adh-pseudo-motif').value = '';
-    verifierDemandePseudoEnCours();
+    utilisateurCourant.pseudo = newPseudo;
+    document.getElementById('adh-new-pseudo').value = '';
+    document.getElementById('adh-compte-pseudo-titre').textContent = newPseudo;
+    document.getElementById('nav-pseudo').textContent = newPseudo;
+    toast('Pseudo mis à jour avec succès.','success');
   } catch(e) {
     showErr(errEl,'Erreur : '+e.message);
   }
@@ -2302,7 +2250,7 @@ window.showAdminTab = function(tab) {
 async function afficherDashboardAdmin() {
   const actifs  = allUsers.filter(u => u.role==='adherent' && peutReserver(u)).length;
   const nonAdh  = allUsers.filter(u => u.role==='adherent' && calculerStatutAdhesion(u)==='non_adherent').length;
-  const attente  = allUsers.filter(u => u.statut==='en_attente');
+  const nouveaux = allUsers.filter(u => u.role==='adherent' && !u.dateDebutAdhesion && !u.dateFinAdhesion);
   const today    = new Date(); today.setHours(0,0,0,0);
   const fin15    = new Date(today); fin15.setDate(fin15.getDate()+15);
   const expire15 = allUsers.filter(u =>
@@ -2311,56 +2259,30 @@ async function afficherDashboardAdmin() {
     strToDate(u.dateFinAdhesion) >= today
   );
 
-  // Section attente
-  const secAtt = document.getElementById('admin-attente-section');
-  const listAtt = document.getElementById('admin-attente-list');
-  if (attente.length > 0) {
-    secAtt.classList.remove('hidden');
-    listAtt.innerHTML = attente.map(u => `
+  // Section nouveaux inscrits sans adhésion
+  const secNouv = document.getElementById('admin-nouveaux-section');
+  const listNouv = document.getElementById('admin-nouveaux-list');
+  if (nouveaux.length > 0) {
+    secNouv.classList.remove('hidden');
+    listNouv.innerHTML = nouveaux.map(u => `
       <div class="resa-item">
         <div class="resa-date" style="font-size:1rem">${u.pseudo}</div>
-        <div class="resa-details"><strong>${u.email||'—'}</strong><span>Inscrit le ${formatDate(u.dateInscription?.substring(0,10))}</span></div>
-        <div class="resa-actions">
-          <button class="btn btn-success btn-sm" onclick="validerCompte('${u.id}')">Valider</button>
-          <button class="btn btn-danger btn-sm"  onclick="supprimerCompte('${u.id}','${u.pseudo}')">Refuser</button>
+        <div class="resa-details">
+          <strong>${u.email||'—'}</strong>
+          <span>Inscrit le ${formatDate(u.dateInscription?.substring(0,10))}</span>
+          <span>${formatTel(u.telephone)}</span>
         </div>
+        <button class="btn btn-info btn-sm" onclick="ouvrirFicheAdherent('${u.id}')">Définir l'adhésion</button>
       </div>`).join('');
-  } else { secAtt.classList.add('hidden'); }
-
-  // Section demandes de pseudo
-  try {
-    const snapPseudo = await getDocs(query(
-      collection(db,'demandesPseudo'),
-      where('statut','==','en_attente')
-    ));
-    const secPseudo  = document.getElementById('admin-pseudo-section');
-    const listPseudo = document.getElementById('admin-pseudo-list');
-    const demandes   = snapPseudo.docs.map(d => ({ id: d.id, ...d.data() }));
-    if (demandes.length > 0) {
-      secPseudo.classList.remove('hidden');
-      listPseudo.innerHTML = demandes.map(d => `
-        <div class="resa-item">
-          <div class="resa-date" style="font-size:1rem">🏷️ Changement de pseudo</div>
-          <div class="resa-details">
-            <strong>${d.pseudoActuel} → ${d.pseudoDemande}</strong>
-            <span>${d.motif ? 'Motif : '+d.motif : 'Aucun motif renseigné'}</span>
-            <span style="font-size:.8rem;color:var(--clay-lt);">Demande du ${formatDate(d.dateCreation?.substring(0,10))}</span>
-          </div>
-          <div class="resa-actions">
-            <button class="btn btn-success btn-sm" onclick="validerDemandePseudo('${d.id}','${d.userId}','${d.pseudoDemande}')">Accepter</button>
-            <button class="btn btn-danger btn-sm"  onclick="refuserDemandePseudo('${d.id}','${d.userId}','${d.pseudoDemande}')">Refuser</button>
-          </div>
-        </div>`).join('');
-      // Mettre à jour le badge admin
-      const badgeAdmin = document.getElementById('admin-badge-wait');
-      if (badgeAdmin) {
-        const totalUrgent = attente.length + demandes.length;
-        badgeAdmin.textContent = totalUrgent;
-        badgeAdmin.classList.toggle('hidden', totalUrgent === 0);
-      }
-    } else { secPseudo.classList.add('hidden'); }
-  } catch(e) {
-    document.getElementById('admin-pseudo-section')?.classList.add('hidden');
+    // Badge admin
+    const badgeAdmin = document.getElementById('admin-badge-wait');
+    if (badgeAdmin) {
+      badgeAdmin.textContent = nouveaux.length;
+      badgeAdmin.classList.toggle('hidden', nouveaux.length === 0);
+    }
+  } else {
+    secNouv.classList.add('hidden');
+    document.getElementById('admin-badge-wait')?.classList.add('hidden');
   }
 
   // Section expiration
@@ -2384,61 +2306,11 @@ async function afficherDashboardAdmin() {
   document.getElementById('admin-stats-grid').innerHTML = `
     <div class="stat-card"><div class="stat-label">Adhérents actifs</div><div class="stat-value">${actifs}</div></div>
     <div class="stat-card"><div class="stat-label">Non adhérents</div><div class="stat-value" style="color:var(--clay)">${nonAdh}</div></div>
-    <div class="stat-card"><div class="stat-label">En attente</div><div class="stat-value" style="color:var(--danger)">${attente.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Nouveaux inscrits</div><div class="stat-value" style="color:var(--terracotta)">${nouveaux.length}</div></div>
     <div class="stat-card"><div class="stat-label">Réservations cette semaine</div><div class="stat-value">${resasSem.length}</div></div>
     <div class="stat-card"><div class="stat-label">Expirent sous 15 j</div><div class="stat-value" style="color:var(--warning)">${expire15.length}</div></div>
   `;
 }
-
-// =====================================================================
-// VALIDER / REFUSER UNE DEMANDE DE CHANGEMENT DE PSEUDO (admin)
-// =====================================================================
-window.validerDemandePseudo = async function(demandeId, userId, nouveauPseudo) {
-  if (!confirm(`Accepter le changement de pseudo vers "${nouveauPseudo}" ?`)) return;
-  try {
-    // Vérifier une dernière fois que le pseudo n'a pas été pris entre-temps
-    const snap = await getDocs(query(
-      collection(db,'utilisateurs'),
-      where('pseudoLower','==', nouveauPseudo.toLowerCase())
-    ));
-    if (!snap.empty) {
-      toast('Ce pseudo a été pris entre-temps. La demande ne peut pas être acceptée.','error');
-      await afficherDashboardAdmin();
-      return;
-    }
-    // Mettre à jour le document utilisateur
-    await updateDoc(doc(db,'utilisateurs', userId), {
-      pseudo:      nouveauPseudo,
-      pseudoLower: nouveauPseudo.toLowerCase(),
-    });
-    // Mettre à jour la demande
-    await updateDoc(doc(db,'demandesPseudo', demandeId), {
-      statut:        'acceptee',
-      dateTraitement: new Date().toISOString(),
-    });
-    // Mettre à jour le cache local si c'est l'utilisateur courant
-    const u = allUsers.find(u => u.id === userId);
-    if (u) { u.pseudo = nouveauPseudo; u.pseudoLower = nouveauPseudo.toLowerCase(); }
-    toast('Pseudo mis à jour avec succès.','success');
-    await afficherDashboardAdmin();
-  } catch(e) {
-    toast('Erreur : '+e.message,'error');
-  }
-};
-
-window.refuserDemandePseudo = async function(demandeId, userId, pseudoDemande) {
-  if (!confirm(`Refuser la demande de pseudo "${pseudoDemande}" ?`)) return;
-  try {
-    await updateDoc(doc(db,'demandesPseudo', demandeId), {
-      statut:         'refusee',
-      dateTraitement: new Date().toISOString(),
-    });
-    toast('Demande refusée.','info');
-    await afficherDashboardAdmin();
-  } catch(e) {
-    toast('Erreur : '+e.message,'error');
-  }
-};
 
 function resasDeLaSemaine() {
   const lundi = lundiDeLaSemaine(new Date());
@@ -3349,9 +3221,9 @@ window.demanderVerificationEmail = async function(renvoyer=false) {
   if (!emailValide(email)) { showErr(errEl,'Adresse email invalide.'); return; }
   if (mdp.length < 6) { showErr(errEl,'Mot de passe : minimum 6 caractères.'); return; }
   if (mdp !== mdp2) { showErr(errEl,'Les mots de passe ne correspondent pas.'); return; }
-  const telDigits = tel.replace(/[\s\-\.\+]/g,'');
-  if (tel && (!/^\d+$/.test(telDigits) || telDigits.length < 8 || telDigits.length > 15))
-    { showErr(errEl,'Numéro de téléphone invalide (8 à 15 chiffres, espaces et + acceptés).'); return; }
+  const telDigits = tel.replace(/\D/g,'');
+  if (tel && !/^\d{10}$/.test(telDigits))
+    { showErr(errEl,'Le numéro de téléphone doit contenir exactement 10 chiffres.'); return; }
 
   const btn = document.getElementById('btn-envoyer-code');
   btn.disabled=true; btn.textContent='Envoi du code…';
@@ -3543,9 +3415,9 @@ window.soumettreinscription = async function() {
   if (!emailValide(email)) { showErr(errEl, 'Adresse email invalide.'); return; }
   if (mdp.length < 6) { showErr(errEl, 'Mot de passe : minimum 6 caractères.'); return; }
   if (mdp !== mdp2) { showErr(errEl, 'Les mots de passe ne correspondent pas.'); return; }
-  const telDigits = tel.replace(/[\s\-\.\+]/g, '');
-  if (tel && (!/^\d+$/.test(telDigits) || telDigits.length < 8 || telDigits.length > 15))
-    { showErr(errEl, 'Numéro de téléphone invalide (8 à 15 chiffres).'); return; }
+  const telDigits = tel.replace(/\D/g, '');
+  if (tel && !/^\d{10}$/.test(telDigits))
+    { showErr(errEl, 'Le numéro de téléphone doit contenir exactement 10 chiffres.'); return; }
 
   const btn = document.getElementById('btn-inscrire');
   btn.disabled = true; btn.textContent = 'Création du compte…';
@@ -3601,13 +3473,14 @@ window.soumettreinscription = async function() {
     }
 
     // Créer ou réinitialiser le document Firestore
+    // statut 'actif' d'emblée — l'admin gère les dates d'adhésion séparément
     await setDoc(doc(db,'utilisateurs', uid), {
       pseudo:            pseudo,
       pseudoLower:       pseudo.toLowerCase(),
-      telephone:         tel || null,
+      telephone:         telDigits || null,
       email:             email,
       role:              'adherent',
-      statut:            'en_attente',
+      statut:            'actif',
       emailVerifie:      true,
       dateInscription:   new Date().toISOString(),
       datePaiement:      null,
@@ -3616,14 +3489,11 @@ window.soumettreinscription = async function() {
       dateFinAdhesion:   null,
     });
 
-    // Déconnecter immédiatement (compte en attente)
-    await signOut(auth);
-
     // Notifier l'admin par email (silencieux en cas d'échec)
-    notifierAdmin(pseudo, email, tel || null);
+    notifierAdmin(pseudo, email, telDigits || null);
 
-    toast("Inscription envoyée ! En attente de validation par l'administrateur.", 'success');
-    showAuthTab('login');
+    toast('Compte créé ! Vous êtes maintenant connecté.', 'success');
+    // onAuthStateChanged prend le relais et affiche l'interface
     ['reg-pseudo','reg-email','reg-tel','reg-mdp','reg-mdp2']
       .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
 
@@ -3775,7 +3645,7 @@ function afficherContacts(ctx) {
   el.innerHTML=filtres.map(u=>{
     const ini=(u.pseudo||'?').substring(0,2).toUpperCase();
     const col=couleurs[(u.pseudo||'').charCodeAt(0)%couleurs.length];
-    return '<div class="contact-card"><div class="contact-avatar" style="background:'+col+'">'+ini+'</div><div class="contact-info"><div class="contact-nom">'+u.pseudo+'</div><div class="contact-ligne"><span>✉️</span><a href="mailto:'+u.email+'" class="contact-lien">'+u.email+'</a></div>'+(u.telephone?'<div class="contact-ligne"><span>📞</span><a href="tel:'+u.telephone+'" class="contact-lien">'+u.telephone+'</a></div>':'')+'</div></div>';
+    return '<div class="contact-card"><div class="contact-avatar" style="background:'+col+'">'+ini+'</div><div class="contact-info"><div class="contact-nom">'+u.pseudo+'</div><div class="contact-ligne"><span>✉️</span><a href="mailto:'+u.email+'" class="contact-lien">'+u.email+'</a></div>'+(u.telephone?'<div class="contact-ligne"><span>📞</span><a href="tel:'+u.telephone+'" class="contact-lien">'+formatTel(u.telephone)+'</a></div>':'')+'</div></div>';
   }).join('');
 }
 window.filtrerContacts = function(ctx) { afficherContacts(ctx); };
