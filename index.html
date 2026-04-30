@@ -3429,8 +3429,22 @@ window.soumettreinscription = async function() {
       getDocs(query(collection(db,'utilisateurs'), where('pseudoLower','==', pseudo.toLowerCase()))),
       getDocs(query(collection(db,'utilisateurs'), where('email','==', email))),
     ]);
-    if (!snapPseudo.empty) { showErr(errEl,'Ce pseudo est déjà utilisé.'); btn.disabled=false; btn.textContent='Créer mon compte →'; return; }
-    if (!snapEmail.empty)  { showErr(errEl,'Cette adresse email est déjà utilisée.'); btn.disabled=false; btn.textContent='Créer mon compte →'; return; }
+    // Bloquer si le pseudo est pris par un autre compte actif
+    if (!snapPseudo.empty) {
+      // Autoriser si c'est le même compte (réinscription après suppression)
+      const docPseudo = snapPseudo.docs[0];
+      if (docPseudo.data().statut !== 'refuse') {
+        showErr(errEl,'Ce pseudo est déjà utilisé.'); btn.disabled=false; btn.textContent='Créer mon compte →'; return;
+      }
+    }
+    // Bloquer si l'email est pris par un compte actif ou suspendu (pas refusé)
+    if (!snapEmail.empty) {
+      const docEmail = snapEmail.docs[0];
+      if (docEmail.data().statut !== 'refuse') {
+        showErr(errEl,'Cette adresse email est déjà utilisée.'); btn.disabled=false; btn.textContent='Créer mon compte →'; return;
+      }
+      // Statut 'refuse' → on laisse passer, la logique Auth prend le relais
+    }
 
     // Créer le compte Firebase Auth
     let uid;
