@@ -2335,7 +2335,8 @@ async function chargerUtilisateurs() {
 
 function afficherTableauAdherents(liste) {
   const tbody = document.getElementById('tbody-adherents');
-  const users = (liste || allUsers).filter(u => u.role !== 'admin');
+  // Exclure les admins et les comptes refusés (supprimés)
+  const users = (liste || allUsers).filter(u => u.role !== 'admin' && u.statut !== 'refuse');
   tbody.innerHTML = users.map(u => {
     const heures = heuresSemaineCourante(u.id);
     return `<tr>
