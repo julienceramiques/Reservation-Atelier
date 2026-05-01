@@ -1708,6 +1708,14 @@ async function init() {
       if (snap.exists()) {
         utilisateurCourant = { id: snap.id, ...snap.data() };
 
+        // Compte supprimé/refusé → déconnexion immédiate
+        if (utilisateurCourant.statut === 'refuse') {
+          await signOut(auth);
+          afficherAuth();
+          toast('Votre compte a été supprimé. Contactez l\'administrateur.', 'warning');
+          return;
+        }
+
         // Synchroniser l'email Firestore si le changement a été confirmé via Firebase Auth
         const emailFirebase  = (firebaseUser.email || '').toLowerCase();
         const emailFirestore = (utilisateurCourant.email || '').toLowerCase();
@@ -1722,6 +1730,21 @@ async function init() {
 
         const { motDePasse, ...safeUser } = utilisateurCourant;
         sessionStorage.setItem('atelierSession', JSON.stringify(safeUser));
+
+        // Surveiller en temps réel le document de l'adhérent connecté
+        // → déconnexion immédiate si l'admin supprime ou suspend le compte
+        onSnapshot(doc(db,'utilisateurs', firebaseUser.uid), async (docSnap) => {
+          if (!docSnap.exists()) return;
+          const statut = docSnap.data().statut;
+          if (statut === 'refuse') {
+            await signOut(auth);
+            toast('Votre compte a été supprimé. Contactez l\'administrateur.', 'warning');
+          } else if (statut === 'suspendu' && utilisateurCourant?.role !== 'admin') {
+            await signOut(auth);
+            toast('Votre compte a été suspendu. Contactez l\'administrateur.', 'warning');
+          }
+        });
+
         afficherInterface();
       } else {
         // Compte Auth sans document Firestore correspondant → déconnexion
