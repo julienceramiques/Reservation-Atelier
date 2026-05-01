@@ -603,8 +603,18 @@ tr:hover td { background: var(--cream); }
   text-align: center;
   padding: .6rem .3rem;
   font-weight: 500;
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
-.week-table th.time-col { background: var(--beige-dk); color: var(--earth-lt); width: 56px; }
+.week-table th.time-col {
+  background: var(--beige-dk);
+  color: var(--earth-lt);
+  width: 56px;
+  position: sticky;
+  left: 0;
+  z-index: 3; /* au-dessus des autres th sticky */
+}
 .week-table td { padding: 2px 3px; border: 1px solid var(--beige-dk); vertical-align: top; }
 .time-label {
   font-size: .75rem;
@@ -613,6 +623,10 @@ tr:hover td { background: var(--cream); }
   padding-right: .4rem !important;
   white-space: nowrap;
   background: var(--beige);
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  border-right: 2px solid var(--beige-dk);
 }
 .slot {
   min-height: 28px;
@@ -1121,6 +1135,21 @@ tr:hover td { background: var(--cream); }
 
       <!-- Contacts membres -->
       <div id="tab-adh-contacts" class="tab-content hidden">
+        <!-- Contact administrateur -->
+        <div class="card" style="margin-bottom:1rem;">
+          <div class="card-header"><h2>👨‍💼 Contact Administrateur</h2></div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:.75rem;">
+            <div class="contact-card">
+              <div class="contact-avatar" style="background:var(--terracotta);">JC</div>
+              <div class="contact-info">
+                <div class="contact-nom">Julien Céramiques</div>
+                <div class="contact-ligne"><span>👨‍💼</span><span>Administrateur</span></div>
+                <div class="contact-ligne"><span>✉️</span><a href="mailto:julienceramiques@gmail.com" class="contact-lien">julienceramiques@gmail.com</a></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Contacts membres -->
         <div class="card">
           <div class="card-header"><h2>📇 Contacts membres</h2>
             <input class="form-input" id="search-contacts-adh" type="search" placeholder="Rechercher…"
@@ -1962,8 +1991,10 @@ function afficherAlerteAdhesion() {
   const u       = utilisateurCourant;
   const alertEl = document.getElementById('adherent-alerte-adhesion');
   if (calculerStatutAdhesion(u) === 'non_adherent') {
-    document.getElementById('adherent-alerte-txt').textContent =
-      'Votre adhésion est expirée ou inactive. Vous ne pouvez pas réserver. Contactez l\'administrateur.';
+    const msg = (!u.dateDebutAdhesion && !u.dateFinAdhesion)
+      ? 'Votre adhésion est en cours de validation. Vous ne pouvez pas encore réserver. Contactez l\'administrateur si la validation tarde.'
+      : 'Votre adhésion est expirée. Vous ne pouvez pas réserver. Contactez l\'administrateur pour la renouveler.';
+    document.getElementById('adherent-alerte-txt').textContent = msg;
     alertEl.classList.remove('hidden');
     return;
   }
