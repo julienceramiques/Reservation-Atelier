@@ -3475,17 +3475,18 @@ window.soumettreinscription = async function() {
         // Firebase Auth existe déjà — vérifier le statut Firestore
         const snapExist = await getDocs(query(collection(db,'utilisateurs'), where('email','==', email)));
         if (!snapExist.empty) {
-          const docExist  = snapExist.docs[0];
+          const docExist   = snapExist.docs[0];
           const statutExist = docExist.data().statut;
           if (statutExist === 'refuse') {
-            // Compte supprimé/refusé : tenter la connexion avec le mot de passe fourni
+            // Compte supprimé/refusé : connexion pour récupérer l'UID
             try {
               const cred2 = await signInWithEmailAndPassword(auth, email, mdp);
               uid = cred2.user.uid;
               estReinscription = true;
-              await signOut(auth);
+              // ⚠️ Ne PAS faire signOut ici — on reste connecté pour que le setDoc
+              // ci-dessous soit autorisé par les règles Firestore.
+              // onAuthStateChanged prendra le relais après le setDoc.
             } catch(e2) {
-              // Mot de passe différent → envoyer un lien de réinitialisation et guider
               try { await sendPasswordResetEmail(auth, email); } catch(_) {}
               showErr(errEl, 'Ce courriel a déjà été utilisé avec un autre mot de passe. Un lien de réinitialisation vient de vous être envoyé à cette adresse (vérifiez vos spams). Une fois votre mot de passe réinitialisé, revenez sur ce formulaire et inscrivez-vous avec votre nouveau mot de passe.');
               btn.disabled=false; btn.textContent='Créer mon compte →'; return;
@@ -3498,12 +3499,12 @@ window.soumettreinscription = async function() {
             btn.disabled=false; btn.textContent='Créer mon compte →'; return;
           }
         } else {
-          // Document Firestore supprimé mais Auth encore présent → connexion avec ce mdp
+          // Document Firestore supprimé mais Auth encore présent
           try {
             const cred2 = await signInWithEmailAndPassword(auth, email, mdp);
             uid = cred2.user.uid;
             estReinscription = true;
-            await signOut(auth);
+            // Même chose : on reste connecté jusqu'après le setDoc
           } catch(e2) {
             try { await sendPasswordResetEmail(auth, email); } catch(_) {}
             showErr(errEl, 'Ce courriel est déjà utilisé avec un autre mot de passe. Un lien de réinitialisation vient de vous être envoyé (vérifiez vos spams). Une fois votre mot de passe réinitialisé, revenez sur ce formulaire et inscrivez-vous avec votre nouveau mot de passe.');
