@@ -3666,15 +3666,23 @@ function rafraichirModaleResa() {
   btnMF.disabled=(hFin-0.5<=hDebut);
   btnPF.disabled=(hFin+0.5>H_FIN)||['out','closed'].includes(estOuvert(dateStr,hFin));
 
-  const pris  = postesPris(dateStr,hDebut,hFin).filter(r=>r.userId!==u.id).map(r=>r.typePoste);
-  const nbPers= new Set(postesPris(dateStr,hDebut,hFin).filter(r=>r.userId!==u.id).map(r=>r.userId)).size;
+  const resasPris = postesPris(dateStr,hDebut,hFin).filter(r=>r.userId!==u.id);
+  const pris  = resasPris.map(r=>r.typePoste);
+  const nbPers= new Set(resasPris.map(r=>r.userId)).size;
+  // Dictionnaire poste → pseudo du réservant
+  const pseudoParPoste = {};
+  resasPris.forEach(r => { pseudoParPoste[r.typePoste] = r.pseudo || '—'; });
+
   const grid  = document.getElementById('modal-resa-postes');
   grid.innerHTML='';
   Object.entries(POSTES_ICONES).forEach(([id,info]) => {
     const dispo=!pris.includes(id)&&nbPers<MAX_PERSONNES;
     const card=document.createElement('div');
     card.className='poste-card'+(dispo?'':' poste-indisponible')+(posteSelectionne===id&&dispo?' poste-selectionne':'');
-    card.innerHTML='<div class="poste-icone">'+info.svg+'</div><div class="poste-nom">'+info.nom+'</div><div class="poste-dispo">'+(dispo?info.desc:'Non disponible')+'</div>';
+    const sousTitre = dispo
+      ? info.desc
+      : `<span style="font-size:.72rem;color:var(--clay);">Réservé par <strong>${pseudoParPoste[id]||'—'}</strong></span>`;
+    card.innerHTML='<div class="poste-icone">'+info.svg+'</div><div class="poste-nom">'+info.nom+'</div><div class="poste-dispo">'+sousTitre+'</div>';
     if (dispo) card.onclick=()=>{ posteSelectionne=id; rafraichirModaleResa(); };
     grid.appendChild(card);
   });
