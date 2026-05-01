@@ -590,7 +590,12 @@ tr:hover td { background: var(--cream); }
 }
 
 /* Vue Semaine */
-.week-grid { overflow-x: auto; max-width: 100%; }
+.week-grid {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-width: 100%;
+  max-height: calc(100vh - 220px); /* laisse la place pour navbar + tabs */
+}
 .week-table {
   width: 100%;
   border-collapse: collapse;
@@ -1573,6 +1578,7 @@ const H_FIN   = 19;  // 19h00
 let utilisateurCourant = null;  // objet utilisateur connecté
 let allResas = [];              // cache réservations
 let allUsers = [];              // cache adhérents (admin)
+let reinscriptionEnCours = false; // flag pour ignorer la déconnexion forcée pendant réinscription
 let allExceptions = [];         // cache exceptions
 let calCurrentWeek  = null;     // date lundi courant (semaine)
 let calCurrentMonth = null;     // date 1er du mois courant
@@ -1738,7 +1744,8 @@ async function init() {
         utilisateurCourant = { id: snap.id, ...snap.data() };
 
         // Compte supprimé/refusé → déconnexion immédiate
-        if (utilisateurCourant.statut === 'refuse') {
+        // (sauf si c'est une réinscription en cours — le setDoc va corriger le statut)
+        if (utilisateurCourant.statut === 'refuse' && !reinscriptionEnCours) {
           await signOut(auth);
           afficherAuth();
           toast('Votre compte a été supprimé. Contactez l\'administrateur.', 'warning');
@@ -1764,6 +1771,7 @@ async function init() {
         // → déconnexion immédiate si l'admin supprime ou suspend le compte
         onSnapshot(doc(db,'utilisateurs', firebaseUser.uid), async (docSnap) => {
           if (!docSnap.exists()) return;
+          if (reinscriptionEnCours) return; // ne pas interférer avec une réinscription
           const statut = docSnap.data().statut;
           if (statut === 'refuse') {
             await signOut(auth);
@@ -1881,6 +1889,7 @@ window.connexion = async function() {
     const userData = match.data();
     if (userData.statut === 'en_attente') { showErr(errEl,'Votre compte est en attente de validation par l\'administrateur.'); return; }
     if (userData.statut === 'suspendu')   { showErr(errEl,'Votre compte est suspendu. Contactez l\'administrateur.'); return; }
+    if (userData.statut === 'refuse')     { showErr(errEl,'Ce compte a été supprimé. Vous pouvez créer un nouveau compte via le formulaire d\'inscription.'); return; }
 
     // Connexion via Firebase Auth (mot de passe vérifié côté serveur)
     // Si l'utilisateur a confirmé un changement d'email, Firebase Auth a le nouvel email
@@ -3534,6 +3543,7 @@ window.soumettreinscription = async function() {
           if (statutExist === 'refuse') {
             // Compte supprimé/refusé : connexion pour récupérer l'UID
             try {
+              reinscriptionEnCours = true; // empêche la déconnexion forcée
               const cred2 = await signInWithEmailAndPassword(auth, email, mdp);
               uid = cred2.user.uid;
               estReinscription = true;
@@ -3584,6 +3594,7 @@ window.soumettreinscription = async function() {
       dateDebutAdhesion: null,
       dateFinAdhesion:   null,
     });
+    reinscriptionEnCours = false; // réinscription terminée, surveillance réactivée
 
     // Notifier l'admin par email
     const notifOk = await notifierAdmin(pseudo, email, telDigits || null, estReinscription);
@@ -3595,6 +3606,7 @@ window.soumettreinscription = async function() {
       .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
 
   } catch(e) {
+    reinscriptionEnCours = false;
     showErr(errEl, 'Erreur : ' + e.message);
   }
   btn.disabled = false; btn.textContent = 'Créer mon compte →';
