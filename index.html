@@ -857,7 +857,24 @@ tr:hover td { background: var(--cream); }
 .table-wrap th { background: var(--beige); font-weight: 600; color: var(--earth-lt); }
 .table-wrap tr:hover td { background: var(--cream); }
 
-/* Icône œil mot de passe */
+/* Infobulle calendrier */
+#cal-tooltip {
+  position: fixed;
+  z-index: 9999;
+  background: var(--earth);
+  color: var(--beige);
+  border-radius: var(--radius-sm);
+  padding: .5rem .75rem;
+  font-size: .78rem;
+  line-height: 1.6;
+  pointer-events: none;
+  box-shadow: var(--shadow-md);
+  max-width: 220px;
+  display: none;
+}
+#cal-tooltip .tip-ligne { display: flex; align-items: center; gap: .4rem; }
+#cal-tooltip .tip-poste { font-weight: 600; color: var(--cream); }
+#cal-tooltip .tip-pseudo { color: var(--beige-dk); }
 .mdp-wrap {
   position: relative;
 }
@@ -951,6 +968,8 @@ tr:hover td { background: var(--cream); }
 };</pre>
   </div>
 </div>
+
+<div id="cal-tooltip"></div>
 
 <!-- ===== PAGE AUTH (hors de #app pour éviter les conflits de positionnement fixed) ===== -->
 <div id="page-auth" style="display:none;"><div class="auth-wrapper">
@@ -2861,33 +2880,37 @@ function renderSemaine(wrapperId) {
       } else if (nbPers >= MAX_PERSONNES) {
         slot.className += ' slot-full';
         slot.textContent = 'Complet';
+        const toutesResas = postesPris(dateStr, h, hFin);
+        attachTooltip(slot, toutesResas);
       } else if (statut === 'exception-open') {
         slot.className += ' slot-exception-open';
         slot.textContent = '★';
         slot.onclick = () => clickSurCreneau(dateStr, h, hFin, libres, wrapperId);
       } else if (calContext === 'admin') {
-        // Montrer les autres réservations en orange
         const autresResas = postesPris(dateStr, h, hFin).filter(r => r.userId !== utilisateurCourant.id);
         if (autresResas.length > 0) {
           slot.className += ' slot-other';
           const pseudos = [...new Set(autresResas.map(r => r.pseudo||r.userId))].slice(0,2).join(', ');
           slot.innerHTML = `<span title="${pseudos}" style="font-size:.68rem">${autresResas.length}👤</span>`;
           slot.onclick = () => clickSurCreneau(dateStr, h, hFin, libres, wrapperId);
+          attachTooltip(slot, autresResas);
         } else {
           slot.className += ' slot-free';
           slot.textContent = `${libres.length}`;
           slot.onclick = () => clickSurCreneau(dateStr, h, hFin, libres, wrapperId);
         }
       } else {
-        // Adhérent : vérifier si quelqu'un d'autre est là
         const autresResas = postesPris(dateStr, h, hFin).filter(r => r.userId !== utilisateurCourant.id);
         if (autresResas.length > 0 && libres.length > 0) {
           slot.className += ' slot-free';
           slot.textContent = `${libres.length}`;
           slot.onclick = () => clickSurCreneau(dateStr, h, hFin, libres, wrapperId);
+          attachTooltip(slot, autresResas);
         } else if (libres.length === 0) {
           slot.className += ' slot-full';
           slot.textContent = 'Complet';
+          const toutesResas = postesPris(dateStr, h, hFin);
+          attachTooltip(slot, toutesResas);
         } else {
           slot.className += ' slot-free';
           slot.textContent = `${libres.length}`;
@@ -3612,6 +3635,37 @@ window.soumettreinscription = async function() {
   btn.disabled = false; btn.textContent = 'Créer mon compte →';
 };
 // =====================================================================
+// =====================================================================
+// INFOBULLE CALENDRIER
+// =====================================================================
+const tooltip = document.getElementById('cal-tooltip');
+
+function showTooltip(e, resas) {
+  if (!resas || resas.length === 0) return;
+  tooltip.innerHTML = resas.map(r =>
+    `<div class="tip-ligne"><span class="tip-poste">${POSTES[r.typePoste]||r.typePoste}</span><span class="tip-pseudo">→ ${r.pseudo||'—'}</span></div>`
+  ).join('');
+  tooltip.style.display = 'block';
+  moveTooltip(e);
+}
+
+function moveTooltip(e) {
+  const x = e.clientX + 14;
+  const y = e.clientY + 14;
+  const w = tooltip.offsetWidth;
+  tooltip.style.left = (x + w > window.innerWidth ? x - w - 20 : x) + 'px';
+  tooltip.style.top  = y + 'px';
+}
+
+function hideTooltip() { tooltip.style.display = 'none'; }
+
+function attachTooltip(slot, resas) {
+  if (!resas || resas.length === 0) return;
+  slot.addEventListener('mouseenter', e => showTooltip(e, resas));
+  slot.addEventListener('mousemove',  e => moveTooltip(e));
+  slot.addEventListener('mouseleave', hideTooltip);
+}
+
 const SVG_TOUR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="44" height="44">
   <ellipse cx="32" cy="16" rx="18" ry="5" fill="#C4622D" opacity=".9"/>
   <ellipse cx="32" cy="14" rx="18" ry="5" fill="#E8845A"/>
