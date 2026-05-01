@@ -1475,7 +1475,7 @@ const firebaseConfig = {
 import { initializeApp }                                  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore, collection, doc, getDoc, getDocs, setDoc,
-  addDoc, updateDoc, deleteDoc, query, where, orderBy, Timestamp
+  addDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, Timestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
   getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
@@ -2326,11 +2326,18 @@ function resasDeLaSemaine() {
 // GESTION DES ADHÉRENTS (admin)
 // =====================================================================
 async function chargerUtilisateurs() {
-  try {
-    const snap = await getDocs(collection(db,'utilisateurs'));
-    allUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    adherentsCache = [...allUsers];
-  } catch(e) { console.error(e); }
+  return new Promise((resolve) => {
+    onSnapshot(collection(db,'utilisateurs'), (snap) => {
+      allUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      adherentsCache = [...allUsers];
+      // Rafraîchir l'interface admin si elle est active
+      if (utilisateurCourant?.role === 'admin') {
+        afficherDashboardAdmin();
+        afficherTableauAdherents();
+      }
+      resolve();
+    }, (e) => { console.error(e); resolve(); });
+  });
 }
 
 function afficherTableauAdherents(liste) {
@@ -2503,9 +2510,13 @@ window.supprimerResa = async function(id) {
 };
 
 async function rafraichirUsers() {
-  await chargerUtilisateurs();
-  await afficherDashboardAdmin();
+  // Le listener onSnapshot dans chargerUtilisateurs met à jour allUsers
+  // et rafraîchit l'interface automatiquement — rien à faire ici
   afficherTableauAdherents();
+  await afficherDashboardAdmin();
+}
+
+function majBadges() {
   const enAttente = allUsers.filter(u => u.statut==='en_attente').length;
   const badge = document.getElementById('nav-badge');
   const badgeAdmin = document.getElementById('admin-badge-wait');
@@ -3519,8 +3530,9 @@ window.soumettreinscription = async function() {
       dateFinAdhesion:   null,
     });
 
-    // Notifier l'admin par email (silencieux en cas d'échec)
-    notifierAdmin(pseudo, email, telDigits || null, estReinscription);
+    // Notifier l'admin par email
+    const notifOk = await notifierAdmin(pseudo, email, telDigits || null, estReinscription);
+    if (!notifOk) console.warn('Notification admin non envoyée — vérifiez la clé Web3Forms et le domaine.');
 
     toast('Compte créé ! Vous êtes maintenant connecté.', 'success');
     // onAuthStateChanged prend le relais et affiche l'interface
