@@ -3685,7 +3685,8 @@ function rafraichirModaleResa() {
 
   document.getElementById('modal-resa-heures').textContent = heureStr(hDebut)+' – '+heureStr(hFin);
   document.getElementById('modal-resa-duree').textContent  = duree>=1?formatHeures(duree):(duree*60)+' min';
-  document.getElementById('modal-resa-date-display').textContent = formatDate(dateStr);
+  const dObj = strToDate(dateStr);
+  document.getElementById('modal-resa-date-display').textContent = joursNoms[dObj.getDay()] + ' ' + formatDate(dateStr);
 
   const btnMD=document.getElementById('btn-moins-debut');
   const btnPD=document.getElementById('btn-plus-debut');
