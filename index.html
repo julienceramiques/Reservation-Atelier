@@ -1425,7 +1425,7 @@ tr:hover td { background: var(--cream); }
     <!-- Sélecteur adhérent (admin uniquement) -->
     <div id="modal-resa-adherent-wrap" class="form-group hidden" style="margin-bottom:1rem;">
       <label class="form-label">Adhérent</label>
-      <select class="form-select" id="modal-resa-adherent"></select>
+      <select class="form-select" id="modal-resa-adherent" onchange="rafraichirModaleResa()"></select>
     </div>
     <div style="margin-bottom:1.25rem;">
       <div class="form-label" style="margin-bottom:.6rem;">Plage horaire</div>
@@ -3669,8 +3669,16 @@ const POSTES_ICONES = {
 // =====================================================================
 function rafraichirModaleResa() {
   if (!resaEnCours) return;
-  const {dateStr, hDebut, hFin} = resaEnCours;
-  const u = utilisateurCourant;
+  const {dateStr, hDebut, hFin, modeAdmin} = resaEnCours;
+
+  // En mode admin, utiliser l'adhérent sélectionné dans le menu déroulant
+  let u = utilisateurCourant;
+  if (modeAdmin) {
+    const selId = document.getElementById('modal-resa-adherent')?.value;
+    const adh = selId ? allUsers.find(x => x.id === selId) : null;
+    if (adh) u = adh;
+  }
+
   const lundi = lundiDeLaSemaine(strToDate(dateStr));
   const hSem  = heuresSemaine(u.id, lundi);
   const duree = dureeH(hDebut, hFin);
