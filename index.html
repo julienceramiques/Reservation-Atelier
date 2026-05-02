@@ -1416,12 +1416,16 @@ tr:hover td { background: var(--cream); }
   </div>
 </div>
 
-<!-- Modale réservation avec extension horaire -->
 <div id="modal-reservation" class="modal-overlay">
   <div class="modal">
     <div class="modal-header">
       <span class="modal-title" id="modal-resa-titre">Réserver un créneau</span>
       <button class="modal-close" onclick="fermerModale('modal-reservation')">✕</button>
+    </div>
+    <!-- Sélecteur adhérent (admin uniquement) -->
+    <div id="modal-resa-adherent-wrap" class="form-group hidden" style="margin-bottom:1rem;">
+      <label class="form-label">Adhérent</label>
+      <select class="form-select" id="modal-resa-adherent"></select>
     </div>
     <div style="margin-bottom:1.25rem;">
       <div class="form-label" style="margin-bottom:.6rem;">Plage horaire</div>
@@ -1442,7 +1446,7 @@ tr:hover td { background: var(--cream); }
       </div>
     </div>
     <div style="margin-bottom:1rem;">
-      <div class="form-label" style="margin-bottom:.6rem;">Choisissez votre poste</div>
+      <div class="form-label" style="margin-bottom:.6rem;">Choisissez un poste</div>
       <div id="modal-resa-postes" style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;"></div>
     </div>
     <div id="modal-resa-warning" class="alert alert-warning hidden" style="margin-bottom:.75rem;"></div>
@@ -1463,48 +1467,6 @@ tr:hover td { background: var(--cream); }
     <div id="modal-adh-contenu"></div>
   </div>
 </div>
-
-<!-- Modale réservation admin (ajout manuel) -->
-<div id="modal-resa-admin" class="modal-overlay">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title">Ajouter une réservation</span>
-      <button class="modal-close" onclick="fermerModale('modal-resa-admin')">✕</button>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Adhérent</label>
-      <select class="form-select" id="madmin-adherent"></select>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;">
-      <div class="form-group">
-        <label class="form-label">Date</label>
-        <input class="form-input" id="madmin-date" type="date">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Heure début</label>
-        <select class="form-select" id="madmin-debut"></select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Heure fin</label>
-        <select class="form-select" id="madmin-fin"></select>
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Type de poste</label>
-      <select class="form-select" id="madmin-poste">
-        <option value="tour_1">Tour RK3e</option>
-        <option value="tour_2">Tour RK55</option>
-        <option value="table_1">Table Place 1</option>
-        <option value="table_2">Table Place 2</option>
-      </select>
-    </div>
-    <div style="display:flex;gap:.75rem;margin-top:1rem;">
-      <button class="btn btn-secondary" onclick="fermerModale('modal-resa-admin')">Annuler</button>
-      <button class="btn btn-primary" onclick="confirmerResaAdmin()">Confirmer</button>
-    </div>
-  </div>
-</div>
-
 
 <!-- ===== SCRIPT PRINCIPAL ===== -->
 <script type="module">
@@ -1731,7 +1693,12 @@ document.addEventListener('keydown', e => {
 // MODALES
 // =====================================================================
 function ouvrirModale(id) { document.getElementById(id).classList.add('open'); }
-function fermerModale(id) { document.getElementById(id).classList.remove('open'); }
+function fermerModale(id) {
+  document.getElementById(id).classList.remove('open');
+  if (id === 'modal-reservation') {
+    document.getElementById('modal-resa-adherent-wrap')?.classList.add('hidden');
+  }
+}
 window.fermerModale = fermerModale;
 
 // =====================================================================
@@ -1743,8 +1710,6 @@ async function init() {
   // Peupler les selects d'heures
   populateHeureSelect(document.getElementById('exc-debut'));
   populateHeureSelect(document.getElementById('exc-fin'));
-  populateHeureSelect(document.getElementById('madmin-debut'));
-  populateHeureSelect(document.getElementById('madmin-fin'));
 
   // Masquer le splash
   const splash = document.getElementById('splash');
@@ -3070,18 +3035,42 @@ function clickCreneauAdherent(dateStr, hDebut, hFin, postesLibres, wrapperId) {
   posteSelectionne=null;
   resaEnCours={dateStr, hDebut, hFin, postesLibres, wrapperId};
   document.getElementById('modal-resa-titre').textContent='Réserver — '+formatDate(dateStr);
+  document.getElementById('modal-resa-adherent-wrap').classList.add('hidden');
   rafraichirModaleResa();
   ouvrirModale('modal-reservation');
 }
 
 window.confirmerReservation = async function() {
   if (!resaEnCours) return;
-  const {dateStr,hDebut,hFin,wrapperId}=resaEnCours;
-  const poste=posteSelectionne;
+  const {dateStr, hDebut, hFin, wrapperId, modeAdmin} = resaEnCours;
+  const poste = posteSelectionne;
   if (!poste) { toast('Sélectionnez un poste.','warning'); return; }
-  if (slotToDate(dateStr,hDebut)<=new Date()) { toast('Créneau passé.','error'); fermerModale('modal-reservation'); return; }
+  if (slotToDate(dateStr, hDebut) <= new Date()) { toast('Créneau passé.','error'); fermerModale('modal-reservation'); return; }
 
-  // Vérifier qu'il n'y a pas déjà une résa qui chevauche ce créneau
+  // Mode admin : utiliser l'adhérent sélectionné dans le menu déroulant
+  if (modeAdmin) {
+    const userId = document.getElementById('modal-resa-adherent').value;
+    if (!userId) { toast('Sélectionnez un adhérent.','warning'); return; }
+    const user = allUsers.find(u => u.id === userId);
+    try {
+      const newResa = {
+        userId, pseudo: user?.pseudo || userId,
+        date: dateStr, heureDebut: hDebut, heureFin: hFin,
+        typePoste: poste, dateCreation: new Date().toISOString(),
+      };
+      const ref = await addDoc(collection(db,'reservations'), newResa);
+      allResas.push({ id: ref.id, ...newResa });
+      toast('Réservation ajoutée.','success');
+      fermerModale('modal-reservation');
+      resaEnCours = null; posteSelectionne = null;
+      document.getElementById('modal-resa-adherent-wrap').classList.add('hidden');
+      renderCalendrier('admin-wrap');
+      await afficherDashboardAdmin();
+    } catch(e) { toast('Erreur : '+e.message,'error'); }
+    return;
+  }
+
+  // Mode adhérent : vérifications habituelles
   const dejaResa = allResas.find(r =>
     r.userId === utilisateurCourant.id &&
     r.date === dateStr &&
@@ -3090,20 +3079,20 @@ window.confirmerReservation = async function() {
   );
   if (dejaResa) { toast('Vous avez déjà réservé un poste sur ce créneau.','warning'); fermerModale('modal-reservation'); return; }
 
-  const lundi=lundiDeLaSemaine(strToDate(dateStr));
-  const hSem=heuresSemaine(utilisateurCourant.id,lundi);
-  if (hSem+dureeH(hDebut,hFin)>MAX_HEURES_SEM) { toast('Quota '+MAX_HEURES_SEM+'h dépassé.','error'); return; }
-  const libres=postesDisponibles(dateStr,hDebut,hFin);
+  const lundi = lundiDeLaSemaine(strToDate(dateStr));
+  const hSem  = heuresSemaine(utilisateurCourant.id, lundi);
+  if (hSem + dureeH(hDebut, hFin) > MAX_HEURES_SEM) { toast('Quota '+MAX_HEURES_SEM+'h dépassé.','error'); return; }
+  const libres = postesDisponibles(dateStr, hDebut, hFin);
   if (!libres.includes(poste)) { toast("Ce poste vient d'être pris.",'warning'); rafraichirModaleResa(); return; }
-  if (personnesPour(dateStr,hDebut,hFin)>=MAX_PERSONNES) { toast('Créneau complet.','warning'); return; }
+  if (personnesPour(dateStr, hDebut, hFin) >= MAX_PERSONNES) { toast('Créneau complet.','warning'); return; }
   try {
-    const newResa={userId:utilisateurCourant.id,pseudo:utilisateurCourant.pseudo,
-      date:dateStr,heureDebut:hDebut,heureFin:hFin,typePoste:poste,dateCreation:new Date().toISOString()};
-    const ref=await addDoc(collection(db,'reservations'),newResa);
-    allResas.push({id:ref.id,...newResa});
+    const newResa = { userId: utilisateurCourant.id, pseudo: utilisateurCourant.pseudo,
+      date: dateStr, heureDebut: hDebut, heureFin: hFin, typePoste: poste, dateCreation: new Date().toISOString() };
+    const ref = await addDoc(collection(db,'reservations'), newResa);
+    allResas.push({ id: ref.id, ...newResa });
     toast('Réservation confirmée !','success');
     fermerModale('modal-reservation');
-    resaEnCours=null; posteSelectionne=null;
+    resaEnCours = null; posteSelectionne = null;
     renderCalendrier(wrapperId);
     afficherDashboardAdherent();
   } catch(e) { toast('Erreur : '+e.message,'error'); }
@@ -3126,45 +3115,24 @@ window.annulerReservationCalendrier = async function(id, wrapperId) {
 // RÉSERVATION ADMIN (ajout manuel / depuis calendrier)
 // =====================================================================
 function ouvrirModaleResaAdmin(dateStr, hDebut, hFin) {
-  // Peupler liste adhérents
-  const sel = document.getElementById('madmin-adherent');
-  sel.innerHTML = allUsers.filter(u => u.role==='adherent' && u.statut==='actif')
-    .map(u => `<option value="${u.id}">${u.pseudo}</option>`).join('');
+  // Peupler le sélecteur adhérent et l'afficher
+  const sel = document.getElementById('modal-resa-adherent');
+  sel.innerHTML = allUsers
+    .filter(u => u.role === 'adherent' && u.statut === 'actif')
+    .sort((a,b) => a.pseudo.localeCompare(b.pseudo))
+    .map(u => `<option value="${u.id}">${u.pseudo}</option>`)
+    .join('');
+  document.getElementById('modal-resa-adherent-wrap').classList.remove('hidden');
+  document.getElementById('modal-resa-titre').textContent = 'Ajouter une réservation';
 
-  if (dateStr) document.getElementById('madmin-date').value = dateStr;
-  if (hDebut !== undefined) document.getElementById('madmin-debut').value = hDebut;
-  if (hFin   !== undefined) document.getElementById('madmin-fin').value   = hFin;
-
-  ouvrirModale('modal-resa-admin');
+  // Initialiser resaEnCours avec l'adhérent sélectionné comme contexte
+  const postesLibres = postesDisponibles(dateStr, hDebut, hFin);
+  resaEnCours = { dateStr, hDebut, hFin, postesLibres, wrapperId: 'admin-wrap', modeAdmin: true };
+  posteSelectionne = null;
+  rafraichirModaleResa();
+  ouvrirModale('modal-reservation');
 }
 window.ouvrirModaleResaAdmin = ouvrirModaleResaAdmin;
-
-window.confirmerResaAdmin = async function() {
-  const userId  = document.getElementById('madmin-adherent').value;
-  const dateStr = document.getElementById('madmin-date').value;
-  const debut   = parseFloat(document.getElementById('madmin-debut').value);
-  const fin     = parseFloat(document.getElementById('madmin-fin').value);
-  const poste   = document.getElementById('madmin-poste').value;
-
-  if (!userId || !dateStr || isNaN(debut) || isNaN(fin) || fin <= debut) {
-    toast('Veuillez remplir correctement tous les champs.','warning'); return;
-  }
-
-  const user = allUsers.find(u => u.id === userId);
-  try {
-    const newResa = {
-      userId, pseudo: user?.pseudo || userId,
-      date: dateStr, heureDebut: debut, heureFin: fin,
-      typePoste: poste, dateCreation: new Date().toISOString(),
-    };
-    const ref = await addDoc(collection(db,'reservations'), newResa);
-    allResas.push({ id: ref.id, ...newResa });
-    toast('Réservation ajoutée.','success');
-    fermerModale('modal-resa-admin');
-    renderCalendrier('admin-wrap');
-    await afficherDashboardAdmin();
-  } catch(e) { toast('Erreur : '+e.message,'error'); }
-};
 
 async function confirmerSuppressionResa(id) {
   if (!await confirmer('Supprimer cette réservation ?','danger','Supprimer')) return;
