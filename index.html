@@ -3696,7 +3696,7 @@ function ouvrirInfobulle(anchorEl, contenuHtml) {
     if (!tooltip.contains(ev.target)) {
       ev.stopPropagation();
       ev.preventDefault();
-      fermerInfobulle();
+      fermerInfobulle(); // désélectionne aussi le slot via deselectionnerSlot()
     }
   };
   setTimeout(() => document.addEventListener('click', tooltipCloseHandler, true), 10);
@@ -3714,6 +3714,12 @@ window.fermerInfobulle = fermerInfobulle;
 
 // Construit et ouvre l'infobulle enrichie pour un slot
 function ouvrirInfobulleSlot(e, dateStr, h, hFin, wrapperId) {
+  // Si une infobulle est déjà ouverte, la fermer sans rien faire de plus
+  if (tooltip.style.display === 'block') {
+    fermerInfobulle();
+    e.stopPropagation();
+    return;
+  }
   const toutesResas  = postesPris(dateStr, h, hFin);
   const maResa       = toutesResas.find(r => r.userId === utilisateurCourant.id);
   const autresResas  = toutesResas.filter(r => r.userId !== utilisateurCourant.id);
@@ -3833,8 +3839,41 @@ function rafraichirModaleResa() {
   const pseudoParPoste = {};
   resasPris.forEach(r => { pseudoParPoste[r.typePoste] = r.pseudo || '—'; });
 
+  // Vérifier si l'adhérent sélectionné a déjà une résa sur ce créneau
+  const dejaResa = allResas.find(r =>
+    r.userId === u.id &&
+    r.date === dateStr &&
+    parseFloat(r.heureDebut) < hFin &&
+    parseFloat(r.heureFin)   > hDebut
+  );
+
   const grid  = document.getElementById('modal-resa-postes');
+  const warn  = document.getElementById('modal-resa-warning');
+  const btnC  = document.getElementById('btn-confirmer-resa');
   grid.innerHTML='';
+
+  if (dejaResa && modeAdmin) {
+    // Afficher le poste déjà réservé par cet adhérent
+    const nomPoste = POSTES[dejaResa.typePoste] || dejaResa.typePoste;
+    warn.textContent = `⚠️ ${u.pseudo} a déjà réservé "${nomPoste}" sur ce créneau (${heureStr(parseFloat(dejaResa.heureDebut))}–${heureStr(parseFloat(dejaResa.heureFin))}).`;
+    warn.classList.remove('hidden');
+    btnC.disabled = true;
+    // Afficher quand même les postes (grisés) pour info
+    Object.entries(POSTES_ICONES).forEach(([id,info]) => {
+      const estLaSienne = id === dejaResa.typePoste;
+      const card = document.createElement('div');
+      card.className = 'poste-card poste-indisponible';
+      const sousTitre = estLaSienne
+        ? `<span style="font-size:.72rem;color:var(--terracotta);">Déjà réservé par <strong>${u.pseudo}</strong></span>`
+        : (pseudoParPoste[id]
+            ? `<span style="font-size:.72rem;color:var(--clay);">Réservé par <strong>${pseudoParPoste[id]}</strong></span>`
+            : info.desc);
+      card.innerHTML='<div class="poste-icone">'+info.svg+'</div><div class="poste-nom">'+info.nom+'</div><div class="poste-dispo">'+sousTitre+'</div>';
+      grid.appendChild(card);
+    });
+    return;
+  }
+
   Object.entries(POSTES_ICONES).forEach(([id,info]) => {
     const dispo=!pris.includes(id)&&nbPers<MAX_PERSONNES;
     const card=document.createElement('div');
@@ -3851,8 +3890,6 @@ function rafraichirModaleResa() {
     const premier=Object.keys(POSTES_ICONES).find(id=>!pris.includes(id)&&nbPers<MAX_PERSONNES);
     if (premier) { posteSelectionne=premier; rafraichirModaleResa(); return; }
   }
-  const warn=document.getElementById('modal-resa-warning');
-  const btnC=document.getElementById('btn-confirmer-resa');
   warn.classList.add('hidden');
   btnC.disabled=!posteSelectionne;
 }
