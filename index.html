@@ -601,6 +601,10 @@ tr:hover td { background: var(--cream); }
   border-collapse: collapse;
   font-size: .8rem;
   min-width: 700px;
+  table-layout: fixed;
+}
+.week-table th:not(.time-col) {
+  width: calc((100% - 56px) / 7);
 }
 .week-table th {
   background: var(--earth);
@@ -3660,28 +3664,55 @@ function selectionnerSlot(el) {
 
 function positionTooltip(anchorEl) {
   const rect = anchorEl.getBoundingClientRect();
-  const tw   = tooltip.offsetWidth  || 220;
-  const th   = tooltip.offsetHeight || 120;
   const vw   = window.innerWidth;
   const vh   = window.innerHeight;
+  const isMobile = vw < 768;
 
-  // Position idéale : à droite de la case
-  let left = rect.right + 8;
-  let top  = rect.top;
+  if (isMobile) {
+    // Limiter la largeur sur petits écrans
+    const maxW = Math.min(220, Math.floor(vw * 0.45));
+    tooltip.style.maxWidth = maxW + 'px';
 
-  // Déborde à droite → passer à gauche
-  if (left + tw > vw - 8) left = rect.left - tw - 8;
-  // Déborde à gauche → coller au bord
-  if (left < 8) left = 8;
-  // Déborde en bas → remonter
-  if (top + th > vh - 8) top = vh - th - 8;
-  // Déborde en haut → coller en haut
-  if (top < 8) top = 8;
+    // Choisir côté : droite si case dans moitié gauche, gauche sinon
+    const caseCentreX = (rect.left + rect.right) / 2;
+    let left;
+    if (caseCentreX < vw / 2) {
+      // Case à gauche → bulle à droite
+      left = rect.right + 6;
+      if (left + maxW > vw - 4) left = vw - maxW - 4;
+    } else {
+      // Case à droite → bulle à gauche
+      left = rect.left - maxW - 6;
+      if (left < 4) left = 4;
+    }
 
-  tooltip.style.transform = '';
-  tooltip.style.bottom    = 'auto';
-  tooltip.style.left      = left + 'px';
-  tooltip.style.top       = top  + 'px';
+    // Verticalement : alignée sur le haut de la case, recalée si déborde en bas
+    const th = tooltip.offsetHeight || 120;
+    let top = rect.top;
+    if (top + th > vh - 8) top = vh - th - 8;
+    if (top < 8) top = 8;
+
+    tooltip.style.transform = '';
+    tooltip.style.bottom    = 'auto';
+    tooltip.style.left      = left + 'px';
+    tooltip.style.top       = top  + 'px';
+
+  } else {
+    // Desktop : à droite du curseur, bascule à gauche si débordement
+    tooltip.style.maxWidth = '260px';
+    tooltip.style.transform = '';
+    tooltip.style.bottom    = 'auto';
+    const tw = tooltip.offsetWidth || 220;
+    const th = tooltip.offsetHeight || 120;
+    let left = rect.right + 8;
+    if (left + tw > vw - 8) left = rect.left - tw - 8;
+    if (left < 8) left = 8;
+    let top = rect.top;
+    if (top + th > vh - 8) top = vh - th - 8;
+    if (top < 8) top = 8;
+    tooltip.style.left = left + 'px';
+    tooltip.style.top  = top  + 'px';
+  }
 }
 
 function ouvrirInfobulle(anchorEl, contenuHtml) {
