@@ -644,6 +644,7 @@ tr:hover td { background: var(--cream); }
   text-align: center;
   line-height: 1.2;
 }
+.slot-selected { outline: 2px solid var(--terracotta) !important; outline-offset: -2px; background: rgba(193,74,34,.18) !important; }
 .slot-free       { background: #EAF4EC; color: var(--success); border: 1px dashed #9ECBAB; }
 .slot-free:hover { background: var(--success); color: #fff; }
 .slot-mine       { background: #DBE9F5; color: var(--info); border: 1px solid #9CBFE0; }
@@ -3642,29 +3643,52 @@ window.soumettreinscription = async function() {
 const tooltip = document.getElementById('cal-tooltip');
 let tooltipCloseHandler = null;
 
-function positionTooltip(e) {
-  const isMobile = window.innerWidth < 600;
-  if (isMobile) {
-    // Mobile : centré horizontalement, ancré en bas
-    tooltip.style.left  = '50%';
-    tooltip.style.transform = 'translateX(-50%)';
-    tooltip.style.bottom = '1rem';
-    tooltip.style.top = 'auto';
-  } else {
-    tooltip.style.transform = '';
-    tooltip.style.bottom = 'auto';
-    const x = e.clientX + 14;
-    const y = e.clientY + 14;
-    const w = tooltip.offsetWidth || 220;
-    tooltip.style.left = (x + w > window.innerWidth ? x - w - 20 : x) + 'px';
-    tooltip.style.top  = y + 'px';
+let slotSelectionne = null; // référence au slot actuellement sélectionné
+
+function deselectionnerSlot() {
+  if (slotSelectionne) {
+    slotSelectionne.classList.remove('slot-selected');
+    slotSelectionne = null;
   }
 }
 
-function ouvrirInfobulle(e, contenuHtml) {
+function selectionnerSlot(el) {
+  deselectionnerSlot();
+  slotSelectionne = el;
+  el.classList.add('slot-selected');
+}
+
+function positionTooltip(anchorEl) {
+  const rect = anchorEl.getBoundingClientRect();
+  const tw   = tooltip.offsetWidth  || 220;
+  const th   = tooltip.offsetHeight || 120;
+  const vw   = window.innerWidth;
+  const vh   = window.innerHeight;
+
+  // Position idéale : à droite de la case
+  let left = rect.right + 8;
+  let top  = rect.top;
+
+  // Déborde à droite → passer à gauche
+  if (left + tw > vw - 8) left = rect.left - tw - 8;
+  // Déborde à gauche → coller au bord
+  if (left < 8) left = 8;
+  // Déborde en bas → remonter
+  if (top + th > vh - 8) top = vh - th - 8;
+  // Déborde en haut → coller en haut
+  if (top < 8) top = 8;
+
+  tooltip.style.transform = '';
+  tooltip.style.bottom    = 'auto';
+  tooltip.style.left      = left + 'px';
+  tooltip.style.top       = top  + 'px';
+}
+
+function ouvrirInfobulle(anchorEl, contenuHtml) {
+  selectionnerSlot(anchorEl);
   tooltip.innerHTML = contenuHtml;
   tooltip.style.display = 'block';
-  positionTooltip(e);
+  positionTooltip(anchorEl);
 
   // Fermer au clic/tap en dehors SANS propager l'événement aux slots
   if (tooltipCloseHandler) document.removeEventListener('click', tooltipCloseHandler, true);
@@ -3680,6 +3704,7 @@ function ouvrirInfobulle(e, contenuHtml) {
 
 function fermerInfobulle() {
   tooltip.style.display = 'none';
+  deselectionnerSlot();
   if (tooltipCloseHandler) {
     document.removeEventListener('click', tooltipCloseHandler, true);
     tooltipCloseHandler = null;
@@ -3734,7 +3759,7 @@ function ouvrirInfobulleSlot(e, dateStr, h, hFin, wrapperId) {
   }
 
   const html = lignes + msgComplet + (actions ? `<div class="tip-actions">${actions}</div>` : '');
-  ouvrirInfobulle(e, html);
+  ouvrirInfobulle(e.currentTarget || e.target, html);
   e.stopPropagation();
 }
 
