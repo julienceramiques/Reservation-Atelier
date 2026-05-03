@@ -3173,6 +3173,8 @@ async function confirmerSuppressionResa(id) {
     renderCalendrier('admin-wrap');
   }).catch(e => toast('Erreur : '+e.message,'error'));
 }
+window.confirmerSuppressionResa = confirmerSuppressionResa;
+window.clickSurCreneau = clickSurCreneau;
 
 // =====================================================================
 // EXCEPTIONS HORAIRES
@@ -3664,10 +3666,12 @@ function ouvrirInfobulle(e, contenuHtml) {
   tooltip.style.display = 'block';
   positionTooltip(e);
 
-  // Fermer au clic/tap en dehors
+  // Fermer au clic/tap en dehors SANS propager l'événement aux slots
   if (tooltipCloseHandler) document.removeEventListener('click', tooltipCloseHandler, true);
   tooltipCloseHandler = function(ev) {
     if (!tooltip.contains(ev.target)) {
+      ev.stopPropagation();
+      ev.preventDefault();
       fermerInfobulle();
     }
   };
@@ -3681,6 +3685,7 @@ function fermerInfobulle() {
     tooltipCloseHandler = null;
   }
 }
+window.fermerInfobulle = fermerInfobulle;
 
 // Construit et ouvre l'infobulle enrichie pour un slot
 function ouvrirInfobulleSlot(e, dateStr, h, hFin, wrapperId) {
