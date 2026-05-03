@@ -3714,12 +3714,13 @@ window.fermerInfobulle = fermerInfobulle;
 
 // Construit et ouvre l'infobulle enrichie pour un slot
 function ouvrirInfobulleSlot(e, dateStr, h, hFin, wrapperId) {
-  // Si une infobulle est déjà ouverte, la fermer sans rien faire de plus
+  // Si une infobulle est déjà ouverte, la fermer sans colorer la nouvelle case
   if (tooltip.style.display === 'block') {
     fermerInfobulle();
     e.stopPropagation();
     return;
   }
+  e.stopPropagation();
   const toutesResas  = postesPris(dateStr, h, hFin);
   const maResa       = toutesResas.find(r => r.userId === utilisateurCourant.id);
   const autresResas  = toutesResas.filter(r => r.userId !== utilisateurCourant.id);
@@ -3766,7 +3767,6 @@ function ouvrirInfobulleSlot(e, dateStr, h, hFin, wrapperId) {
 
   const html = lignes + msgComplet + (actions ? `<div class="tip-actions">${actions}</div>` : '');
   ouvrirInfobulle(e.currentTarget || e.target, html);
-  e.stopPropagation();
 }
 
 const SVG_TOUR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="44" height="44">
@@ -3893,6 +3893,7 @@ function rafraichirModaleResa() {
   warn.classList.add('hidden');
   btnC.disabled=!posteSelectionne;
 }
+window.rafraichirModaleResa = rafraichirModaleResa;
 window.etendreDebut = function(delta) {
   if (!resaEnCours) return;
   const n = Math.round((resaEnCours.hDebut + delta) * 2) / 2;
