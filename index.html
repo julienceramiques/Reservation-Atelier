@@ -2858,25 +2858,46 @@ function renderSemaine(wrapperId) {
       const nbPers = personnesPour(dateStr, h, hFin);
       const libres = postesDisponibles(dateStr, h, hFin);
       const toutesResas = postesPris(dateStr, h, hFin);
+      const isMobile = () => window.innerWidth < 768;
+
+      // Attache infobulle survol (desktop) ou tap (mobile) selon contexte
+      const attacherInfobulle = (slot, resas) => {
+        if (!resas || resas.length === 0) return;
+        // Desktop : survol
+        slot.addEventListener('mouseenter', () => { if (!isMobile()) ouvrirInfobulleHover(slot, resas); });
+        slot.addEventListener('mouseleave', () => { if (!isMobile()) fermerInfobulleHover(); });
+        // Mobile : tap (onclick capte aussi touchend)
+        slot.addEventListener('click', (e) => {
+          if (isMobile()) { ouvrirInfobulleSlot(e, dateStr, h, hFin, wrapperId); }
+        });
+      };
 
       if (maResa) {
         slot.className += ' slot-mine';
         slot.innerHTML = `<span style="font-size:.68rem;font-weight:600;">${POSTES_ABREV[maResa.typePoste]||'✓'}</span>`;
         slot.style.cursor = 'pointer';
-        slot.onclick = (e) => ouvrirInfobulleSlot(e, dateStr, h, hFin, wrapperId);
+        // Desktop : clic ouvre la modale (annulation possible)
+        slot.onclick = (e) => {
+          if (!isMobile()) {
+            clickSurCreneau(dateStr, h, hFin, libres, wrapperId);
+          }
+        };
+        attacherInfobulle(slot, toutesResas);
 
       } else if (nbPers >= MAX_PERSONNES) {
         slot.className += ' slot-full';
         slot.textContent = 'Complet';
         slot.style.cursor = 'pointer';
-        slot.onclick = (e) => ouvrirInfobulleSlot(e, dateStr, h, hFin, wrapperId);
+        slot.onclick = (e) => { if (!isMobile()) clickSurCreneau(dateStr, h, hFin, libres, wrapperId); };
+        attacherInfobulle(slot, toutesResas);
 
       } else if (statut === 'exception-open') {
         slot.className += ' slot-exception-open';
         slot.textContent = '★';
         if (toutesResas.length > 0) {
           slot.style.cursor = 'pointer';
-          slot.onclick = (e) => ouvrirInfobulleSlot(e, dateStr, h, hFin, wrapperId);
+          slot.onclick = (e) => { if (!isMobile()) clickSurCreneau(dateStr, h, hFin, libres, wrapperId); };
+          attacherInfobulle(slot, toutesResas);
         } else {
           slot.onclick = () => clickSurCreneau(dateStr, h, hFin, libres, wrapperId);
         }
@@ -2887,7 +2908,8 @@ function renderSemaine(wrapperId) {
           slot.className += ' slot-other';
           slot.innerHTML = `<span style="font-size:.68rem">${autresResas.length}👤</span>`;
           slot.style.cursor = 'pointer';
-          slot.onclick = (e) => ouvrirInfobulleSlot(e, dateStr, h, hFin, wrapperId);
+          slot.onclick = (e) => { if (!isMobile()) clickSurCreneau(dateStr, h, hFin, libres, wrapperId); };
+          attacherInfobulle(slot, toutesResas);
         } else {
           slot.className += ' slot-free';
           slot.textContent = `${libres.length}`;
@@ -2895,22 +2917,20 @@ function renderSemaine(wrapperId) {
         }
 
       } else {
-        // Adhérent
         const autresResas = toutesResas.filter(r => r.userId !== utilisateurCourant.id);
         if (autresResas.length > 0 && libres.length > 0) {
-          // Autres présents + postes libres
           slot.className += ' slot-free';
           slot.textContent = `${libres.length}`;
           slot.style.cursor = 'pointer';
-          slot.onclick = (e) => ouvrirInfobulleSlot(e, dateStr, h, hFin, wrapperId);
+          slot.onclick = (e) => { if (!isMobile()) clickSurCreneau(dateStr, h, hFin, libres, wrapperId); };
+          attacherInfobulle(slot, toutesResas);
         } else if (autresResas.length > 0 && libres.length === 0) {
-          // Complet, autres seulement
           slot.className += ' slot-full';
           slot.textContent = 'Complet';
           slot.style.cursor = 'pointer';
-          slot.onclick = (e) => ouvrirInfobulleSlot(e, dateStr, h, hFin, wrapperId);
+          slot.onclick = (e) => { if (!isMobile()) clickSurCreneau(dateStr, h, hFin, libres, wrapperId); };
+          attacherInfobulle(slot, toutesResas);
         } else {
-          // Aucune résa → ouvre directement la modale
           slot.className += ' slot-free';
           slot.textContent = `${libres.length}`;
           slot.onclick = () => clickSurCreneau(dateStr, h, hFin, libres, wrapperId);
@@ -3642,163 +3662,131 @@ window.soumettreinscription = async function() {
 };
 // =====================================================================
 // =====================================================================
-// INFOBULLE CALENDRIER — enrichie au clic/tap
+// INFOBULLE CALENDRIER — survol desktop / tap mobile
 // =====================================================================
 const tooltip = document.getElementById('cal-tooltip');
 let tooltipCloseHandler = null;
-
-let slotSelectionne = null; // référence au slot actuellement sélectionné
+let slotSelectionne = null;
 
 function deselectionnerSlot() {
-  if (slotSelectionne) {
-    slotSelectionne.classList.remove('slot-selected');
-    slotSelectionne = null;
-  }
+  if (slotSelectionne) { slotSelectionne.classList.remove('slot-selected'); slotSelectionne = null; }
 }
-
 function selectionnerSlot(el) {
-  deselectionnerSlot();
-  slotSelectionne = el;
-  el.classList.add('slot-selected');
+  deselectionnerSlot(); slotSelectionne = el; el.classList.add('slot-selected');
 }
 
 function positionTooltip(anchorEl) {
   const rect = anchorEl.getBoundingClientRect();
-  const vw   = window.innerWidth;
-  const vh   = window.innerHeight;
+  const vw = window.innerWidth, vh = window.innerHeight;
   const isMobile = vw < 768;
-
   if (isMobile) {
-    // Limiter la largeur sur petits écrans
     const maxW = Math.min(220, Math.floor(vw * 0.45));
     tooltip.style.maxWidth = maxW + 'px';
-
-    // Choisir côté : droite si case dans moitié gauche, gauche sinon
-    const caseCentreX = (rect.left + rect.right) / 2;
-    let left;
-    if (caseCentreX < vw / 2) {
-      // Case à gauche → bulle à droite
-      left = rect.right + 6;
-      if (left + maxW > vw - 4) left = vw - maxW - 4;
-    } else {
-      // Case à droite → bulle à gauche
-      left = rect.left - maxW - 6;
-      if (left < 4) left = 4;
-    }
-
-    // Verticalement : alignée sur le haut de la case, recalée si déborde en bas
+    const cx = (rect.left + rect.right) / 2;
+    let left = cx < vw / 2 ? rect.right + 6 : rect.left - maxW - 6;
+    if (left + maxW > vw - 4) left = vw - maxW - 4;
+    if (left < 4) left = 4;
     const th = tooltip.offsetHeight || 120;
     let top = rect.top;
     if (top + th > vh - 8) top = vh - th - 8;
     if (top < 8) top = 8;
-
-    tooltip.style.transform = '';
-    tooltip.style.bottom    = 'auto';
-    tooltip.style.left      = left + 'px';
-    tooltip.style.top       = top  + 'px';
-
+    tooltip.style.transform = ''; tooltip.style.bottom = 'auto';
+    tooltip.style.left = left + 'px'; tooltip.style.top = top + 'px';
   } else {
-    // Desktop : à droite du curseur, bascule à gauche si débordement
-    tooltip.style.maxWidth = '260px';
-    tooltip.style.transform = '';
-    tooltip.style.bottom    = 'auto';
-    const tw = tooltip.offsetWidth || 220;
-    const th = tooltip.offsetHeight || 120;
+    tooltip.style.maxWidth = '260px'; tooltip.style.transform = ''; tooltip.style.bottom = 'auto';
+    const tw = tooltip.offsetWidth || 220, th = tooltip.offsetHeight || 120;
     let left = rect.right + 8;
     if (left + tw > vw - 8) left = rect.left - tw - 8;
     if (left < 8) left = 8;
     let top = rect.top;
     if (top + th > vh - 8) top = vh - th - 8;
     if (top < 8) top = 8;
-    tooltip.style.left = left + 'px';
-    tooltip.style.top  = top  + 'px';
+    tooltip.style.left = left + 'px'; tooltip.style.top = top + 'px';
   }
 }
 
+// Desktop : infobulle légère au survol (lecture seule)
+function ouvrirInfobulleHover(anchorEl, toutesResas) {
+  const lignes = toutesResas.map(r =>
+    `<div class="tip-ligne"><span class="tip-poste">${POSTES[r.typePoste]||r.typePoste}</span><span class="tip-pseudo">→ ${r.pseudo||'—'}</span></div>`
+  ).join('');
+  const libres = postesDisponibles(toutesResas[0].date, parseFloat(toutesResas[0].heureDebut), parseFloat(toutesResas[0].heureFin));
+  const msgComplet = libres.length === 0 ? `<div class="tip-complet">🔒 Atelier complet</div>` : '';
+  tooltip.innerHTML = lignes + msgComplet;
+  tooltip.style.pointerEvents = 'none';
+  tooltip.style.display = 'block';
+  positionTooltip(anchorEl);
+}
+function fermerInfobulleHover() {
+  if (!tooltipCloseHandler) tooltip.style.display = 'none';
+}
+
+// Mobile : infobulle enrichie au tap (avec boutons d'action)
 function ouvrirInfobulle(anchorEl, contenuHtml) {
   selectionnerSlot(anchorEl);
   tooltip.innerHTML = contenuHtml;
+  tooltip.style.pointerEvents = 'auto';
   tooltip.style.display = 'block';
   positionTooltip(anchorEl);
-
-  // Fermer au clic/tap en dehors SANS propager l'événement aux slots
-  if (tooltipCloseHandler) document.removeEventListener('click', tooltipCloseHandler, true);
+  if (tooltipCloseHandler) {
+    document.removeEventListener('click', tooltipCloseHandler, true);
+    document.removeEventListener('touchstart', tooltipCloseHandler, true);
+  }
   tooltipCloseHandler = function(ev) {
     if (!tooltip.contains(ev.target)) {
-      ev.stopPropagation();
-      ev.preventDefault();
-      fermerInfobulle(); // désélectionne aussi le slot via deselectionnerSlot()
+      ev.stopPropagation(); ev.preventDefault(); fermerInfobulle();
     }
   };
-  setTimeout(() => document.addEventListener('click', tooltipCloseHandler, true), 10);
+  setTimeout(() => {
+    document.addEventListener('click', tooltipCloseHandler, true);
+    document.addEventListener('touchstart', tooltipCloseHandler, { capture: true, passive: false });
+  }, 10);
 }
-
 function fermerInfobulle() {
   tooltip.style.display = 'none';
   deselectionnerSlot();
   if (tooltipCloseHandler) {
     document.removeEventListener('click', tooltipCloseHandler, true);
+    document.removeEventListener('touchstart', tooltipCloseHandler, true);
     tooltipCloseHandler = null;
   }
 }
 window.fermerInfobulle = fermerInfobulle;
 
-// Construit et ouvre l'infobulle enrichie pour un slot
+// Construit et ouvre l'infobulle enrichie (tap mobile)
 function ouvrirInfobulleSlot(e, dateStr, h, hFin, wrapperId) {
-  // Si une infobulle est déjà ouverte, la fermer sans colorer la nouvelle case
-  if (tooltip.style.display === 'block') {
-    fermerInfobulle();
-    e.stopPropagation();
-    return;
-  }
-  e.stopPropagation();
-  const toutesResas  = postesPris(dateStr, h, hFin);
-  const maResa       = toutesResas.find(r => r.userId === utilisateurCourant.id);
-  const autresResas  = toutesResas.filter(r => r.userId !== utilisateurCourant.id);
-  const libres       = postesDisponibles(dateStr, h, hFin);
-  const complet      = libres.length === 0;
-  const modeAdmin    = calContext === 'admin';
-
-  // Lignes occupants
+  if (tooltipCloseHandler) fermerInfobulle();
+  const toutesResas = postesPris(dateStr, h, hFin);
+  const maResa      = toutesResas.find(r => r.userId === utilisateurCourant.id);
+  const libres      = postesDisponibles(dateStr, h, hFin);
+  const complet     = libres.length === 0;
+  const modeAdmin   = calContext === 'admin';
   const lignes = toutesResas.map(r =>
-    `<div class="tip-ligne">
-      <span class="tip-poste">${POSTES[r.typePoste]||r.typePoste}</span>
-      <span class="tip-pseudo">→ ${r.pseudo||'—'}</span>
-    </div>`
+    `<div class="tip-ligne"><span class="tip-poste">${POSTES[r.typePoste]||r.typePoste}</span><span class="tip-pseudo">→ ${r.pseudo||'—'}</span></div>`
   ).join('');
-
-  // Message complet
-  const msgComplet = complet
-    ? `<div class="tip-complet">🔒 Atelier complet</div>` : '';
-
-  // Actions
+  const msgComplet = complet ? `<div class="tip-complet">🔒 Atelier complet</div>` : '';
   let actions = '';
   if (modeAdmin) {
-    if (!complet) {
-      actions += `<button class="tip-btn" onclick="fermerInfobulle();clickSurCreneau('${dateStr}',${h},${hFin},[],'{wrapperId}')">➕ Ajouter une réservation</button>`;
-      actions = actions.replace('{wrapperId}', wrapperId);
-    }
-    // Boutons suppression pour chaque résa
+    if (!complet) actions += `<button class="tip-btn" onclick="fermerInfobulle();clickSurCreneau('${dateStr}',${h},${hFin},null,'${wrapperId}')">➕ Ajouter une réservation</button>`;
     toutesResas.forEach(r => {
       actions += `<button class="tip-btn danger" onclick="fermerInfobulle();confirmerSuppressionResa('${r.id}')">🗑 Annuler résa de ${r.pseudo||'—'}</button>`;
     });
   } else {
-    // Adhérent
     if (maResa) {
       const debut = slotToDate(dateStr, h);
-      if ((debut - new Date()) > DELAI_ANNUL_H * 3600000) {
+      if ((debut - new Date()) > DELAI_ANNUL_H * 3600000)
         actions += `<button class="tip-btn danger" onclick="fermerInfobulle();annulerReservationCalendrier('${maResa.id}','${wrapperId}')">🗑 Annuler ma réservation</button>`;
-      } else {
+      else
         actions += `<div style="font-size:.76rem;color:#ffaaaa;font-style:italic;">Annulation impossible (moins de ${DELAI_ANNUL_H}h)</div>`;
-      }
     } else if (!complet) {
       actions += `<button class="tip-btn" onclick="fermerInfobulle();clickSurCreneau('${dateStr}',${h},${hFin},null,'${wrapperId}')">📅 Réserver un poste libre</button>`;
     }
   }
-
   const html = lignes + msgComplet + (actions ? `<div class="tip-actions">${actions}</div>` : '');
   ouvrirInfobulle(e.currentTarget || e.target, html);
+  e.stopPropagation();
 }
+
 
 const SVG_TOUR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="44" height="44">
   <ellipse cx="32" cy="16" rx="18" ry="5" fill="#C4622D" opacity=".9"/>
