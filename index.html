@@ -3734,7 +3734,15 @@ function ouvrirInfobulle(anchorEl, contenuHtml) {
   }
   tooltipCloseHandler = function(ev) {
     if (!tooltip.contains(ev.target)) {
-      ev.stopPropagation(); ev.preventDefault(); fermerInfobulle();
+      const slotCible   = ev.target.closest('.week-table td');
+      const slotActuel  = slotSelectionne; // sauvegarder avant fermerInfobulle()
+      ev.stopPropagation();
+      ev.preventDefault();
+      fermerInfobulle();
+      // Si le tap est sur un autre slot → ouvrir son infobulle
+      if (slotCible && slotCible !== slotActuel) {
+        setTimeout(() => slotCible.click(), 15);
+      }
     }
   };
   setTimeout(() => {
@@ -3755,7 +3763,9 @@ window.fermerInfobulle = fermerInfobulle;
 
 // Construit et ouvre l'infobulle enrichie (tap mobile)
 function ouvrirInfobulleSlot(e, dateStr, h, hFin, wrapperId) {
-  if (tooltipCloseHandler) fermerInfobulle();
+  const etaitOuverte = !!tooltipCloseHandler;
+  if (etaitOuverte) fermerInfobulle();
+  // On ouvre toujours la nouvelle infobulle, même si une autre était déjà ouverte
   const toutesResas = postesPris(dateStr, h, hFin);
   const maResa      = toutesResas.find(r => r.userId === utilisateurCourant.id);
   const libres      = postesDisponibles(dateStr, h, hFin);
