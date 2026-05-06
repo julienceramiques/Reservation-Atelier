@@ -3730,24 +3730,20 @@ function ouvrirInfobulle(anchorEl, contenuHtml) {
   positionTooltip(anchorEl);
   if (tooltipCloseHandler) {
     document.removeEventListener('click', tooltipCloseHandler, true);
-    document.removeEventListener('touchstart', tooltipCloseHandler, true);
   }
   tooltipCloseHandler = function(ev) {
     if (!tooltip.contains(ev.target)) {
-      const slotCible   = ev.target.closest('.week-table td');
-      const slotActuel  = slotSelectionne; // sauvegarder avant fermerInfobulle()
-      ev.stopPropagation();
-      ev.preventDefault();
+      // Ne pas bloquer les clics sur les slots — laisser ouvrirInfobulleSlot gérer
+      const estSlot = ev.target.closest('.week-table td');
       fermerInfobulle();
-      // Si le tap est sur un autre slot → ouvrir son infobulle
-      if (slotCible && slotCible !== slotActuel) {
-        setTimeout(() => slotCible.click(), 15);
+      if (!estSlot) {
+        ev.stopPropagation();
+        ev.preventDefault();
       }
     }
   };
   setTimeout(() => {
     document.addEventListener('click', tooltipCloseHandler, true);
-    document.addEventListener('touchstart', tooltipCloseHandler, { capture: true, passive: false });
   }, 10);
 }
 function fermerInfobulle() {
@@ -3755,7 +3751,6 @@ function fermerInfobulle() {
   deselectionnerSlot();
   if (tooltipCloseHandler) {
     document.removeEventListener('click', tooltipCloseHandler, true);
-    document.removeEventListener('touchstart', tooltipCloseHandler, true);
     tooltipCloseHandler = null;
   }
 }
@@ -3763,9 +3758,8 @@ window.fermerInfobulle = fermerInfobulle;
 
 // Construit et ouvre l'infobulle enrichie (tap mobile)
 function ouvrirInfobulleSlot(e, dateStr, h, hFin, wrapperId) {
-  const etaitOuverte = !!tooltipCloseHandler;
-  if (etaitOuverte) fermerInfobulle();
-  // On ouvre toujours la nouvelle infobulle, même si une autre était déjà ouverte
+  // Fermer l'éventuelle infobulle précédente avant d'ouvrir la nouvelle
+  fermerInfobulle();
   const toutesResas = postesPris(dateStr, h, hFin);
   const maResa      = toutesResas.find(r => r.userId === utilisateurCourant.id);
   const libres      = postesDisponibles(dateStr, h, hFin);
