@@ -3804,10 +3804,10 @@ function ouvrirInfobulleSlot(e, dateStr, h, hFin, wrapperId) {
   const complet     = libres.length === 0;
   const modeAdmin   = calContext === 'admin';
   const lignes = toutesResas.map(r =>
-    `<div class="tip-ligne" onclick="surlignerPlage('${r.id}')" style="cursor:pointer;border-radius:3px;padding:2px 4px;margin:-2px -4px;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.15)'" onmouseout="this.style.background=''">
+    `<button class="tip-btn" onclick="surlignerPlage('${r.id}')">
       <span class="tip-poste">${POSTES[r.typePoste]||r.typePoste}</span>
       <span class="tip-pseudo">→ ${r.pseudo||'—'}</span>
-    </div>`
+    </button>`
   ).join('');
   const msgComplet = complet ? `<div class="tip-complet">🔒 Atelier complet</div>` : '';
   let actions = '';
@@ -3827,7 +3827,9 @@ function ouvrirInfobulleSlot(e, dateStr, h, hFin, wrapperId) {
       actions += `<button class="tip-btn" onclick="fermerInfobulle();clickSurCreneau('${dateStr}',${h},${hFin},null,'${wrapperId}')">📅 Réserver un poste libre</button>`;
     }
   }
-  const html = lignes + msgComplet + (actions ? `<div class="tip-actions">${actions}</div>` : '');
+  const html = `<div class="tip-actions" style="margin-top:0;border-top:none;padding-top:0;">${lignes}</div>`
+    + msgComplet
+    + (actions ? `<div class="tip-actions">${actions}</div>` : '');
   ouvrirInfobulle(e.currentTarget || e.target, html);
   e.stopPropagation();
 }
