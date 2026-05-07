@@ -662,6 +662,7 @@ tr:hover td { background: var(--cream); }
 .slot-closed     { background: #FDECEA; color: var(--danger); border: 1px solid #F0BFBF; cursor: not-allowed; font-style: italic; }
 .slot-exception-open { background: #F3ECFD; color: #6B3FA0; border: 1px solid #C9A9E8; }
 .slot-out        { background: var(--beige); cursor: default; }
+.slot-past       { opacity: .45; cursor: default; pointer-events: none; }
 
 /* Vue Mois */
 .month-grid {
@@ -2068,17 +2069,64 @@ function afficherDashboardAdherent() {
   }
 }
 
+
+// ── Historique des réservations passées, groupé par mois puis par poste ──
+function buildHistoriqueHTML(resasPassees) {
+  if (resasPassees.length === 0)
+    return '<p class="text-muted" style="margin-top:.5rem;">Aucun historique.</p>';
+
+  // Grouper par "YYYY-MM"
+  const parMois = {};
+  resasPassees.forEach(r => {
+    const key = r.date.substring(0, 7); // "2024-11"
+    if (!parMois[key]) parMois[key] = {};
+    const poste = r.typePoste;
+    parMois[key][poste] = (parMois[key][poste] || 0) + dureeH(r.heureDebut, r.heureFin);
+  });
+
+  // Trier mois du plus récent au plus ancien
+  const moisTries = Object.keys(parMois).sort((a, b) => b.localeCompare(a));
+
+  return moisTries.map(key => {
+    const [annee, mois] = key.split('-');
+    const label = moisNoms[parseInt(mois, 10) - 1] + ' ' + annee;
+    const lignes = Object.entries(parMois[key])
+      .sort((a, b) => b[1] - a[1])
+      .map(([poste, h]) =>
+        `<div style="display:flex;justify-content:space-between;padding:.25rem 0;border-bottom:1px solid var(--beige-dk);font-size:.88rem;">
+          <span style="color:var(--earth-lt);">${POSTES[poste] || poste}</span>
+          <span style="font-weight:600;color:var(--terracotta);">${formatHeures(h)}</span>
+        </div>`
+      ).join('');
+    const totalMois = Object.values(parMois[key]).reduce((s, v) => s + v, 0);
+    return `<div style="margin-bottom:1rem;">
+      <div style="font-family:var(--font-display);font-size:1rem;font-weight:600;color:var(--earth);
+                  padding:.3rem 0;border-bottom:2px solid var(--beige-dkk);margin-bottom:.35rem;
+                  display:flex;justify-content:space-between;align-items:baseline;">
+        <span>${label}</span>
+        <span style="font-size:.82rem;color:var(--clay-lt);">Total : ${formatHeures(totalMois)}</span>
+      </div>
+      ${lignes}
+    </div>`;
+  }).join('');
+}
 function afficherMesReservations() {
   const now = new Date();
-  const resas = allResas
-    .filter(r => r.userId === utilisateurCourant.id && slotToDate(r.date, r.heureDebut) > now)
+  const mesResas = allResas.filter(r => r.userId === utilisateurCourant.id);
+  const resas = mesResas
+    .filter(r => slotToDate(r.date, r.heureDebut) > now)
     .sort((a,b) => slotToDate(a.date,a.heureDebut) - slotToDate(b.date,b.heureDebut));
+  const resasPassees = mesResas
+    .filter(r => slotToDate(r.date, r.heureFin) <= now)
+    .sort((a,b) => slotToDate(b.date,b.heureDebut) - slotToDate(a.date,a.heureDebut));
   const el = document.getElementById('liste-mes-reservations');
-  if (resas.length === 0) {
-    el.innerHTML = '<p class="text-muted">Aucune réservation à venir.</p>';
-  } else {
-    el.innerHTML = resas.map(r => itemResa(r, true)).join('');
-  }
+  const futurHTML = resas.length === 0
+    ? '<p class="text-muted">Aucune réservation à venir.</p>'
+    : resas.map(r => itemResa(r, true)).join('');
+  el.innerHTML = futurHTML
+    + `<hr class="separator" style="margin-top:1.5rem;">
+       <h3 style="margin:.75rem 0 .5rem;color:var(--clay);">📅 Historique</h3>`
+    + buildHistoriqueHTML(resasPassees);
 }
 
 function itemResa(r, avecBoutonAnnuler) {
@@ -2541,16 +2589,20 @@ window.ouvrirFicheAdherent = function(id) {
     <button class="btn btn-primary btn-sm" onclick="enregistrerPaiement('${id}')">Enregistrer</button>
 
     <hr class="separator">
-    <h3 style="margin-bottom:.75rem">Réservations (${resasUser.length})</h3>
+    <h3 style="margin-bottom:.75rem">Réservations à venir (${resasUser.filter(r=>slotToDate(r.date,r.heureDebut)>new Date()).length})</h3>
     <div class="resa-list" style="max-height:250px;overflow-y:auto;">
-      ${resasUser.length === 0 ? '<p class="text-muted">Aucune réservation.</p>' :
-        resasUser.map(r => `
+      ${resasUser.filter(r=>slotToDate(r.date,r.heureDebut)>new Date()).length === 0
+        ? '<p class="text-muted">Aucune réservation à venir.</p>'
+        : resasUser.filter(r=>slotToDate(r.date,r.heureDebut)>new Date()).map(r => `
           <div class="resa-item">
             <div class="resa-date" style="font-size:.95rem">${formatDate(r.date)}</div>
             <div class="resa-details"><strong>${heureStr(r.heureDebut)} – ${heureStr(r.heureFin)}</strong><span>${POSTES[r.typePoste]||r.typePoste}</span></div>
             <button class="btn btn-danger btn-sm" onclick="supprimerResa('${r.id}')">✕</button>
           </div>`).join('')}
     </div>
+    <hr class="separator" style="margin-top:1.25rem;">
+    <h3 style="margin:.75rem 0 .5rem;color:var(--clay);">📅 Historique</h3>
+    ${buildHistoriqueHTML(resasUser.filter(r=>slotToDate(r.date,r.heureFin)<=new Date()).sort((a,b)=>slotToDate(b.date,b.heureDebut)-slotToDate(a.date,a.heureDebut)))}
   `;
   ouvrirModale('modal-adherent');
 };
@@ -2855,8 +2907,22 @@ function renderSemaine(wrapperId) {
         td.appendChild(slot); tr.appendChild(td); return;
       }
 
-      if (slotToDate(dateStr,hFin)<=new Date()) {
-        slot.className+=' slot-out'; slot.style.opacity='.3'; slot.title='Passé';
+      const isPast = slotToDate(dateStr,hFin) <= new Date();
+      if (isPast) {
+        // Cases passées : afficher en lecture seule avec opacité réduite
+        const toutesResasPast = postesPris(dateStr, h, hFin);
+        const maResaPast = toutesResasPast.find(r => r.userId === utilisateurCourant.id);
+        const nbPersPast = personnesPour(dateStr, h, hFin);
+        if (maResaPast) {
+          slot.className += ' slot-mine slot-past';
+          slot.innerHTML = `<span style="font-size:.68rem;font-weight:600;">${POSTES_ABREV[maResaPast.typePoste]||'✓'}</span><span style="font-size:.65rem;margin-left:2px;filter:grayscale(1) brightness(0);">👤${nbPersPast}</span>`;
+        } else if (toutesResasPast.length > 0) {
+          const autresPast = toutesResasPast.filter(r => r.userId !== utilisateurCourant.id);
+          slot.className += ' slot-other slot-past';
+          slot.innerHTML = `<span style="font-size:.65rem;filter:grayscale(1) brightness(0);">👤${autresPast.length}</span>`;
+        } else {
+          slot.className += ' slot-out slot-past';
+        }
         td.appendChild(slot); tr.appendChild(td); return;
       }
       const maResa = maResaPour(dateStr, h, hFin);
