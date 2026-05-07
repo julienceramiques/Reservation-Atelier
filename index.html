@@ -3771,9 +3771,10 @@ function ouvrirInfobulle(anchorEl, contenuHtml) {
   }
   tooltipCloseHandler = function(ev) {
     if (!tooltip.contains(ev.target)) {
-      const slotCible = ev.target.closest('.week-table td');
-      // Laisser passer seulement si c'est une case avec infobulle (data-has-tooltip)
-      const estSlotAvecInfobulle = slotCible && slotCible.dataset.hasTooltip === '1';
+      const tdCible = ev.target.closest('.week-table td');
+      const divCible = ev.target.closest('[data-has-tooltip]');
+      const estSlotAvecInfobulle = (tdCible && tdCible.dataset.hasTooltip === '1')
+                                || (divCible && divCible.dataset.hasTooltip === '1');
       fermerInfobulle();
       if (!estSlotAvecInfobulle) {
         ev.stopPropagation();
@@ -3783,7 +3784,7 @@ function ouvrirInfobulle(anchorEl, contenuHtml) {
   };
   setTimeout(() => {
     document.addEventListener('click', tooltipCloseHandler, true);
-  }, 10);
+  }, 0);
 }
 function fermerInfobulle() {
   tooltip.style.display = 'none';
