@@ -2869,9 +2869,22 @@ function renderSemaine(wrapperId) {
       const attacherInfobulle = (slot, resas) => {
         if (!resas || resas.length === 0) return;
         slot.dataset.hasTooltip = '1'; // marquer pour le handler de fermeture
-        // Desktop : survol
-        slot.addEventListener('mouseenter', () => { if (!isMobile()) ouvrirInfobulleHover(slot, resas); });
-        slot.addEventListener('mouseleave', () => { if (!isMobile()) fermerInfobulleHover(); });
+        // Desktop : survol avec infobulle enrichie + bridge (passage case→infobulle sans fermeture)
+        slot.addEventListener('mouseenter', () => {
+          if (isMobile()) return;
+          clearTimeout(slot._tooltipLeaveTimer);
+          // Ouvrir l'infobulle enrichie si pas déjà ouverte pour ce slot
+          if (tooltip._anchorSlot !== slot) {
+            ouvrirInfobulleSlotDesktop(slot, dateStr, h, hFin, wrapperId);
+          }
+        });
+        slot.addEventListener('mouseleave', () => {
+          if (isMobile()) return;
+          slot._tooltipLeaveTimer = setTimeout(() => {
+            // Fermer seulement si la souris n'est pas sur l'infobulle
+            if (!tooltip._mouseInside) fermerInfobulle();
+          }, 80);
+        });
         // Mobile : tap
         slot.addEventListener('click', (e) => {
           if (isMobile()) { ouvrirInfobulleSlot(e, dateStr, h, hFin, wrapperId); }
@@ -3743,20 +3756,61 @@ function positionTooltip(anchorEl) {
   }
 }
 
-// Desktop : infobulle légère au survol (lecture seule)
-function ouvrirInfobulleHover(anchorEl, toutesResas) {
+// Desktop : infobulle enrichie au survol (avec boutons d'action) + bridge hover
+function ouvrirInfobulleSlotDesktop(anchorEl, dateStr, h, hFin, wrapperId) {
+  fermerInfobulle();
+  const toutesResas = postesPris(dateStr, h, hFin);
+  const maResa      = toutesResas.find(r => r.userId === utilisateurCourant.id);
+  const libres      = postesDisponibles(dateStr, h, hFin);
+  const complet     = libres.length === 0;
+  const modeAdmin   = calContext === 'admin';
   const lignes = toutesResas.map(r =>
-    `<div class="tip-ligne"><span class="tip-poste">${POSTES[r.typePoste]||r.typePoste}</span><span class="tip-pseudo">→ ${r.pseudo||'—'}</span></div>`
+    `<button class="tip-btn" onclick="surlignerPlage('${r.id}')">
+      <span class="tip-poste">${POSTES[r.typePoste]||r.typePoste}</span>
+      <span class="tip-pseudo">→ ${r.pseudo||'—'}</span>
+    </button>`
   ).join('');
-  const libres = postesDisponibles(toutesResas[0].date, parseFloat(toutesResas[0].heureDebut), parseFloat(toutesResas[0].heureFin));
-  const msgComplet = libres.length === 0 ? `<div class="tip-complet">🔒 Atelier complet</div>` : '';
-  tooltip.innerHTML = lignes + msgComplet;
-  tooltip.style.pointerEvents = 'none';
+  const msgComplet = complet ? `<div class="tip-complet">🔒 Atelier complet</div>` : '';
+  let actions = '';
+  if (modeAdmin) {
+    if (!complet) actions += `<button class="tip-btn" onclick="fermerInfobulle();clickSurCreneau('${dateStr}',${h},${hFin},null,'${wrapperId}')">➕ Ajouter une réservation</button>`;
+    toutesResas.forEach(r => {
+      actions += `<button class="tip-btn danger" onclick="fermerInfobulle();confirmerSuppressionResa('${r.id}')">🗑 Annuler résa de ${r.pseudo||'—'}</button>`;
+    });
+  } else {
+    if (maResa) {
+      const debut = slotToDate(dateStr, h);
+      if ((debut - new Date()) > DELAI_ANNUL_H * 3600000)
+        actions += `<button class="tip-btn danger" onclick="fermerInfobulle();annulerReservationCalendrier('${maResa.id}','${wrapperId}')">🗑 Annuler ma réservation</button>`;
+      else
+        actions += `<div style="font-size:.76rem;color:#ffaaaa;font-style:italic;">Annulation impossible (moins de ${DELAI_ANNUL_H}h)</div>`;
+    } else if (!complet) {
+      actions += `<button class="tip-btn" onclick="fermerInfobulle();clickSurCreneau('${dateStr}',${h},${hFin},null,'${wrapperId}')">📅 Réserver un poste libre</button>`;
+    }
+  }
+  const html = `<div class="tip-actions" style="margin-top:0;border-top:none;padding-top:0;">${lignes}</div>`
+    + msgComplet
+    + (actions ? `<div class="tip-actions">${actions}</div>` : '');
+  selectionnerSlot(anchorEl);
+  tooltip.innerHTML = html;
+  tooltip.style.pointerEvents = 'auto';
   tooltip.style.display = 'block';
+  tooltip._anchorSlot = anchorEl;
+  tooltip._mouseInside = false;
   positionTooltip(anchorEl);
-}
-function fermerInfobulleHover() {
-  if (!tooltipCloseHandler) tooltip.style.display = 'none';
+  // Bridge : maintenir l'infobulle ouverte quand la souris est dessus
+  tooltip._onMouseEnter = () => {
+    tooltip._mouseInside = true;
+    clearTimeout(anchorEl._tooltipLeaveTimer);
+  };
+  tooltip._onMouseLeave = () => {
+    tooltip._mouseInside = false;
+    setTimeout(() => {
+      if (!tooltip._mouseInside) fermerInfobulle();
+    }, 80);
+  };
+  tooltip.addEventListener('mouseenter', tooltip._onMouseEnter);
+  tooltip.addEventListener('mouseleave', tooltip._onMouseLeave);
 }
 
 // Mobile : infobulle enrichie au tap (avec boutons d'action)
@@ -3788,6 +3842,16 @@ function ouvrirInfobulle(anchorEl, contenuHtml) {
 }
 function fermerInfobulle() {
   tooltip.style.display = 'none';
+  tooltip._mouseInside = false;
+  if (tooltip._onMouseEnter) {
+    tooltip.removeEventListener('mouseenter', tooltip._onMouseEnter);
+    tooltip._onMouseEnter = null;
+  }
+  if (tooltip._onMouseLeave) {
+    tooltip.removeEventListener('mouseleave', tooltip._onMouseLeave);
+    tooltip._onMouseLeave = null;
+  }
+  tooltip._anchorSlot = null;
   deselectionnerSlot();
   effacerSurbrillance();
   if (tooltipCloseHandler) {
