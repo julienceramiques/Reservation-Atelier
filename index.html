@@ -3714,6 +3714,13 @@ function effacerSurbrillance() {
 }
 
 function surlignerPlage(resaId) {
+  // Toggle : si on reclique sur la même résa, on efface la surbrillance
+  // et on remet uniquement slot-selected sur la case d'ancrage de l'infobulle
+  if (resaSurlignee === resaId) {
+    effacerSurbrillance();
+    if (tooltip._anchorSlot) selectionnerSlot(tooltip._anchorSlot);
+    return;
+  }
   effacerSurbrillance();
   if (!resaId) return;
   const resa = allResas.find(r => r.id === resaId);
