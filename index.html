@@ -2897,7 +2897,7 @@ function renderSemaine(wrapperId) {
 
       if (maResa) {
         slot.className += ' slot-mine';
-        slot.innerHTML = `<span style="font-size:.68rem;font-weight:600;">${POSTES_ABREV[maResa.typePoste]||'✓'}</span>`;
+        slot.innerHTML = `<span style="font-size:.68rem;font-weight:600;">${POSTES_ABREV[maResa.typePoste]||'✓'}</span><span style="font-size:.65rem;margin-left:2px;">👤${nbPers}</span>`;
         slot.style.cursor = 'pointer';
         // Desktop : clic ouvre la modale (annulation possible)
         slot.onclick = (e) => {
@@ -2949,7 +2949,7 @@ function renderSemaine(wrapperId) {
         const autresResas = toutesResas.filter(r => r.userId !== utilisateurCourant.id);
         if (autresResas.length > 0 && libres.length > 0) {
           slot.className += ' slot-free';
-          slot.textContent = `${libres.length}`;
+          slot.innerHTML = `<span style="font-size:.72rem;">👤${autresResas.length}</span>`;
           slot.style.cursor = 'pointer';
           slot.onclick = (e) => { if (!isMobile()) clickSurCreneau(dateStr, h, hFin, libres, wrapperId); };
           attacherInfobulle(slot, toutesResas);
