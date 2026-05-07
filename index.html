@@ -2863,10 +2863,11 @@ function renderSemaine(wrapperId) {
       // Attache infobulle survol (desktop) ou tap (mobile) selon contexte
       const attacherInfobulle = (slot, resas) => {
         if (!resas || resas.length === 0) return;
+        slot.dataset.hasTooltip = '1'; // marquer pour le handler de fermeture
         // Desktop : survol
         slot.addEventListener('mouseenter', () => { if (!isMobile()) ouvrirInfobulleHover(slot, resas); });
         slot.addEventListener('mouseleave', () => { if (!isMobile()) fermerInfobulleHover(); });
-        // Mobile : tap (onclick capte aussi touchend)
+        // Mobile : tap
         slot.addEventListener('click', (e) => {
           if (isMobile()) { ouvrirInfobulleSlot(e, dateStr, h, hFin, wrapperId); }
         });
@@ -3742,10 +3743,11 @@ function ouvrirInfobulle(anchorEl, contenuHtml) {
   }
   tooltipCloseHandler = function(ev) {
     if (!tooltip.contains(ev.target)) {
-      // Ne pas bloquer les clics sur les slots — laisser ouvrirInfobulleSlot gérer
-      const estSlot = ev.target.closest('.week-table td');
+      const slotCible = ev.target.closest('.week-table td');
+      // Laisser passer seulement si c'est une case avec infobulle (data-has-tooltip)
+      const estSlotAvecInfobulle = slotCible && slotCible.dataset.hasTooltip === '1';
       fermerInfobulle();
-      if (!estSlot) {
+      if (!estSlotAvecInfobulle) {
         ev.stopPropagation();
         ev.preventDefault();
       }
