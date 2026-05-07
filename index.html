@@ -649,6 +649,7 @@ tr:hover td { background: var(--cream); }
   line-height: 1.2;
 }
 .slot-selected { outline: 2px solid var(--terracotta) !important; outline-offset: -2px; background: rgba(193,74,34,.18) !important; }
+.slot-highlight { outline: 2px solid var(--terracotta) !important; outline-offset: -2px; background: rgba(193,74,34,.25) !important; }
 .slot-free       { background: #EAF4EC; color: var(--success); border: 1px dashed #9ECBAB; }
 .slot-free:hover { background: var(--success); color: #fff; }
 .slot-mine       { background: #DBE9F5; color: var(--info); border: 1px solid #9CBFE0; }
@@ -2839,6 +2840,7 @@ function renderSemaine(wrapperId) {
       const statut = estOuvert(dateStr, h);
       const slot   = document.createElement('div');
       slot.className = 'slot';
+      slot.id = `slot-${dateStr}-${h}`; // pour surlignerPlage
 
       if (statut === 'out') {
         slot.className += ' slot-out';
@@ -2901,7 +2903,7 @@ function renderSemaine(wrapperId) {
           attacherInfobulle(slot, toutesResas);
         } else {
           slot.onclick = () => {
-            if (tooltipCloseHandler) { fermerInfobulle(); return; }
+            if (tooltipCloseHandler) { fermerInfobulle(); deselectionnerSlot(); return; }
             clickSurCreneau(dateStr, h, hFin, libres, wrapperId);
           };
         }
@@ -2918,7 +2920,7 @@ function renderSemaine(wrapperId) {
           slot.className += ' slot-free';
           slot.textContent = `${libres.length}`;
           slot.onclick = () => {
-            if (tooltipCloseHandler) { fermerInfobulle(); return; }
+            if (tooltipCloseHandler) { fermerInfobulle(); deselectionnerSlot(); return; }
             clickSurCreneau(dateStr, h, hFin, libres, wrapperId);
           };
         }
@@ -2941,7 +2943,7 @@ function renderSemaine(wrapperId) {
           slot.className += ' slot-free';
           slot.textContent = `${libres.length}`;
           slot.onclick = () => {
-            if (tooltipCloseHandler) { fermerInfobulle(); return; }
+            if (tooltipCloseHandler) { fermerInfobulle(); deselectionnerSlot(); return; }
             clickSurCreneau(dateStr, h, hFin, libres, wrapperId);
           };
         }
@@ -3677,12 +3679,35 @@ window.soumettreinscription = async function() {
 const tooltip = document.getElementById('cal-tooltip');
 let tooltipCloseHandler = null;
 let slotSelectionne = null;
+let resaSurlignee   = null; // id de la résa dont la plage est surlignée
 
 function deselectionnerSlot() {
   if (slotSelectionne) { slotSelectionne.classList.remove('slot-selected'); slotSelectionne = null; }
 }
 function selectionnerSlot(el) {
   deselectionnerSlot(); slotSelectionne = el; el.classList.add('slot-selected');
+}
+
+function effacerSurbrillance() {
+  document.querySelectorAll('.slot-highlight').forEach(el => el.classList.remove('slot-highlight'));
+  resaSurlignee = null;
+}
+
+function surlignerPlage(resaId) {
+  effacerSurbrillance();
+  if (!resaId) return;
+  const resa = allResas.find(r => r.id === resaId);
+  if (!resa) return;
+  resaSurlignee = resaId;
+  // Trouver toutes les cases du calendrier qui correspondent à cette plage
+  const hDebut = parseFloat(resa.heureDebut);
+  const hFin   = parseFloat(resa.heureFin);
+  // Parcourir les demi-heures de la plage
+  for (let h = hDebut; h < hFin; h += 0.5) {
+    const slotId = `slot-${resa.date}-${h}`;
+    const el = document.getElementById(slotId);
+    if (el) el.classList.add('slot-highlight');
+  }
 }
 
 function positionTooltip(anchorEl) {
@@ -3760,12 +3785,14 @@ function ouvrirInfobulle(anchorEl, contenuHtml) {
 function fermerInfobulle() {
   tooltip.style.display = 'none';
   deselectionnerSlot();
+  effacerSurbrillance();
   if (tooltipCloseHandler) {
     document.removeEventListener('click', tooltipCloseHandler, true);
     tooltipCloseHandler = null;
   }
 }
-window.fermerInfobulle = fermerInfobulle;
+window.fermerInfobulle  = fermerInfobulle;
+window.surlignerPlage   = surlignerPlage;
 
 // Construit et ouvre l'infobulle enrichie (tap mobile)
 function ouvrirInfobulleSlot(e, dateStr, h, hFin, wrapperId) {
@@ -3777,7 +3804,10 @@ function ouvrirInfobulleSlot(e, dateStr, h, hFin, wrapperId) {
   const complet     = libres.length === 0;
   const modeAdmin   = calContext === 'admin';
   const lignes = toutesResas.map(r =>
-    `<div class="tip-ligne"><span class="tip-poste">${POSTES[r.typePoste]||r.typePoste}</span><span class="tip-pseudo">→ ${r.pseudo||'—'}</span></div>`
+    `<div class="tip-ligne" onclick="surlignerPlage('${r.id}')" style="cursor:pointer;border-radius:3px;padding:2px 4px;margin:-2px -4px;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.15)'" onmouseout="this.style.background=''">
+      <span class="tip-poste">${POSTES[r.typePoste]||r.typePoste}</span>
+      <span class="tip-pseudo">→ ${r.pseudo||'—'}</span>
+    </div>`
   ).join('');
   const msgComplet = complet ? `<div class="tip-complet">🔒 Atelier complet</div>` : '';
   let actions = '';
