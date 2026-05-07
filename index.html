@@ -2899,7 +2899,10 @@ function renderSemaine(wrapperId) {
           slot.onclick = (e) => { if (!isMobile()) clickSurCreneau(dateStr, h, hFin, libres, wrapperId); };
           attacherInfobulle(slot, toutesResas);
         } else {
-          slot.onclick = () => clickSurCreneau(dateStr, h, hFin, libres, wrapperId);
+          slot.onclick = () => {
+            if (tooltipCloseHandler) { fermerInfobulle(); return; }
+            clickSurCreneau(dateStr, h, hFin, libres, wrapperId);
+          };
         }
 
       } else if (calContext === 'admin') {
@@ -2913,7 +2916,10 @@ function renderSemaine(wrapperId) {
         } else {
           slot.className += ' slot-free';
           slot.textContent = `${libres.length}`;
-          slot.onclick = () => clickSurCreneau(dateStr, h, hFin, libres, wrapperId);
+          slot.onclick = () => {
+            if (tooltipCloseHandler) { fermerInfobulle(); return; }
+            clickSurCreneau(dateStr, h, hFin, libres, wrapperId);
+          };
         }
 
       } else {
@@ -2933,7 +2939,10 @@ function renderSemaine(wrapperId) {
         } else {
           slot.className += ' slot-free';
           slot.textContent = `${libres.length}`;
-          slot.onclick = () => clickSurCreneau(dateStr, h, hFin, libres, wrapperId);
+          slot.onclick = () => {
+            if (tooltipCloseHandler) { fermerInfobulle(); return; }
+            clickSurCreneau(dateStr, h, hFin, libres, wrapperId);
+          };
         }
       }
 
