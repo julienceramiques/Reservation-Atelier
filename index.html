@@ -3182,8 +3182,7 @@ function verifierQuotaAdherent(dateStr, hDebut) {
   if (slotToDate(dateStr, hDebut) <= now) return true; // passé, géré ailleurs
   const lundi = lundiDeLaSemaine(strToDate(dateStr));
   const hSem = heuresSemaine(u.id, lundi);
-  const dans7j = new Date(now); dans7j.setDate(dans7j.getDate() + 7);
-  if (hSem >= MAX_HEURES_SEM && slotToDate(dateStr, hDebut) > dans7j) {
+  if (hSem >= MAX_HEURES_SEM) {
     toast('Quota de ' + MAX_HEURES_SEM + 'h/semaine atteint (' + formatHeures(hSem) + ' réservées). Impossible de réserver ce créneau.', 'warning');
     return false;
   }
@@ -3224,9 +3223,7 @@ function clickCreneauAdherent(dateStr, hDebut, hFin, postesLibres, wrapperId) {
 
   const lundi=lundiDeLaSemaine(strToDate(dateStr));
   const hSem=heuresSemaine(u.id,lundi);
-  const dans7j=new Date(now); dans7j.setDate(dans7j.getDate()+7);
-  if (hSem>=MAX_HEURES_SEM&&slotToDate(dateStr,hDebut)>dans7j) {
-    // Bloquer directement AVANT l'ouverture de la modale
+  if (hSem>=MAX_HEURES_SEM) {
     toast('Quota de '+MAX_HEURES_SEM+'h/semaine atteint ('+formatHeures(hSem)+' réservées). Impossible de réserver ce créneau.','warning');
     return;
   }
@@ -3279,7 +3276,7 @@ window.confirmerReservation = async function() {
 
   const lundi = lundiDeLaSemaine(strToDate(dateStr));
   const hSem  = heuresSemaine(utilisateurCourant.id, lundi);
-  if (hSem + dureeH(hDebut, hFin) > MAX_HEURES_SEM) { toast('Quota '+MAX_HEURES_SEM+'h dépassé.','error'); return; }
+  if (hSem >= MAX_HEURES_SEM) { toast('Quota de '+MAX_HEURES_SEM+'h/semaine atteint.','error'); return; }
   const libres = postesDisponibles(dateStr, hDebut, hFin);
   if (!libres.includes(poste)) { toast("Ce poste vient d'être pris.",'warning'); rafraichirModaleResa(); return; }
   if (personnesPour(dateStr, hDebut, hFin) >= MAX_PERSONNES) { toast('Créneau complet.','warning'); return; }
