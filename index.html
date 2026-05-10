@@ -1465,6 +1465,10 @@ tr:hover td { background: var(--cream); }
     <div id="modal-resa-adherent-wrap" class="form-group hidden" style="margin-bottom:1rem;">
       <label class="form-label">Adhérent</label>
       <select class="form-select" id="modal-resa-adherent" onchange="rafraichirModaleResa()"></select>
+      <div id="modal-resa-quota-admin" style="margin-top:.5rem;font-size:.83rem;color:var(--earth);background:var(--beige);
+           border-radius:var(--radius-sm);padding:.4rem .65rem;display:none;">
+        ⏱ Heures réservées cette semaine : <strong id="modal-resa-quota-val">—</strong>
+      </div>
     </div>
     <div style="margin-bottom:1.25rem;">
       <div class="form-label" style="margin-bottom:.6rem;">Plage horaire</div>
@@ -3184,8 +3188,11 @@ function clickCreneauAdherent(dateStr, hDebut, hFin, postesLibres, wrapperId) {
   const lundi=lundiDeLaSemaine(strToDate(dateStr));
   const hSem=heuresSemaine(u.id,lundi);
   const dans7j=new Date(now); dans7j.setDate(dans7j.getDate()+7);
-  if (hSem>=MAX_HEURES_SEM&&slotToDate(dateStr,hDebut)>dans7j)
-    { toast('Quota de '+MAX_HEURES_SEM+'h atteint. Réservation dans les 7 prochains jours seulement.','warning'); return; }
+  if (hSem>=MAX_HEURES_SEM&&slotToDate(dateStr,hDebut)>dans7j) {
+    // Bloquer directement AVANT l'ouverture de la modale
+    toast('Quota de '+MAX_HEURES_SEM+'h/semaine atteint ('+formatHeures(hSem)+' réservées). Impossible de réserver ce créneau.','warning');
+    return;
+  }
   posteSelectionne=null;
   resaEnCours={dateStr, hDebut, hFin, postesLibres: libres, wrapperId};
   document.getElementById('modal-resa-titre').textContent='Réserver — '+joursNoms[strToDate(dateStr).getDay()]+' '+formatDate(dateStr);
@@ -4036,6 +4043,17 @@ function rafraichirModaleResa() {
   const lundi = lundiDeLaSemaine(strToDate(dateStr));
   const hSem  = heuresSemaine(u.id, lundi);
   const duree = dureeH(hDebut, hFin);
+
+  // Afficher le total hebdo de l'adhérent (mode admin uniquement)
+  const quotaDiv = document.getElementById('modal-resa-quota-admin');
+  const quotaVal = document.getElementById('modal-resa-quota-val');
+  if (modeAdmin && quotaDiv && quotaVal) {
+    const hSemAdmin = heuresSemaine(u.id, lundi);
+    quotaVal.textContent = formatHeures(hSemAdmin) + ' / ' + MAX_HEURES_SEM + 'h';
+    quotaDiv.style.display = 'block';
+  } else if (quotaDiv) {
+    quotaDiv.style.display = 'none';
+  }
 
   document.getElementById('modal-resa-heures').textContent = heureStr(hDebut)+' – '+heureStr(hFin);
   document.getElementById('modal-resa-duree').textContent  = duree>=1?formatHeures(duree):(duree*60)+' min';
