@@ -2692,7 +2692,19 @@ async function chargerReservations() {
 async function chargerExceptions() {
   try {
     const snap = await getDocs(collection(db,'exceptions'));
-    allExceptions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const today = new Date(); today.setHours(0,0,0,0);
+    const passees = [];
+    allExceptions = [];
+    snap.docs.forEach(d => {
+      const exc = { id: d.id, ...d.data() };
+      const dateExc = strToDate(exc.date);
+      if (dateExc < today) {
+        passees.push(deleteDoc(doc(db,'exceptions', exc.id)));
+      } else {
+        allExceptions.push(exc);
+      }
+    });
+    if (passees.length > 0) await Promise.all(passees);
   } catch(e) { console.error(e); }
 }
 
@@ -4590,10 +4602,11 @@ init().catch(e => {
     <!-- Quota hebdo -->
     <div class="form-group" style="margin-bottom:1.5rem;">
       <label class="form-label">⏱ Quota hebdomadaire</label>
-      <div style="display:flex;align-items:center;gap:.75rem;margin-top:.4rem;">
+      <div style="display:flex;align-items:center;gap:.75rem;margin-top:.4rem;flex-wrap:wrap;">
         <input type="number" id="param-quota" min="0.5" max="40" step="0.5" value="6"
                class="form-input" style="width:90px;">
         <span style="font-size:.85rem;color:var(--clay-lt);">heures par semaine et par adhérent</span>
+        <button class="btn btn-primary btn-sm" onclick="sauvegarderParametres()" style="margin-left:auto;">💾 Enregistrer</button>
       </div>
     </div>
 
