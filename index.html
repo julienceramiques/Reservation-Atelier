@@ -1148,7 +1148,8 @@ tr:hover td { background: var(--cream); }
       <button class="tab-btn" onclick="showAdminTab('adherents')">👥 Adhérents</button>
       <button class="tab-btn" onclick="showAdminTab('calendrier')">📅 Calendrier</button>
       <button class="tab-btn" onclick="showAdminTab('contacts')">📇 Contacts</button>
-      <button class="tab-btn" onclick="showAdminTab('exceptions')">⚙️ Exceptions</button>
+      <button class="tab-btn" onclick="showAdminTab('exceptions')">📅 Exceptions</button>
+      <button class="tab-btn" onclick="ouvrirModalParametres()">⚙️ Paramètres</button>
       <button class="tab-btn" onclick="showAdminTab('mon-compte')">🔑 Mon compte</button>
     </div>
   </div>
@@ -1586,15 +1587,16 @@ const POSTES_ABREV = {
   table_2: 'Tbl 2',
 };
 const MAX_PERSONNES   = 3;    // max simultané
-const MAX_HEURES_SEM  = 6;    // quota hebdo
+let MAX_HEURES_SEM  = 6;    // quota hebdo (modifiable via Paramètres)
 const DELAI_ANNUL_H   = 8;    // heures min avant annulation
 const JOURS_EXPIRE    = 15;   // alerte renouvellement
 const DUREE_ADH_MOIS  = 3;    // durée standard adhésion
 
 // Jours ouverts par défaut : 1=Lun … 6=Sam (0=Dim fermé)
-const JOURS_OUVERTS = [1,2,3,4,5]; // Lun à Ven (Sam fermé sauf exception)
-const H_DEBUT = 8;   // 8h00
-const H_FIN   = 19;  // 19h00
+let JOURS_OUVERTS = [1,2,3,4,5]; // modifiable via Paramètres
+let CRENEAUX_PAR_JOUR = {}; // { dow: Set<h> } créneaux ouverts par jour de semaine
+let H_DEBUT = 6;   // 6h00 (modifiable via Paramètres)
+let H_FIN   = 24;  // 24h00 (modifiable via Paramètres)
 
 // =====================================================================
 // ÉTAT GLOBAL
@@ -1998,7 +2000,7 @@ function afficherInterface() {
 // ESPACE ADHÉRENT
 // =====================================================================
 async function chargerAdherent() {
-  await Promise.all([chargerReservations(), chargerUtilisateurs()]);
+  await Promise.all([chargerReservations(), chargerUtilisateurs(), chargerParametres()]);
   afficherDashboardAdherent();
   afficherAlerteAdhesion();
 
@@ -2343,7 +2345,7 @@ async function chargerAdmin() {
   // Afficher le dashboard immédiatement pour éviter la page blanche
   showAdminTab('dashboard');
   try {
-    await Promise.all([chargerReservations(), chargerUtilisateurs(), chargerExceptions()]);
+    await Promise.all([chargerReservations(), chargerUtilisateurs(), chargerExceptions(), chargerParametres()]);
   } catch(e) {
     console.error('Erreur chargement admin:', e);
   }
@@ -2723,7 +2725,12 @@ function estOuvert(dateStr, h) {
   }
   const d = strToDate(dateStr);
   const dow = d.getDay(); // 0=Dim
-  if (!JOURS_OUVERTS.includes(dow)) return 'out'; // Dimanche ou autre
+  // Si CRENEAUX_PAR_JOUR est défini pour ce jour, l'utiliser
+  if (CRENEAUX_PAR_JOUR[dow]) {
+    return CRENEAUX_PAR_JOUR[dow].has(h) ? 'open' : 'out';
+  }
+  // Fallback legacy
+  if (!JOURS_OUVERTS.includes(dow)) return 'out';
   if (h < H_DEBUT || h >= H_FIN) return 'out';
   return 'open';
 }
@@ -2798,8 +2805,8 @@ function renderCalendrier(wrapperId) {
   if (calContext === 'admin') {
     const btnAdd = document.createElement('button');
     btnAdd.className = 'btn btn-primary btn-sm';
-    btnAdd.textContent = '+ Réservation';
-    btnAdd.onclick = ouvrirModaleResaAdmin;
+    btnAdd.textContent = '📅 Exceptions';
+    btnAdd.onclick = () => showAdminTab('exceptions');
     ctrl.append(calNav, toggleView, btnAdd);
   } else {
     ctrl.append(calNav, toggleView);
@@ -3325,6 +3332,131 @@ window.confirmerSuppressionResa = confirmerSuppressionResa;
 window.clickSurCreneau = clickSurCreneau;
 
 // =====================================================================
+
+// =====================================================================
+// PARAMÈTRES (quota + horaires) — Firebase config/parametres
+// =====================================================================
+const JOURS_SEMAINE_NOMS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+const H_PARAM_DEBUT = 6;
+const H_PARAM_FIN   = 24; // exclusif → dernière case = 23h30
+
+// Construit CRENEAUX_PAR_JOUR et met à jour H_DEBUT/H_FIN/JOURS_OUVERTS
+function appliquerParametres(params) {
+  if (!params) return;
+  if (typeof params.maxHeuresSem === 'number') MAX_HEURES_SEM = params.maxHeuresSem;
+
+  if (params.horaires) {
+    CRENEAUX_PAR_JOUR = {};
+    JOURS_OUVERTS = [];
+    let globalDebut = H_PARAM_FIN, globalFin = H_PARAM_DEBUT;
+    for (let dow = 0; dow <= 6; dow++) {
+      const creneaux = params.horaires[dow];
+      if (creneaux && creneaux.length > 0) {
+        CRENEAUX_PAR_JOUR[dow] = new Set(creneaux);
+        JOURS_OUVERTS.push(dow);
+        creneaux.forEach(h => {
+          if (h < globalDebut) globalDebut = h;
+          if (h + 0.5 > globalFin) globalFin = h + 0.5;
+        });
+      }
+    }
+    if (JOURS_OUVERTS.length > 0) {
+      H_DEBUT = globalDebut;
+      H_FIN   = globalFin;
+    }
+  }
+}
+
+async function chargerParametres() {
+  try {
+    const snap = await getDoc(doc(db, 'config', 'parametres'));
+    if (snap.exists()) appliquerParametres(snap.data());
+  } catch(e) {
+    console.warn('Paramètres non chargés:', e);
+  }
+}
+
+function ouvrirModalParametres() {
+  // Remplir le quota
+  document.getElementById('param-quota').value = MAX_HEURES_SEM;
+
+  // Construire la grille des jours
+  const grid = document.getElementById('param-jours-grid');
+  grid.innerHTML = '';
+
+  for (let dow = 1; dow <= 7; dow++) {
+    const d = dow % 7; // 1=Lun … 6=Sam 0=Dim
+    const joursActifs = CRENEAUX_PAR_JOUR[d] || new Set();
+
+    const section = document.createElement('div');
+    section.style.cssText = 'margin-bottom:1.1rem;border:1px solid var(--beige-dk);border-radius:var(--radius-md);overflow:hidden;';
+
+    // En-tête du jour avec "tout cocher / tout décocher"
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:.45rem .75rem;background:var(--beige);border-bottom:1px solid var(--beige-dk);';
+    header.innerHTML = `
+      <span style="font-weight:600;font-size:.9rem;">${JOURS_SEMAINE_NOMS[d]}</span>
+      <div style="display:flex;gap:.5rem;">
+        <button class="btn btn-sm btn-secondary" style="padding:.2rem .5rem;font-size:.72rem;"
+          onclick="(function(){document.querySelectorAll('[data-dow=\'${d}\']').forEach(cb=>cb.checked=true)})()">Tout</button>
+        <button class="btn btn-sm btn-secondary" style="padding:.2rem .5rem;font-size:.72rem;"
+          onclick="(function(){document.querySelectorAll('[data-dow=\'${d}\']').forEach(cb=>cb.checked=false)})()">Aucun</button>
+      </div>`;
+    section.appendChild(header);
+
+    // Grille des demi-heures
+    const grilleCases = document.createElement('div');
+    grilleCases.style.cssText = 'display:flex;flex-wrap:wrap;gap:3px;padding:.5rem .6rem;';
+
+    for (let h = H_PARAM_DEBUT; h < H_PARAM_FIN; h += 0.5) {
+      const label = document.createElement('label');
+      label.style.cssText = 'display:flex;flex-direction:column;align-items:center;cursor:pointer;gap:1px;min-width:38px;';
+      const hh = Math.floor(h), mm = h % 1 === 0.5 ? '30' : '00';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.dataset.dow = d;
+      cb.dataset.h = h;
+      cb.checked = joursActifs.has(h);
+      cb.style.cssText = 'width:14px;height:14px;accent-color:var(--terracotta);';
+      const txt = document.createElement('span');
+      txt.style.cssText = 'font-size:.62rem;color:var(--earth-lt);white-space:nowrap;';
+      txt.textContent = `${hh}h${mm}`;
+      label.appendChild(cb);
+      label.appendChild(txt);
+      grilleCases.appendChild(label);
+    }
+    section.appendChild(grilleCases);
+    grid.appendChild(section);
+  }
+
+  ouvrirModale('modal-parametres');
+}
+window.ouvrirModalParametres = ouvrirModalParametres;
+
+async function sauvegarderParametres() {
+  const quota = parseFloat(document.getElementById('param-quota').value);
+  if (isNaN(quota) || quota <= 0) { toast('Quota invalide.', 'warning'); return; }
+
+  // Collecter les créneaux cochés par jour
+  const horaires = {};
+  for (let dow = 0; dow <= 6; dow++) {
+    const cases = document.querySelectorAll(`[data-dow='${dow}']`);
+    const cochees = [];
+    cases.forEach(cb => { if (cb.checked) cochees.push(parseFloat(cb.dataset.h)); });
+    if (cochees.length > 0) horaires[dow] = cochees.sort((a,b)=>a-b);
+  }
+
+  const params = { maxHeuresSem: quota, horaires };
+  try {
+    await setDoc(doc(db, 'config', 'parametres'), params);
+    appliquerParametres(params);
+    toast('Paramètres enregistrés.', 'success');
+    fermerModale('modal-parametres');
+    renderCalendrier('admin-wrap');
+  } catch(e) { toast('Erreur : ' + e.message, 'error'); }
+}
+window.sauvegarderParametres = sauvegarderParametres;
+
 // EXCEPTIONS HORAIRES
 // =====================================================================
 window.ajouterException = async function() {
@@ -4410,5 +4542,40 @@ init().catch(e => {
   document.getElementById('config-error').style.display = 'flex';
 });
 </script>
+
+<!-- ===== MODALE PARAMÈTRES ===== -->
+<div id="modal-parametres" class="modal-overlay">
+  <div class="modal-box" style="max-width:680px;max-height:90vh;overflow-y:auto;">
+    <div class="modal-header">
+      <span class="modal-title">⚙️ Paramètres</span>
+      <button class="modal-close" onclick="fermerModale('modal-parametres')">✕</button>
+    </div>
+
+    <!-- Quota hebdo -->
+    <div class="form-group" style="margin-bottom:1.5rem;">
+      <label class="form-label" style="font-size:1rem;font-weight:600;">⏱ Quota hebdomadaire (heures)</label>
+      <div style="display:flex;align-items:center;gap:.75rem;margin-top:.5rem;">
+        <input type="number" id="param-quota" min="0.5" max="40" step="0.5" value="6"
+               class="form-control" style="width:90px;">
+        <span style="font-size:.85rem;color:var(--earth-lt);">heures par semaine et par adhérent</span>
+      </div>
+    </div>
+
+    <!-- Horaires par jour -->
+    <div style="margin-bottom:1.25rem;">
+      <div style="font-size:1rem;font-weight:600;margin-bottom:.75rem;">📅 Créneaux ouverts par jour</div>
+      <div style="font-size:.78rem;color:var(--earth-lt);margin-bottom:.75rem;">
+        Cochez chaque demi-heure ouverte à la réservation (6h00 → 24h00)
+      </div>
+      <div id="param-jours-grid"></div>
+    </div>
+
+    <div style="display:flex;gap:.75rem;margin-top:1.25rem;">
+      <button class="btn btn-secondary" onclick="fermerModale('modal-parametres')">Annuler</button>
+      <button class="btn btn-primary" onclick="sauvegarderParametres()">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
