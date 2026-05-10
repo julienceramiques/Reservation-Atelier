@@ -1148,8 +1148,7 @@ tr:hover td { background: var(--cream); }
       <button class="tab-btn" onclick="showAdminTab('adherents')">👥 Adhérents</button>
       <button class="tab-btn" onclick="showAdminTab('calendrier')">📅 Calendrier</button>
       <button class="tab-btn" onclick="showAdminTab('contacts')">📇 Contacts</button>
-      <button class="tab-btn" onclick="showAdminTab('exceptions')">📅 Exceptions</button>
-      <button class="tab-btn" onclick="ouvrirModalParametres()">⚙️ Paramètres</button>
+
       <button class="tab-btn" onclick="showAdminTab('mon-compte')">🔑 Mon compte</button>
     </div>
   </div>
@@ -2807,7 +2806,11 @@ function renderCalendrier(wrapperId) {
     btnAdd.className = 'btn btn-primary btn-sm';
     btnAdd.textContent = '📅 Exceptions';
     btnAdd.onclick = () => showAdminTab('exceptions');
-    ctrl.append(calNav, toggleView, btnAdd);
+    const btnParams = document.createElement('button');
+    btnParams.className = 'btn btn-secondary btn-sm';
+    btnParams.textContent = '⚙️ Paramètres';
+    btnParams.onclick = ouvrirModalParametres;
+    ctrl.append(calNav, toggleView, btnAdd, btnParams);
   } else {
     ctrl.append(calNav, toggleView);
   }
@@ -3389,11 +3392,11 @@ function ouvrirModalParametres() {
     const joursActifs = CRENEAUX_PAR_JOUR[d] || new Set();
 
     const section = document.createElement('div');
-    section.style.cssText = 'margin-bottom:1.1rem;border:1px solid var(--beige-dk);border-radius:var(--radius-md);overflow:hidden;';
+    section.style.cssText = 'margin-bottom:.85rem;border:1px solid var(--beige-dk);border-radius:var(--radius-md);overflow:hidden;box-shadow:var(--shadow-sm);';
 
     // En-tête du jour avec "tout cocher / tout décocher"
     const header = document.createElement('div');
-    header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:.45rem .75rem;background:var(--beige);border-bottom:1px solid var(--beige-dk);';
+    header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:.5rem .85rem;background:var(--beige-dk);border-bottom:1px solid var(--beige-dkk);';
     header.innerHTML = `
       <span style="font-weight:600;font-size:.9rem;">${JOURS_SEMAINE_NOMS[d]}</span>
       <div style="display:flex;gap:.5rem;">
@@ -3406,11 +3409,11 @@ function ouvrirModalParametres() {
 
     // Grille des demi-heures
     const grilleCases = document.createElement('div');
-    grilleCases.style.cssText = 'display:flex;flex-wrap:wrap;gap:3px;padding:.5rem .6rem;';
+    grilleCases.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;padding:.6rem .85rem;background:#fff;';
 
     for (let h = H_PARAM_DEBUT; h < H_PARAM_FIN; h += 0.5) {
       const label = document.createElement('label');
-      label.style.cssText = 'display:flex;flex-direction:column;align-items:center;cursor:pointer;gap:1px;min-width:38px;';
+      label.style.cssText = 'display:flex;flex-direction:column;align-items:center;cursor:pointer;gap:2px;min-width:40px;padding:.25rem .15rem;border-radius:var(--radius-sm);transition:background .15s;';
       const hh = Math.floor(h), mm = h % 1 === 0.5 ? '30' : '00';
       const cb = document.createElement('input');
       cb.type = 'checkbox';
@@ -3419,7 +3422,7 @@ function ouvrirModalParametres() {
       cb.checked = joursActifs.has(h);
       cb.style.cssText = 'width:14px;height:14px;accent-color:var(--terracotta);';
       const txt = document.createElement('span');
-      txt.style.cssText = 'font-size:.62rem;color:var(--earth-lt);white-space:nowrap;';
+      txt.style.cssText = 'font-size:.63rem;color:var(--clay-lt);white-space:nowrap;font-variant-numeric:tabular-nums;';
       txt.textContent = `${hh}h${mm}`;
       label.appendChild(cb);
       label.appendChild(txt);
@@ -4545,7 +4548,7 @@ init().catch(e => {
 
 <!-- ===== MODALE PARAMÈTRES ===== -->
 <div id="modal-parametres" class="modal-overlay">
-  <div class="modal-box" style="max-width:680px;max-height:90vh;overflow-y:auto;">
+  <div class="modal" style="max-width:680px;">
     <div class="modal-header">
       <span class="modal-title">⚙️ Paramètres</span>
       <button class="modal-close" onclick="fermerModale('modal-parametres')">✕</button>
@@ -4553,24 +4556,27 @@ init().catch(e => {
 
     <!-- Quota hebdo -->
     <div class="form-group" style="margin-bottom:1.5rem;">
-      <label class="form-label" style="font-size:1rem;font-weight:600;">⏱ Quota hebdomadaire (heures)</label>
-      <div style="display:flex;align-items:center;gap:.75rem;margin-top:.5rem;">
+      <label class="form-label">⏱ Quota hebdomadaire</label>
+      <div style="display:flex;align-items:center;gap:.75rem;margin-top:.4rem;">
         <input type="number" id="param-quota" min="0.5" max="40" step="0.5" value="6"
-               class="form-control" style="width:90px;">
-        <span style="font-size:.85rem;color:var(--earth-lt);">heures par semaine et par adhérent</span>
+               class="form-input" style="width:90px;">
+        <span style="font-size:.85rem;color:var(--clay-lt);">heures par semaine et par adhérent</span>
       </div>
     </div>
 
+    <!-- Séparateur -->
+    <hr style="border:none;border-top:1px solid var(--beige-dk);margin:0 0 1.25rem;">
+
     <!-- Horaires par jour -->
-    <div style="margin-bottom:1.25rem;">
-      <div style="font-size:1rem;font-weight:600;margin-bottom:.75rem;">📅 Créneaux ouverts par jour</div>
-      <div style="font-size:.78rem;color:var(--earth-lt);margin-bottom:.75rem;">
+    <div class="form-group" style="margin-bottom:.5rem;">
+      <label class="form-label">📅 Créneaux ouverts par jour</label>
+      <p style="font-size:.8rem;color:var(--clay-lt);margin:.25rem 0 .85rem;">
         Cochez chaque demi-heure ouverte à la réservation (6h00 → 24h00)
-      </div>
+      </p>
       <div id="param-jours-grid"></div>
     </div>
 
-    <div style="display:flex;gap:.75rem;margin-top:1.25rem;">
+    <div style="display:flex;gap:.75rem;margin-top:1.5rem;">
       <button class="btn btn-secondary" onclick="fermerModale('modal-parametres')">Annuler</button>
       <button class="btn btn-primary" onclick="sauvegarderParametres()">💾 Enregistrer</button>
     </div>
