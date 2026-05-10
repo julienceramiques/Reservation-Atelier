@@ -3373,11 +3373,34 @@ function appliquerParametres(params) {
 async function chargerParametres() {
   try {
     const snap = await getDoc(doc(db, 'config', 'parametres'));
-    if (snap.exists()) appliquerParametres(snap.data());
+    if (snap.exists()) {
+      appliquerParametres(snap.data());
+    } else {
+      // Aucun paramètre en base → appliquer les valeurs par défaut
+      appliquerParametres({ maxHeuresSem: 6, horaires: horaireParDefaut() });
+    }
   } catch(e) {
     console.warn('Paramètres non chargés:', e);
+    appliquerParametres({ maxHeuresSem: 6, horaires: horaireParDefaut() });
   }
 }
+
+// Paramètres par défaut : Lun-Ven, 8h00-18h30 (19h exclusif)
+function horaireParDefaut() {
+  const horaires = {};
+  for (let dow = 1; dow <= 5; dow++) { // 1=Lun … 5=Ven
+    const creneaux = [];
+    for (let h = 8; h < 19; h += 0.5) creneaux.push(h);
+    horaires[dow] = creneaux;
+  }
+  return horaires;
+}
+
+// Coche ou décoche toutes les cases d'un jour
+function cocherJour(dow, cocher) {
+  document.querySelectorAll(`[data-dow='${dow}']`).forEach(cb => cb.checked = cocher);
+}
+window.cocherJour = cocherJour;
 
 function ouvrirModalParametres() {
   // Remplir le quota
@@ -3389,7 +3412,11 @@ function ouvrirModalParametres() {
 
   for (let dow = 1; dow <= 7; dow++) {
     const d = dow % 7; // 1=Lun … 6=Sam 0=Dim
-    const joursActifs = CRENEAUX_PAR_JOUR[d] || new Set();
+    // Si pas de config pour ce jour, appliquer le défaut (Lun-Ven 8h-19h)
+    const defaut = horaireParDefaut();
+    const joursActifs = CRENEAUX_PAR_JOUR[d] !== undefined
+      ? CRENEAUX_PAR_JOUR[d]
+      : (defaut[d] ? new Set(defaut[d]) : new Set());
 
     const section = document.createElement('div');
     section.style.cssText = 'margin-bottom:.85rem;border:1px solid var(--beige-dk);border-radius:var(--radius-md);overflow:hidden;box-shadow:var(--shadow-sm);';
@@ -3401,9 +3428,9 @@ function ouvrirModalParametres() {
       <span style="font-weight:600;font-size:.9rem;">${JOURS_SEMAINE_NOMS[d]}</span>
       <div style="display:flex;gap:.5rem;">
         <button class="btn btn-sm btn-secondary" style="padding:.2rem .5rem;font-size:.72rem;"
-          onclick="(function(){document.querySelectorAll('[data-dow=\'${d}\']').forEach(cb=>cb.checked=true)})()">Tout</button>
+          onclick="cocherJour(${d}, true)">Tout</button>
         <button class="btn btn-sm btn-secondary" style="padding:.2rem .5rem;font-size:.72rem;"
-          onclick="(function(){document.querySelectorAll('[data-dow=\'${d}\']').forEach(cb=>cb.checked=false)})()">Aucun</button>
+          onclick="cocherJour(${d}, false)">Aucun</button>
       </div>`;
     section.appendChild(header);
 
