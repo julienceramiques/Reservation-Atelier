@@ -3021,7 +3021,7 @@ function renderSemaine(wrapperId) {
           slot.className += ' slot-free';
           slot.innerHTML = `<span style="font-size:.72rem;filter:grayscale(1) brightness(0);">👤${autresResas.length}</span>`;
           slot.style.cursor = 'pointer';
-          slot.onclick = (e) => { if (!isMobile()) clickSurCreneau(dateStr, h, hFin, libres, wrapperId); };
+          slot.onclick = (e) => { if (!isMobile()) { if (!verifierQuotaAdherent(dateStr, h)) return; clickSurCreneau(dateStr, h, hFin, libres, wrapperId); } };
           attacherInfobulle(slot, toutesResas);
         } else if (autresResas.length > 0 && libres.length === 0) {
           slot.className += ' slot-full';
@@ -3034,6 +3034,7 @@ function renderSemaine(wrapperId) {
           slot.textContent = `${libres.length}`;
           slot.onclick = () => {
             if (tooltipCloseHandler) { fermerInfobulle(); deselectionnerSlot(); return; }
+            if (!verifierQuotaAdherent(dateStr, h)) return;
             clickSurCreneau(dateStr, h, hFin, libres, wrapperId);
           };
         }
@@ -3153,6 +3154,23 @@ function exceptionFerme(dateStr) {
 // =====================================================================
 // CRÉATION DE RÉSERVATION (adhérent)
 // =====================================================================
+// Vérifie le quota hebdo adhérent AVANT d'ouvrir la modale.
+// Retourne true si on peut continuer, false si quota atteint (affiche toast).
+function verifierQuotaAdherent(dateStr, hDebut) {
+  if (calContext !== 'adherent') return true;
+  const u = utilisateurCourant;
+  const now = new Date();
+  if (slotToDate(dateStr, hDebut) <= now) return true; // passé, géré ailleurs
+  const lundi = lundiDeLaSemaine(strToDate(dateStr));
+  const hSem = heuresSemaine(u.id, lundi);
+  const dans7j = new Date(now); dans7j.setDate(dans7j.getDate() + 7);
+  if (hSem >= MAX_HEURES_SEM && slotToDate(dateStr, hDebut) > dans7j) {
+    toast('Quota de ' + MAX_HEURES_SEM + 'h/semaine atteint (' + formatHeures(hSem) + ' réservées). Impossible de réserver ce créneau.', 'warning');
+    return false;
+  }
+  return true;
+}
+
 function clickSurCreneau(dateStr, hDebut, hFin, postesLibres, wrapperId) {
   // Recalculer les postes libres si non fournis (appel depuis infobulle)
   const libres = postesLibres || postesDisponibles(dateStr, hDebut, hFin);
