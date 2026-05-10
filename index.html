@@ -2008,7 +2008,7 @@ function afficherInterface() {
 // ESPACE ADHÉRENT
 // =====================================================================
 async function chargerAdherent() {
-  await Promise.all([chargerReservations(), chargerUtilisateurs(), chargerParametres()]);
+  await Promise.all([chargerReservations(), chargerUtilisateurs(), chargerParametres(), chargerExceptions()]);
   afficherDashboardAdherent();
   afficherAlerteAdhesion();
 
