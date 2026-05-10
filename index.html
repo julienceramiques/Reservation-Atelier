@@ -48,6 +48,11 @@
            allow read: if true;
            allow write: if true; // ⚠️ Restreindre aux admins avec Firebase Auth
          }
+
+         match /config/{docId} {
+           allow read: if true;
+           allow write: if true; // ⚠️ Restreindre aux admins avec Firebase Auth
+         }
        }
      }
 
@@ -60,6 +65,7 @@
   - utilisateurs   (comptes admin + adhérents)
   - reservations   (créneaux réservés)
   - exceptions     (créneaux modifiés ponctuellement)
+  - config         (paramètres globaux : quota, horaires)
 =======================================================================
 -->
 <meta charset="UTF-8">
@@ -1365,7 +1371,10 @@ tr:hover td { background: var(--cream); }
       <!-- Exceptions -->
       <div id="tab-admin-exceptions" class="tab-content hidden">
         <div class="card mb-2">
-          <div class="card-header"><h2>Ajouter une exception horaire</h2></div>
+          <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+            <h2>Ajouter une exception horaire</h2>
+            <button class="modal-close" onclick="showAdminTab('calendrier')" title="Fermer">✕</button>
+          </div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;">
             <div class="form-group">
               <label class="form-label">Date</label>
