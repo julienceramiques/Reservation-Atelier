@@ -53,6 +53,11 @@
            allow read: if true;
            allow write: if true; // ⚠️ Restreindre aux admins avec Firebase Auth
          }
+
+         match /infos/{infoId} {
+           allow read: if true;
+           allow write: if true; // ⚠️ Restreindre aux admins avec Firebase Auth
+         }
        }
      }
 
@@ -66,6 +71,7 @@
   - reservations   (créneaux réservés)
   - exceptions     (créneaux modifiés ponctuellement)
   - config         (paramètres globaux : quota, horaires)
+  - infos          (messages admin → adhérents)
 =======================================================================
 -->
 <meta charset="UTF-8">
@@ -210,6 +216,37 @@ nav#navbar {
   color: var(--beige-dk);
   font-size: .875rem;
   display: flex; align-items: center; gap: .75rem;
+}
+.info-badge {
+  display:inline-flex;align-items:center;justify-content:center;
+  background:var(--danger);color:#fff;border-radius:50%;
+  width:16px;height:16px;font-size:.65rem;font-weight:700;
+  margin-left:4px;vertical-align:middle;
+}
+.info-card {
+  border:1px solid var(--beige-dk);border-radius:var(--radius-md);
+  padding:.85rem 1rem;margin-bottom:.75rem;background:#fff;
+  box-shadow:var(--shadow-sm);
+}
+.info-card.important {
+  border-left:4px solid var(--terracotta);background:var(--beige);
+}
+.info-card-header {
+  display:flex;align-items:baseline;justify-content:space-between;
+  margin-bottom:.4rem;gap:.5rem;flex-wrap:wrap;
+}
+.info-card-title {
+  font-family:var(--font-display);font-size:1rem;font-weight:600;
+  color:var(--earth);flex:1;
+}
+.info-card-meta {
+  font-size:.75rem;color:var(--clay-lt);white-space:nowrap;
+}
+.info-card-body { font-size:.88rem;color:var(--earth-lt);line-height:1.55;white-space:pre-wrap; }
+.info-badge-important {
+  display:inline-block;font-size:.7rem;font-weight:700;
+  background:var(--terracotta);color:#fff;border-radius:20px;
+  padding:.1rem .45rem;margin-left:.4rem;vertical-align:middle;
 }
 .nav-badge {
   background: var(--terracotta);
@@ -1143,6 +1180,7 @@ tr:hover td { background: var(--cream); }
       <button class="tab-btn" onclick="showAdherentTab('calendrier')">📅 Calendrier</button>
       <button class="tab-btn" onclick="showAdherentTab('mes-reservations')">📋 Mes réservations</button>
       <button class="tab-btn" onclick="showAdherentTab('contacts')">📇 Contacts</button>
+      <button class="tab-btn" onclick="showAdherentTab('infos')">📢 Infos <span id="adh-infos-badge" class="info-badge hidden"></span></button>
       <button class="tab-btn" onclick="showAdherentTab('mon-compte')">👤 Mon compte</button>
     </div>
   </div>
@@ -1154,6 +1192,7 @@ tr:hover td { background: var(--cream); }
       <button class="tab-btn" onclick="showAdminTab('adherents')">👥 Adhérents</button>
       <button class="tab-btn" onclick="showAdminTab('calendrier')">📅 Calendrier</button>
       <button class="tab-btn" onclick="showAdminTab('contacts')">📇 Contacts</button>
+      <button class="tab-btn" onclick="showAdminTab('infos')">📢 Infos</button>
 
       <button class="tab-btn" onclick="showAdminTab('mon-compte')">🔑 Mon compte</button>
     </div>
@@ -1230,6 +1269,13 @@ tr:hover td { background: var(--cream); }
       </div>
 
       <!-- Mon compte -->
+      <div id="tab-adh-infos" class="tab-content hidden">
+        <div class="card">
+          <div class="card-header"><h2>📢 Informations</h2></div>
+          <div id="adh-infos-list" style="padding:.75rem 0 0;"></div>
+        </div>
+      </div>
+
       <div id="tab-adh-mon-compte" class="tab-content hidden">
 
         <!-- Bloc : Mes informations -->
@@ -1409,6 +1455,34 @@ tr:hover td { background: var(--cream); }
       </div>
 
       <!-- Contacts (admin) -->
+      <div id="tab-admin-infos" class="tab-content hidden">
+        <div class="card" style="margin-bottom:1.25rem;">
+          <div class="card-header"><h2>✏️ Publier un message</h2></div>
+          <div style="padding:.75rem 0 0;">
+            <div class="form-group">
+              <label class="form-label">Titre</label>
+              <input type="text" id="info-titre" class="form-input" placeholder="Titre du message…" maxlength="100">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Contenu</label>
+              <textarea id="info-contenu" class="form-input" rows="4"
+                style="resize:vertical;" placeholder="Rédigez votre message…"></textarea>
+            </div>
+            <div class="form-group" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+              <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.88rem;">
+                <input type="checkbox" id="info-important" style="accent-color:var(--terracotta);width:15px;height:15px;">
+                <span>⚠️ Message important</span>
+              </label>
+              <button class="btn btn-primary" onclick="publierInfo()" style="margin-left:auto;">📢 Publier</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h2>📋 Messages publiés</h2></div>
+          <div id="admin-infos-list" style="padding:.75rem 0 0;"></div>
+        </div>
+      </div>
+
       <div id="tab-admin-contacts" class="tab-content hidden">
         <div class="card">
           <div class="card-header"><h2>📇 Contacts membres</h2>
@@ -2008,7 +2082,7 @@ function afficherInterface() {
 // ESPACE ADHÉRENT
 // =====================================================================
 async function chargerAdherent() {
-  await Promise.all([chargerReservations(), chargerUtilisateurs(), chargerParametres(), chargerExceptions()]);
+  await Promise.all([chargerReservations(), chargerUtilisateurs(), chargerParametres(), chargerExceptions(), chargerInfos()]);
   afficherDashboardAdherent();
   afficherAlerteAdhesion();
 
@@ -2021,15 +2095,16 @@ async function chargerAdherent() {
 
 window.showAdherentTab = function(tab) {
   document.querySelectorAll('#tabs-adherent .tab-btn').forEach(b=>b.classList.remove('active'));
-  ['dashboard','calendrier','mes-reservations','contacts','mon-compte'].forEach(t=>{
+  ['dashboard','calendrier','mes-reservations','contacts','infos','mon-compte'].forEach(t=>{
     const el=document.getElementById('tab-adh-'+t); if(el) el.classList.add('hidden');
   });
-  const idx=['dashboard','calendrier','mes-reservations','contacts','mon-compte'].indexOf(tab);
+  const idx=['dashboard','calendrier','mes-reservations','contacts','infos','mon-compte'].indexOf(tab);
   document.querySelectorAll('#tabs-adherent .tab-btn')[idx]?.classList.add('active');
   const el=document.getElementById('tab-adh-'+tab); if(el) el.classList.remove('hidden');
   if (tab==='calendrier') renderCalendrier('adherent-wrap');
   else if (tab==='mes-reservations') afficherMesReservations();
   else if (tab==='contacts') afficherContacts('adh');
+  else if (tab==='infos') afficherInfosAdherent();
   else if (tab==='mon-compte') afficherInfosMonCompte();
 };
 
@@ -2353,7 +2428,7 @@ async function chargerAdmin() {
   // Afficher le dashboard immédiatement pour éviter la page blanche
   showAdminTab('dashboard');
   try {
-    await Promise.all([chargerReservations(), chargerUtilisateurs(), chargerExceptions(), chargerParametres()]);
+    await Promise.all([chargerReservations(), chargerUtilisateurs(), chargerExceptions(), chargerParametres(), chargerInfos()]);
   } catch(e) {
     console.error('Erreur chargement admin:', e);
   }
@@ -2383,16 +2458,17 @@ async function chargerAdmin() {
 
 window.showAdminTab = function(tab) {
   document.querySelectorAll('#tabs-admin .tab-btn').forEach(b=>b.classList.remove('active'));
-  ['dashboard','adherents','calendrier','contacts','exceptions','mon-compte'].forEach(t=>{
+  ['dashboard','adherents','calendrier','contacts','infos','exceptions','mon-compte'].forEach(t=>{
     const el=document.getElementById('tab-admin-'+t); if(el) el.classList.add('hidden');
   });
-  const tabs=['dashboard','adherents','calendrier','contacts','exceptions','mon-compte'];
+  const tabs=['dashboard','adherents','calendrier','contacts','infos','exceptions','mon-compte'];
   document.querySelectorAll('#tabs-admin .tab-btn')[tabs.indexOf(tab)]?.classList.add('active');
   const el=document.getElementById('tab-admin-'+tab); if(el) el.classList.remove('hidden');
   if (tab==='adherents')  afficherTableauAdherents();
   if (tab==='calendrier') renderCalendrier('admin-wrap');
   if (tab==='exceptions') afficherExceptions();
   if (tab==='contacts')   afficherContacts('admin');
+  if (tab==='infos')      afficherInfosAdmin();
 };
 
 async function afficherDashboardAdmin() {
@@ -3355,6 +3431,142 @@ window.clickSurCreneau = clickSurCreneau;
 // =====================================================================
 
 // =====================================================================
+
+// =====================================================================
+// INFOS — messages admin → adhérents
+// =====================================================================
+let allInfos = [];
+
+async function chargerInfos() {
+  try {
+    const snap = await getDocs(collection(db, 'infos'));
+    allInfos = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    mettreAJourBadgeInfos();
+  } catch(e) { console.warn('Infos non chargées:', e); }
+}
+
+function mettreAJourBadgeInfos() {
+  const badge = document.getElementById('adh-infos-badge');
+  if (!badge) return;
+  const lastVu = parseInt(localStorage.getItem('infos_last_vu') || '0');
+  const nb = allInfos.filter(i => i.actif && (i.timestamp || 0) > lastVu).length;
+  if (nb > 0) {
+    badge.textContent = nb > 9 ? '9+' : nb;
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+}
+
+function marquerInfosVues() {
+  localStorage.setItem('infos_last_vu', Date.now().toString());
+  const badge = document.getElementById('adh-infos-badge');
+  if (badge) badge.classList.add('hidden');
+}
+
+// ── Adhérent : afficher les infos actives ──────────────────────────
+function afficherInfosAdherent() {
+  marquerInfosVues();
+  const el = document.getElementById('adh-infos-list');
+  if (!el) return;
+  const actives = allInfos.filter(i => i.actif);
+  if (actives.length === 0) {
+    el.innerHTML = '<p class="text-muted" style="padding:.5rem 0;">Aucun message pour le moment.</p>';
+    return;
+  }
+  el.innerHTML = actives.map(info => `
+    <div class="info-card ${info.important ? 'important' : ''}">
+      <div class="info-card-header">
+        <span class="info-card-title">
+          ${info.important ? '<span class="info-badge-important">⚠️ Important</span> ' : ''}${escHtml(info.titre)}
+        </span>
+        <span class="info-card-meta">${formatDateTs(info.timestamp)}</span>
+      </div>
+      <div class="info-card-body">${escHtml(info.contenu)}</div>
+    </div>`).join('');
+}
+
+// ── Admin : afficher et gérer les infos ───────────────────────────
+function afficherInfosAdmin() {
+  const el = document.getElementById('admin-infos-list');
+  if (!el) return;
+  if (allInfos.length === 0) {
+    el.innerHTML = '<p class="text-muted" style="padding:.5rem 0;">Aucun message publié.</p>';
+    return;
+  }
+  el.innerHTML = allInfos.map(info => `
+    <div class="info-card ${info.important ? 'important' : ''}" style="opacity:${info.actif ? 1 : .5};">
+      <div class="info-card-header">
+        <span class="info-card-title">
+          ${info.important ? '<span class="info-badge-important">⚠️ Important</span> ' : ''}${escHtml(info.titre)}
+          ${!info.actif ? '<span style="font-size:.72rem;color:var(--clay-lt);margin-left:.4rem;">(masqué)</span>' : ''}
+        </span>
+        <span class="info-card-meta">${formatDateTs(info.timestamp)}</span>
+      </div>
+      <div class="info-card-body" style="margin-bottom:.6rem;">${escHtml(info.contenu)}</div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+        <button class="btn btn-sm btn-secondary" onclick="toggleInfoActif('${info.id}', ${!info.actif})">
+          ${info.actif ? '🙈 Masquer' : '👁 Afficher'}
+        </button>
+        <button class="btn btn-sm btn-danger" onclick="supprimerInfo('${info.id}')">🗑 Supprimer</button>
+      </div>
+    </div>`).join('');
+}
+
+window.publierInfo = async function() {
+  const titre   = document.getElementById('info-titre').value.trim();
+  const contenu = document.getElementById('info-contenu').value.trim();
+  const important = document.getElementById('info-important').checked;
+  if (!titre) { toast('Le titre est obligatoire.', 'warning'); return; }
+  if (!contenu) { toast('Le contenu est obligatoire.', 'warning'); return; }
+  try {
+    const ref = await addDoc(collection(db, 'infos'), {
+      titre, contenu, important,
+      actif: true,
+      timestamp: Date.now(),
+      auteur: utilisateurCourant.pseudo || 'Admin'
+    });
+    allInfos.unshift({ id: ref.id, titre, contenu, important, actif: true, timestamp: Date.now() });
+    document.getElementById('info-titre').value = '';
+    document.getElementById('info-contenu').value = '';
+    document.getElementById('info-important').checked = false;
+    afficherInfosAdmin();
+    toast('Message publié.', 'success');
+  } catch(e) { toast('Erreur : ' + e.message, 'error'); }
+};
+
+window.toggleInfoActif = async function(id, nouvelEtat) {
+  try {
+    await updateDoc(doc(db, 'infos', id), { actif: nouvelEtat });
+    const info = allInfos.find(i => i.id === id);
+    if (info) info.actif = nouvelEtat;
+    afficherInfosAdmin();
+  } catch(e) { toast('Erreur : ' + e.message, 'error'); }
+};
+
+window.supprimerInfo = async function(id) {
+  if (!confirm('Supprimer ce message définitivement ?')) return;
+  try {
+    await deleteDoc(doc(db, 'infos', id));
+    allInfos = allInfos.filter(i => i.id !== id);
+    afficherInfosAdmin();
+    toast('Message supprimé.', 'success');
+  } catch(e) { toast('Erreur : ' + e.message, 'error'); }
+};
+
+function formatDateTs(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  return d.toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' })
+    + ' ' + d.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+}
+
+function escHtml(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
 // PARAMÈTRES (quota + horaires) — Firebase config/parametres
 // =====================================================================
 const JOURS_SEMAINE_NOMS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
