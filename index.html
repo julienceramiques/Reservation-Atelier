@@ -1886,6 +1886,16 @@ async function init() {
         }
 
         const { motDePasse, ...safeUser } = utilisateurCourant;
+        // Si atelierSession n'existait pas encore → connexion fraîche (pas actualisation)
+        // On efface les clés de navigation pour repartir sur le tableau de bord
+        const estActualisation = !!sessionStorage.getItem('atelierSession');
+        if (!estActualisation) {
+          localStorage.removeItem('adh_tab');
+          localStorage.removeItem('admin_tab');
+          localStorage.removeItem('cal_week');
+          localStorage.removeItem('cal_month');
+          localStorage.removeItem('cal_view');
+        }
         sessionStorage.setItem('atelierSession', JSON.stringify(safeUser));
 
         // Surveiller en temps réel le document de l'adhérent connecté
