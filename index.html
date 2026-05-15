@@ -2054,6 +2054,9 @@ window.deconnexion = async function() {
   sessionStorage.removeItem('atelierSession');
   localStorage.removeItem('adh_tab');
   localStorage.removeItem('admin_tab');
+  localStorage.removeItem('cal_week');
+  localStorage.removeItem('cal_month');
+  localStorage.removeItem('cal_view');
   allResas = []; allUsers = []; allExceptions = [];
   afficherAuth();
 };
@@ -2108,7 +2111,8 @@ async function chargerAdherent() {
   calView   = 'week';
   calContext = 'adherent';
 
-  // Restaurer l'onglet actif avant actualisation
+  // Restaurer position calendrier et onglet actif avant actualisation
+  restaurerPositionCal();
   const tabAdh = localStorage.getItem('adh_tab') || 'dashboard';
   window._restoringTab = true;
   showAdherentTab(tabAdh);
@@ -2483,7 +2487,8 @@ async function chargerAdmin() {
     toast('⚠️ Bienvenue ! Pensez à changer votre mot de passe admin.', 'warning', 7000);
   }
 
-  // Restaurer l'onglet actif avant actualisation
+  // Restaurer position calendrier et onglet actif avant actualisation
+  restaurerPositionCal();
   const tabAdmin = localStorage.getItem('admin_tab') || 'dashboard';
   if (tabAdmin !== 'dashboard') {
     window._restoringTab = true;
@@ -2972,6 +2977,21 @@ function renderCalendrier(wrapperId) {
   }
 }
 
+function sauvegarderPositionCal() {
+  localStorage.setItem('cal_week', calCurrentWeek ? calCurrentWeek.getTime() : '');
+  localStorage.setItem('cal_month', calCurrentMonth ? calCurrentMonth.getTime() : '');
+  localStorage.setItem('cal_view', calView);
+}
+
+function restaurerPositionCal() {
+  const savedView  = localStorage.getItem('cal_view');
+  const savedWeek  = localStorage.getItem('cal_week');
+  const savedMonth = localStorage.getItem('cal_month');
+  if (savedView)  calView = savedView;
+  if (savedWeek  && !isNaN(savedWeek))  calCurrentWeek  = new Date(parseInt(savedWeek));
+  if (savedMonth && !isNaN(savedMonth)) calCurrentMonth = new Date(parseInt(savedMonth));
+}
+
 function naviguerCal(dir) {
   if (calView === 'week') {
     calCurrentWeek = new Date(calCurrentWeek);
@@ -2979,6 +2999,7 @@ function naviguerCal(dir) {
   } else {
     calCurrentMonth = new Date(calCurrentMonth.getFullYear(), calCurrentMonth.getMonth() + dir, 1);
   }
+  sauvegarderPositionCal();
 }
 
 function titreCal() {
@@ -3272,6 +3293,7 @@ function celleMois(d, autresMois, wrapperId) {
     cell.onclick = () => {
       calView = 'week';
       calCurrentWeek = lundiDeLaSemaine(d);
+      sauvegarderPositionCal();
       renderCalendrier(wrapperId);
     };
   }
@@ -3760,6 +3782,22 @@ window.ajouterException = async function() {
 
   if (!date || isNaN(debut) || isNaN(fin) || fin <= debut) {
     toast('Vérifiez les champs date et horaires.','warning'); return;
+  }
+
+  // Si fermeture exceptionnelle, vérifier qu'aucune réservation n'existe sur cette plage
+  if (type === 'ferme') {
+    const resasSurPlage = allResas.filter(r => {
+      if (r.date !== date) return false;
+      const rDebut = parseFloat(r.heureDebut);
+      const rFin   = parseFloat(r.heureFin);
+      // Chevauchement : les plages se croisent si rDebut < fin ET rFin > debut
+      return rDebut < fin && rFin > debut;
+    });
+    if (resasSurPlage.length > 0) {
+      const noms = resasSurPlage.map(r => `${r.pseudo||'—'} (${heureStr(r.heureDebut)}–${heureStr(r.heureFin)})`).join(', ');
+      toast(`Impossible : ${resasSurPlage.length} réservation(s) existe(nt) sur cette plage — ${noms}`, 'error', 7000);
+      return;
+    }
   }
 
   try {
