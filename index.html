@@ -701,8 +701,8 @@ tr:hover td { background: var(--cream); }
 .slot-mine       { background: #DBE9F5; color: var(--info); border: 1px solid #9CBFE0; }
 .slot-mine:hover { background: #c5dff0; }
 .slot-other      { background: #FDEFD6; color: #8A5C10; border: 1px solid #F0C87A; cursor: default; }
-.slot-full       { background: #EEEEEE; color: #999; border: 1px solid #AAAAAA; cursor: not-allowed; }
-.slot-closed     { background: #EEEEEE; color: #999; border: none; cursor: not-allowed; }
+.slot-full       { background: #EEEEEE; color: #999; border: 1px solid #AAAAAA; cursor: default; }
+.slot-closed     { background: #EEEEEE; color: #999; border: none; cursor: default; }
 .slot-exception-open { background: #EAF4EC; color: var(--success); border: none; }
 .slot-out        { background: #EEEEEE; border: none; cursor: default; }
 .slot-past       { opacity: .22; cursor: default; pointer-events: none; }
@@ -1180,7 +1180,7 @@ tr:hover td { background: var(--cream); }
       <button class="tab-btn" onclick="showAdherentTab('calendrier')">📅 Calendrier</button>
       <button class="tab-btn" onclick="showAdherentTab('mes-reservations')">📋 Mes réservations</button>
       <button class="tab-btn" onclick="showAdherentTab('contacts')">📇 Contacts</button>
-      <button class="tab-btn" onclick="showAdherentTab('infos')">📢 Infos <span id="adh-infos-badge" class="info-badge hidden"></span></button>
+      <button class="tab-btn" onclick="showAdherentTab('infos')">✉️ Infos <span id="adh-infos-badge" class="info-badge hidden"></span></button>
       <button class="tab-btn" onclick="showAdherentTab('mon-compte')">👤 Mon compte</button>
     </div>
   </div>
@@ -1192,7 +1192,7 @@ tr:hover td { background: var(--cream); }
       <button class="tab-btn" onclick="showAdminTab('adherents')">👥 Adhérents</button>
       <button class="tab-btn" onclick="showAdminTab('calendrier')">📅 Calendrier</button>
       <button class="tab-btn" onclick="showAdminTab('contacts')">📇 Contacts</button>
-      <button class="tab-btn" onclick="showAdminTab('infos')">📢 Infos</button>
+      <button class="tab-btn" onclick="showAdminTab('infos')">✉️ Infos</button>
 
       <button class="tab-btn" onclick="showAdminTab('mon-compte')">🔑 Mon compte</button>
     </div>
@@ -1271,7 +1271,7 @@ tr:hover td { background: var(--cream); }
       <!-- Mon compte -->
       <div id="tab-adh-infos" class="tab-content hidden">
         <div class="card">
-          <div class="card-header"><h2>📢 Informations</h2></div>
+          <div class="card-header"><h2>✉️ Informations</h2></div>
           <div id="adh-infos-list" style="padding:.75rem 0 0;"></div>
         </div>
       </div>
@@ -1473,7 +1473,7 @@ tr:hover td { background: var(--cream); }
                 <input type="checkbox" id="info-important" style="accent-color:var(--terracotta);width:15px;height:15px;">
                 <span>⚠️ Message important</span>
               </label>
-              <button class="btn btn-primary" onclick="publierInfo()" style="margin-left:auto;">📢 Publier</button>
+              <button class="btn btn-primary" onclick="publierInfo()" style="margin-left:auto;">📤 Publier</button>
             </div>
           </div>
         </div>
