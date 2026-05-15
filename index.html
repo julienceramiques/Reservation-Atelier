@@ -2092,13 +2092,15 @@ async function chargerAdherent() {
 
   // Restaurer l'onglet actif avant actualisation
   const tabAdh = localStorage.getItem('adh_tab') || 'dashboard';
+  window._restoringTab = true;
   showAdherentTab(tabAdh);
+  window._restoringTab = false;
   afficherAlerteAdhesion();
   if (tabAdh === 'dashboard') afficherDashboardAdherent();
 }
 
 window.showAdherentTab = function(tab) {
-  localStorage.setItem('adh_tab', tab);
+  if (!window._restoringTab) localStorage.setItem('adh_tab', tab);
   document.querySelectorAll('#tabs-adherent .tab-btn').forEach(b=>b.classList.remove('active'));
   ['dashboard','calendrier','mes-reservations','contacts','infos','mon-compte'].forEach(t=>{
     const el=document.getElementById('tab-adh-'+t); if(el) el.classList.add('hidden');
@@ -2431,7 +2433,10 @@ window.changerMotDePasse = async function() {
 // =====================================================================
 async function chargerAdmin() {
   // Afficher le dashboard immédiatement pour éviter la page blanche
+  // (sans écraser le tab sauvegardé en localStorage)
+  window._restoringTab = true;
   showAdminTab('dashboard');
+  window._restoringTab = false;
   try {
     await Promise.all([chargerReservations(), chargerUtilisateurs(), chargerExceptions(), chargerParametres(), chargerInfos()]);
   } catch(e) {
@@ -2462,11 +2467,15 @@ async function chargerAdmin() {
 
   // Restaurer l'onglet actif avant actualisation
   const tabAdmin = localStorage.getItem('admin_tab') || 'dashboard';
-  if (tabAdmin !== 'dashboard') showAdminTab(tabAdmin);
+  if (tabAdmin !== 'dashboard') {
+    window._restoringTab = true;
+    showAdminTab(tabAdmin);
+    window._restoringTab = false;
+  }
 }
 
 window.showAdminTab = function(tab) {
-  localStorage.setItem('admin_tab', tab);
+  if (!window._restoringTab) localStorage.setItem('admin_tab', tab);
   document.querySelectorAll('#tabs-admin .tab-btn').forEach(b=>b.classList.remove('active'));
   ['dashboard','adherents','calendrier','contacts','infos','exceptions','mon-compte'].forEach(t=>{
     const el=document.getElementById('tab-admin-'+t); if(el) el.classList.add('hidden');
