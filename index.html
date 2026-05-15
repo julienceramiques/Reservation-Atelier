@@ -1194,7 +1194,7 @@ tr:hover td { background: var(--cream); }
       <button class="tab-btn" onclick="showAdminTab('contacts')">📇 Contacts</button>
       <button class="tab-btn" onclick="showAdminTab('infos')">✉️ Infos</button>
 
-      <button class="tab-btn" onclick="showAdminTab('mon-compte')">🔑 Mon compte</button>
+      <button class="tab-btn" onclick="showAdminTab('mon-compte')">⚙️ Mon compte</button>
     </div>
   </div>
 
@@ -1468,6 +1468,16 @@ tr:hover td { background: var(--cream); }
               <textarea id="info-contenu" class="form-input" rows="4"
                 style="resize:vertical;" placeholder="Rédigez votre message…"></textarea>
             </div>
+            <div class="form-group" style="display:flex;gap:1.25rem;flex-wrap:wrap;">
+              <div style="flex:1;min-width:180px;">
+                <label class="form-label">📅 Date de publication <span style="font-weight:400;color:var(--clay-lt);">(vide = immédiate)</span></label>
+                <input type="date" id="info-date-pub" class="form-input" style="margin-top:.3rem;">
+              </div>
+              <div style="flex:1;min-width:180px;">
+                <label class="form-label">🗑 Date de suppression <span style="font-weight:400;color:var(--clay-lt);">(vide = jamais)</span></label>
+                <input type="date" id="info-date-sup" class="form-input" style="margin-top:.3rem;">
+              </div>
+            </div>
             <div class="form-group" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
               <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.88rem;">
                 <input type="checkbox" id="info-important" style="accent-color:var(--terracotta);width:15px;height:15px;">
@@ -1494,7 +1504,7 @@ tr:hover td { background: var(--cream); }
       <!-- Mon compte admin -->
       <div id="tab-admin-mon-compte" class="tab-content hidden">
         <div class="card" style="max-width:480px;">
-          <div class="card-header"><h2>🔑 Mon compte admin</h2></div>
+          <div class="card-header"><h2>⚙️ Mon compte admin</h2></div>
           <div class="form-group"><label class="form-label">Nouveau mot de passe</label>
             <div class="mdp-wrap">
               <input class="form-input" id="admin-new-mdp" type="password" placeholder="Min. 6 caractères">
@@ -3494,9 +3504,27 @@ let allInfos = [];
 async function chargerInfos() {
   try {
     const snap = await getDocs(collection(db, 'infos'));
-    allInfos = snap.docs
-      .map(d => ({ id: d.id, ...d.data() }))
-      .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    const today = new Date().toISOString().substring(0, 10);
+    const aSupprimer = [];
+    const aActiver   = [];
+    allInfos = [];
+    snap.docs.forEach(d => {
+      const info = { id: d.id, ...d.data() };
+      // Suppression automatique si date dépassée
+      if (info.dateSup && info.dateSup <= today) {
+        aSupprimer.push(deleteDoc(doc(db, 'infos', info.id)));
+        return; // ne pas inclure dans allInfos
+      }
+      // Activation différée si date de publication atteinte
+      if (info.datePub && info.datePub <= today && !info.actif) {
+        aActiver.push(updateDoc(doc(db, 'infos', info.id), { actif: true }));
+        info.actif = true;
+      }
+      allInfos.push(info);
+    });
+    if (aSupprimer.length > 0) await Promise.all(aSupprimer);
+    if (aActiver.length > 0)   await Promise.all(aActiver);
+    allInfos.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
     mettreAJourBadgeInfos();
   } catch(e) { console.warn('Infos non chargées:', e); }
 }
@@ -3557,7 +3585,11 @@ function afficherInfosAdmin() {
           ${info.important ? '<span class="info-badge-important">⚠️ Important</span> ' : ''}${escHtml(info.titre)}
           ${!info.actif ? '<span style="font-size:.72rem;color:var(--clay-lt);margin-left:.4rem;">(masqué)</span>' : ''}
         </span>
-        <span class="info-card-meta">${formatDateTs(info.timestamp)}</span>
+        <div class="info-card-meta" style="text-align:right;line-height:1.6;">
+          ${info.datePub && info.datePub > new Date().toISOString().substring(0,10) ? '<span style="color:var(--clay-lt);font-style:italic;">📅 Pub : '+info.datePub+'</span><br>' : ''}
+          ${info.dateSup ? '<span style="color:var(--clay-lt);">🗑 Sup : '+info.dateSup+'</span><br>' : ''}
+          ${formatDateTs(info.timestamp)}
+        </div>
       </div>
       <div class="info-card-body" style="margin-bottom:.6rem;">${escHtml(info.contenu)}</div>
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
@@ -3570,24 +3602,32 @@ function afficherInfosAdmin() {
 }
 
 window.publierInfo = async function() {
-  const titre   = document.getElementById('info-titre').value.trim();
-  const contenu = document.getElementById('info-contenu').value.trim();
+  const titre     = document.getElementById('info-titre').value.trim();
+  const contenu   = document.getElementById('info-contenu').value.trim();
   const important = document.getElementById('info-important').checked;
-  if (!titre) { toast('Le titre est obligatoire.', 'warning'); return; }
+  const datePub   = document.getElementById('info-date-pub').value;   // "YYYY-MM-DD" ou ""
+  const dateSup   = document.getElementById('info-date-sup').value;   // "YYYY-MM-DD" ou ""
+  if (!titre)   { toast('Le titre est obligatoire.', 'warning'); return; }
   if (!contenu) { toast('Le contenu est obligatoire.', 'warning'); return; }
+  if (dateSup && datePub && dateSup <= datePub) {
+    toast('La date de suppression doit être postérieure à la date de publication.', 'warning'); return;
+  }
+  const now = Date.now();
+  // actif : true si pas de date de publication ou si date pub déjà passée
+  const actif = !datePub || datePub <= new Date().toISOString().substring(0,10);
   try {
-    const ref = await addDoc(collection(db, 'infos'), {
-      titre, contenu, important,
-      actif: true,
-      timestamp: Date.now(),
-      auteur: utilisateurCourant.pseudo || 'Admin'
-    });
-    allInfos.unshift({ id: ref.id, titre, contenu, important, actif: true, timestamp: Date.now() });
+    const data = { titre, contenu, important, actif, timestamp: now,
+                   auteur: utilisateurCourant.pseudo || 'Admin',
+                   datePub: datePub || null, dateSup: dateSup || null };
+    const ref = await addDoc(collection(db, 'infos'), data);
+    allInfos.unshift({ id: ref.id, ...data });
     document.getElementById('info-titre').value = '';
     document.getElementById('info-contenu').value = '';
     document.getElementById('info-important').checked = false;
+    document.getElementById('info-date-pub').value = '';
+    document.getElementById('info-date-sup').value = '';
     afficherInfosAdmin();
-    toast('Message publié.', 'success');
+    toast(actif ? 'Message publié.' : 'Message programmé.', 'success');
   } catch(e) { toast('Erreur : ' + e.message, 'error'); }
 };
 
