@@ -3043,8 +3043,10 @@ function renderSemaine(wrapperId) {
       slot.className = 'slot';
       slot.id = `slot-${dateStr}-${h}`; // pour surlignerPlage
 
+      const isPast = slotToDate(dateStr,hFin) <= new Date();
+
       if (statut === 'out') {
-        slot.className += ' slot-out';
+        slot.className += isPast ? ' slot-out slot-past' : ' slot-out';
         td.appendChild(slot); tr.appendChild(td); return;
       }
       if (statut === 'closed') {
@@ -3052,8 +3054,6 @@ function renderSemaine(wrapperId) {
         slot.textContent = 'Fermé';
         td.appendChild(slot); tr.appendChild(td); return;
       }
-
-      const isPast = slotToDate(dateStr,hFin) <= new Date();
       if (isPast) {
         // Cases passées : afficher en lecture seule avec opacité réduite
         const toutesResasPast = postesPris(dateStr, h, hFin);
