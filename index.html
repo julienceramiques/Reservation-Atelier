@@ -2956,8 +2956,7 @@ function renderCalendrier(wrapperId) {
   legend.style.cssText = 'display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem;font-size:.75rem;';
   const legendItems = [
     ['#EAF4EC','var(--success)','Libre'],
-    ['#DBE9F5','var(--info)','Ma réservation'],
-    ...(calContext==='admin'?[['#FDEFD6','#8A5C10','Autre adhérent']]:[]),
+    ...(calContext!=='admin'?[['#DBE9F5','var(--info)','Ma réservation']]:[]),
     ['#EEEEEE','#AAAAAA','Complet ou Fermé'],
   ];
   legend.innerHTML = legendItems.map(([bg,color,label]) =>
@@ -3142,10 +3141,9 @@ function renderSemaine(wrapperId) {
         }
 
       } else if (calContext === 'admin') {
-        const autresResas = toutesResas.filter(r => r.userId !== utilisateurCourant.id);
-        if (autresResas.length > 0) {
-          slot.className += ' slot-other';
-          slot.innerHTML = `<span style="font-size:.68rem">${autresResas.length}👤</span>`;
+        if (toutesResas.length > 0) {
+          slot.className += ' slot-free';
+          slot.innerHTML = `<span style="font-size:.72rem;filter:grayscale(1) brightness(0);">👤${toutesResas.length}</span>`;
           slot.style.cursor = 'pointer';
           slot.onclick = (e) => { if (!isMobile()) clickSurCreneau(dateStr, h, hFin, libres, wrapperId); };
           attacherInfobulle(slot, toutesResas);
