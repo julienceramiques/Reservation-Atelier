@@ -2034,6 +2034,8 @@ window.deconnexion = async function() {
   try { await signOut(auth); } catch(e) { console.error(e); }
   utilisateurCourant = null;
   sessionStorage.removeItem('atelierSession');
+  localStorage.removeItem('adh_tab');
+  localStorage.removeItem('admin_tab');
   allResas = []; allUsers = []; allExceptions = [];
   afficherAuth();
 };
@@ -2083,17 +2085,20 @@ function afficherInterface() {
 // =====================================================================
 async function chargerAdherent() {
   await Promise.all([chargerReservations(), chargerUtilisateurs(), chargerParametres(), chargerExceptions(), chargerInfos()]);
-  afficherDashboardAdherent();
-  afficherAlerteAdhesion();
-
-  // Alerte première connexion admin (ne s'applique pas ici, mais on le prévoit)
   calCurrentWeek  = lundiDeLaSemaine(new Date());
   calCurrentMonth = premierDuMois(new Date());
   calView   = 'week';
   calContext = 'adherent';
+
+  // Restaurer l'onglet actif avant actualisation
+  const tabAdh = localStorage.getItem('adh_tab') || 'dashboard';
+  showAdherentTab(tabAdh);
+  afficherAlerteAdhesion();
+  if (tabAdh === 'dashboard') afficherDashboardAdherent();
 }
 
 window.showAdherentTab = function(tab) {
+  localStorage.setItem('adh_tab', tab);
   document.querySelectorAll('#tabs-adherent .tab-btn').forEach(b=>b.classList.remove('active'));
   ['dashboard','calendrier','mes-reservations','contacts','infos','mon-compte'].forEach(t=>{
     const el=document.getElementById('tab-adh-'+t); if(el) el.classList.add('hidden');
@@ -2454,9 +2459,14 @@ async function chargerAdmin() {
   if (utilisateurCourant.premiereConnexion) {
     toast('⚠️ Bienvenue ! Pensez à changer votre mot de passe admin.', 'warning', 7000);
   }
+
+  // Restaurer l'onglet actif avant actualisation
+  const tabAdmin = localStorage.getItem('admin_tab') || 'dashboard';
+  if (tabAdmin !== 'dashboard') showAdminTab(tabAdmin);
 }
 
 window.showAdminTab = function(tab) {
+  localStorage.setItem('admin_tab', tab);
   document.querySelectorAll('#tabs-admin .tab-btn').forEach(b=>b.classList.remove('active'));
   ['dashboard','adherents','calendrier','contacts','infos','exceptions','mon-compte'].forEach(t=>{
     const el=document.getElementById('tab-admin-'+t); if(el) el.classList.add('hidden');
