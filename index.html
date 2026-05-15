@@ -3532,7 +3532,8 @@ async function chargerInfos() {
 function mettreAJourBadgeInfos() {
   const badge = document.getElementById('adh-infos-badge');
   if (!badge) return;
-  const lastVu = parseInt(localStorage.getItem('infos_last_vu') || '0');
+  const key = 'infos_last_vu_' + (utilisateurCourant?.id || 'anon');
+  const lastVu = parseInt(localStorage.getItem(key) || '0');
   const nb = allInfos.filter(i => i.actif && (i.timestamp || 0) > lastVu).length;
   if (nb > 0) {
     badge.textContent = nb > 9 ? '9+' : nb;
@@ -3543,7 +3544,8 @@ function mettreAJourBadgeInfos() {
 }
 
 function marquerInfosVues() {
-  localStorage.setItem('infos_last_vu', Date.now().toString());
+  const keyVu = 'infos_last_vu_' + (utilisateurCourant?.id || 'anon');
+  localStorage.setItem(keyVu, Date.now().toString());
   const badge = document.getElementById('adh-infos-badge');
   if (badge) badge.classList.add('hidden');
 }
