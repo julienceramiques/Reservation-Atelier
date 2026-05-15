@@ -702,9 +702,9 @@ tr:hover td { background: var(--cream); }
 .slot-mine:hover { background: #c5dff0; }
 .slot-other      { background: #FDEFD6; color: #8A5C10; border: 1px solid #F0C87A; cursor: default; }
 .slot-full       { background: #EEEEEE; color: #999; border: 1px solid #AAAAAA; cursor: not-allowed; }
-.slot-closed     { background: #EEEEEE; color: #999; border: 1px solid #AAAAAA; cursor: not-allowed; font-style: italic; }
+.slot-closed     { background: #EEEEEE; color: #777; border: 1px solid #AAAAAA; cursor: not-allowed; font-size:.72rem; font-weight:600; }
 .slot-exception-open { background: #EAF4EC; color: var(--success); border: none; }
-.slot-out        { background: var(--beige); cursor: default; }
+.slot-out        { background: #EEEEEE; border: none; cursor: default; }
 .slot-past       { opacity: .22; cursor: default; pointer-events: none; }
 
 /* Vue Mois */
@@ -2958,7 +2958,8 @@ function renderCalendrier(wrapperId) {
     ['#EAF4EC','var(--success)','Libre'],
     ['#DBE9F5','var(--info)','Ma réservation'],
     ...(calContext==='admin'?[['#FDEFD6','#8A5C10','Autre adhérent']]:[]),
-    ['#EEEEEE','#999','Complet ou Fermé'],
+    ['#EEEEEE','#AAAAAA','Complet ou Fermé'],
+    ['#EEEEEE','#EEEEEE','Non réservable'],
   ];
   legend.innerHTML = legendItems.map(([bg,color,label]) =>
     `<span style="display:flex;align-items:center;gap:.3rem;"><span style="width:14px;height:14px;border-radius:3px;background:${bg};border:1px solid ${color};display:inline-block;"></span>${label}</span>`
