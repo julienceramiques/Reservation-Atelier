@@ -1023,6 +1023,7 @@ tr:hover td { background: var(--cream); }
 .contact-lien{color:var(--terracotta);text-decoration:none;word-break:break-all}
 .contact-lien:hover{text-decoration:underline}
 </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -1467,8 +1468,14 @@ tr:hover td { background: var(--cream); }
             <h2>Gestion des adhérents</h2>
             <div class="flex gap-1" style="align-items:center;">
               <input class="form-input" id="search-adherents" type="search" placeholder="Rechercher…" style="width:200px;padding:.4rem .75rem;" oninput="filtrerAdherents()">
-              <button class="btn btn-secondary btn-sm" onclick="exporterAdherentsPDF()" title="Exporter en PDF">📄 PDF</button>
+
             </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:.75rem;padding:.6rem 0 .75rem;border-bottom:1px solid var(--beige-dk);margin-bottom:.75rem;">
+            <button class="btn btn-secondary" onclick="exporterAdherentsPDF()" style="display:flex;align-items:center;gap:.5rem;">
+              <span style="font-size:1.3rem;">📄</span>
+              <span style="font-size:.85rem;">Sauvegarde de la liste des adhérents</span>
+            </button>
           </div>
           <div class="table-wrap">
             <table>
@@ -4973,49 +4980,81 @@ window.enregistrerIdentite = async function(id) {
 // EXPORT PDF LISTE ADHÉRENTS
 // =====================================================================
 window.exporterAdherentsPDF = function() {
+  const { jsPDF } = window.jspdf;
+  if (!jsPDF) { toast('Bibliothèque PDF non chargée. Vérifiez votre connexion.', 'error'); return; }
+
   const membres = allUsers
     .filter(u => u.role === 'adherent' && u.statut !== 'refuse')
     .sort((a, b) => (a.nom||a.pseudo||'').localeCompare(b.nom||b.pseudo||''));
 
-  const dateExport = new Date().toLocaleDateString('fr-FR');
-  const lignes = membres.map((u, i) => `
-    <tr style="background:${i%2===0?'#fff':'#f9f6f3'}">
-      <td>${u.prenom||'—'}</td>
-      <td>${u.nom||'—'}</td>
-      <td>${u.pseudo||'—'}</td>
-      <td>${u.email||'—'}</td>
-      <td>${u.telephone ? formatTel(u.telephone) : '—'}</td>
-      <td>${[u.rue, u.codePostal, u.ville].filter(Boolean).join(', ')||'—'}</td>
-      <td style="text-align:center;">${badgeStatutTexte(calculerStatutAdhesion(u))}</td>
-    </tr>`).join('');
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pageW = 210, marginL = 14, marginR = 14, contentW = pageW - marginL - marginR;
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('fr-FR') + ' ' + now.toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'});
 
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
-  <title>Adhérents — Julien Céramiques</title>
-  <style>
-    body { font-family: Georgia, serif; font-size: 11px; color: #333; margin: 24px; }
-    h1 { font-size: 18px; color: #8B4513; margin-bottom: 4px; }
-    .meta { font-size: 10px; color: #888; margin-bottom: 16px; }
-    table { width: 100%; border-collapse: collapse; }
-    th { background: #8B4513; color: #fff; padding: 6px 8px; text-align: left; font-size: 10px; }
-    td { padding: 5px 8px; border-bottom: 1px solid #e8e0d8; vertical-align: top; }
-    @media print { body { margin: 10px; } }
-  </style></head><body>
-  <h1>🏺 Julien Céramiques — Liste des adhérents</h1>
-  <div class="meta">Export du ${dateExport} — ${membres.length} adhérent(s)</div>
-  <table>
-    <thead><tr>
-      <th>Prénom</th><th>Nom</th><th>Pseudo</th><th>Email</th>
-      <th>Téléphone</th><th>Adresse</th><th>Statut</th>
-    </tr></thead>
-    <tbody>${lignes}</tbody>
-  </table>
-  </body></html>`;
+  // ── En-tête ──────────────────────────────────────────────────────────────
+  doc.setFillColor(139, 69, 19); // terracotta
+  doc.rect(0, 0, 210, 18, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(13);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Julien Céramiques — Liste des adhérents', marginL, 11);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.text(dateStr, pageW - marginR, 11, { align: 'right' });
+  doc.setFontSize(9);
+  doc.text(membres.length + ' adhérent(s)', marginL, 16);
 
-  const win = window.open('', '_blank');
-  win.document.write(html);
-  win.document.close();
-  win.focus();
-  setTimeout(() => win.print(), 500);
+  let y = 24;
+  const lineH = 5;
+  const col1 = marginL;         // prénom/nom (fixe)
+  const col2 = marginL + 36;    // infos
+
+  membres.forEach((u, i) => {
+    const hSem = heuresSemaineCourante(u.id);
+    const adresse = [u.rue, [u.codePostal, u.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ') || '—';
+    const statut  = badgeStatutTexte(calculerStatutAdhesion(u));
+    const debut   = formatDate(u.dateDebutAdhesion) || '—';
+    const fin     = formatDate(u.dateFinAdhesion)   || '—';
+
+    // Fond alterné
+    if (i % 2 === 0) {
+      doc.setFillColor(249, 246, 243);
+      doc.rect(marginL - 2, y - 1, contentW + 4, lineH * 3 + 3, 'F');
+    }
+
+    // Ligne 1 : prénom nom — pseudo — email — tel
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(60, 40, 20);
+    const nomComplet = [u.prenom, u.nom].filter(Boolean).join(' ') || '—';
+    doc.text(nomComplet, col1, y + lineH * 0);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(80, 60, 40);
+    const infosL1 = [u.pseudo ? '(' + u.pseudo + ')' : '', u.email||'', u.telephone ? formatTel(u.telephone) : ''].filter(Boolean).join('   ');
+    doc.text(infosL1, col2, y + lineH * 0);
+
+    // Ligne 2 : adresse
+    doc.setFontSize(8);
+    doc.setTextColor(110, 90, 70);
+    doc.text('📍 ' + adresse, col2, y + lineH * 1);
+
+    // Ligne 3 : statut, adhésion, heures
+    const infosL3 = statut + '   Début : ' + debut + '   Fin : ' + fin + '   Moy. : ' + formatHeures(hSem) + '/sem';
+    doc.text(infosL3, col2, y + lineH * 2);
+
+    y += lineH * 3 + 4;
+
+    // Saut de page si nécessaire
+    if (y > 272) {
+      doc.addPage();
+      y = 14;
+    }
+  });
+
+  doc.save('adherents_julien_ceramiques_' + now.toISOString().substring(0,10) + '.pdf');
 };
 
 function badgeStatutTexte(statut) {
