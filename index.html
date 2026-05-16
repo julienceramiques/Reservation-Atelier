@@ -1121,16 +1121,54 @@ tr:hover td { background: var(--cream); }
           <div id="form-register" class="hidden">
             <div id="reg-step1">
               <div class="form-group">
-                <label class="form-label">Pseudo (unique)</label>
+                <label class="form-label">Pseudo <span style="font-weight:400;color:var(--clay-lt);font-size:.85rem;">(unique, visible sur le calendrier)</span></label>
                 <input class="form-input" id="reg-pseudo" type="text" placeholder="Choisissez un pseudo">
               </div>
               <div class="form-group">
-                <label class="form-label">Email</label>
-                <input class="form-input" id="reg-email" type="email" placeholder="votre@email.com">
+                <label class="form-label">Prénom <span id="reg-lbl-prenom-obl" style="color:var(--danger);font-size:.85rem;"></span></label>
+                <input class="form-input" id="reg-prenom" type="text" placeholder="Votre prénom">
               </div>
               <div class="form-group">
-                <label class="form-label">Téléphone <span style="font-weight:400;color:var(--clay-lt);font-size:.85rem;">(facultatif)</span></label>
+                <label class="form-label">Nom <span id="reg-lbl-nom-obl" style="color:var(--danger);font-size:.85rem;"></span></label>
+                <input class="form-input" id="reg-nom" type="text" placeholder="Votre nom">
+                <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.8rem;color:var(--clay-lt);margin-top:.3rem;">
+                  <input type="checkbox" id="reg-share-nom" style="accent-color:var(--terracotta);width:13px;height:13px;">
+                  <span>J'autorise à communiquer mon nom aux autres adhérents</span>
+                </label>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Email <span id="reg-lbl-email-obl" style="color:var(--danger);font-size:.85rem;"></span></label>
+                <input class="form-input" id="reg-email" type="email" placeholder="votre@email.com">
+                <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.8rem;color:var(--clay-lt);margin-top:.3rem;">
+                  <input type="checkbox" id="reg-share-email" checked style="accent-color:var(--terracotta);width:13px;height:13px;">
+                  <span>J'autorise à communiquer mon email aux autres adhérents</span>
+                </label>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Téléphone <span id="reg-lbl-telephone-obl" style="color:var(--danger);font-size:.85rem;"></span></label>
                 <input class="form-input" id="reg-tel" type="tel" placeholder="Ex : 0612345678" maxlength="10">
+                <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.8rem;color:var(--clay-lt);margin-top:.3rem;">
+                  <input type="checkbox" id="reg-share-telephone" checked style="accent-color:var(--terracotta);width:13px;height:13px;">
+                  <span>J'autorise à communiquer mon téléphone aux autres adhérents</span>
+                </label>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Rue <span id="reg-lbl-rue-obl" style="color:var(--danger);font-size:.85rem;"></span></label>
+                <input class="form-input" id="reg-rue" type="text" placeholder="Numéro et nom de rue">
+                <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.8rem;color:var(--clay-lt);margin-top:.3rem;">
+                  <input type="checkbox" id="reg-share-rue" style="accent-color:var(--terracotta);width:13px;height:13px;">
+                  <span>J'autorise à communiquer mon adresse aux autres adhérents</span>
+                </label>
+              </div>
+              <div style="display:flex;gap:.75rem;">
+                <div class="form-group" style="flex:0 0 120px;">
+                  <label class="form-label">Code postal <span id="reg-lbl-codePostal-obl" style="color:var(--danger);font-size:.85rem;"></span></label>
+                  <input class="form-input" id="reg-codePostal" type="text" placeholder="75000" maxlength="5">
+                </div>
+                <div class="form-group" style="flex:1;">
+                  <label class="form-label">Ville <span id="reg-lbl-ville-obl" style="color:var(--danger);font-size:.85rem;"></span></label>
+                  <input class="form-input" id="reg-ville" type="text" placeholder="Paris">
+                </div>
               </div>
               <div class="form-group">
                 <label class="form-label">Mot de passe</label>
@@ -1147,7 +1185,7 @@ tr:hover td { background: var(--cream); }
                 </div>
               </div>
               <p style="font-size:.78rem;color:var(--clay-lt);margin:.5rem 0 1rem;line-height:1.5;border-left:3px solid var(--clay-lt);padding-left:.75rem;">
-                ℹ️ Votre pseudo, email et téléphone seront visibles par les autres adhérents de l'atelier.
+                ℹ️ Seules les informations que vous autorisez seront visibles par les autres adhérents.
               </p>
               <div id="reg-error" class="alert alert-danger hidden" style="font-size:.85rem;padding:.6rem .85rem;"></div>
               <button class="btn btn-primary btn-full mt-2" id="btn-inscrire" onclick="soumettreinscription()">Créer mon compte →</button>
@@ -1291,13 +1329,51 @@ tr:hover td { background: var(--cream); }
         <div class="card" style="margin-bottom:1.25rem;">
           <div class="card-header"><h2>Modifier mes informations</h2></div>
 
-          <!-- Téléphone -->
-          <h3 style="margin-bottom:.75rem;">📱 Numéro de téléphone</h3>
-          <div class="form-group" style="max-width:360px">
-            <label class="form-label">Téléphone <span style="font-weight:400;color:var(--clay-lt);font-size:.85rem;">(facultatif)</span></label>
-            <input class="form-input" id="adh-new-tel" type="tel" placeholder="Ex : 0612345678" maxlength="10">
+          <!-- Informations personnelles -->
+          <h3 style="margin-bottom:.75rem;">👤 Informations personnelles</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;max-width:560px;">
+            <div class="form-group">
+              <label class="form-label">Prénom</label>
+              <input class="form-input" id="adh-new-prenom" type="text" placeholder="Votre prénom">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nom</label>
+              <input class="form-input" id="adh-new-nom" type="text" placeholder="Votre nom">
+              <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.78rem;color:var(--clay-lt);margin-top:.3rem;">
+                <input type="checkbox" id="adh-share-nom" style="accent-color:var(--terracotta);width:13px;height:13px;">
+                <span>Partager mon nom</span>
+              </label>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Téléphone</label>
+              <input class="form-input" id="adh-new-tel" type="tel" placeholder="Ex : 0612345678" maxlength="10">
+              <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.78rem;color:var(--clay-lt);margin-top:.3rem;">
+                <input type="checkbox" id="adh-share-telephone" style="accent-color:var(--terracotta);width:13px;height:13px;">
+                <span>Partager mon téléphone</span>
+              </label>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Rue</label>
+              <input class="form-input" id="adh-new-rue" type="text" placeholder="Numéro et rue">
+              <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.78rem;color:var(--clay-lt);margin-top:.3rem;">
+                <input type="checkbox" id="adh-share-rue" style="accent-color:var(--terracotta);width:13px;height:13px;">
+                <span>Partager mon adresse</span>
+              </label>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Code postal</label>
+              <input class="form-input" id="adh-new-codePostal" type="text" placeholder="75000" maxlength="5">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Ville</label>
+              <input class="form-input" id="adh-new-ville" type="text" placeholder="Paris">
+            </div>
           </div>
-          <button class="btn btn-primary" onclick="changerTelephone()">Mettre à jour le téléphone</button>
+          <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.78rem;color:var(--clay-lt);margin:.25rem 0 .75rem;">
+            <input type="checkbox" id="adh-share-email" style="accent-color:var(--terracotta);width:13px;height:13px;">
+            <span>Partager mon email aux autres adhérents</span>
+          </label>
+          <button class="btn btn-primary" onclick="enregistrerInfosAdherent()">💾 Enregistrer mes informations</button>
 
           <hr class="separator" style="margin:1.5rem 0;">
 
@@ -1389,8 +1465,9 @@ tr:hover td { background: var(--cream); }
         <div class="card">
           <div class="card-header">
             <h2>Gestion des adhérents</h2>
-            <div class="flex gap-1">
+            <div class="flex gap-1" style="align-items:center;">
               <input class="form-input" id="search-adherents" type="search" placeholder="Rechercher…" style="width:200px;padding:.4rem .75rem;" oninput="filtrerAdherents()">
+              <button class="btn btn-secondary btn-sm" onclick="exporterAdherentsPDF()" title="Exporter en PDF">📄 PDF</button>
             </div>
           </div>
           <div class="table-wrap">
@@ -2298,22 +2375,41 @@ window.annulerReservation = async function(id) {
   } catch(e) { toast('Erreur : '+e.message, 'error'); }
 };
 
+function partageLabel(champ) {
+  const p = utilisateurCourant.partages || {};
+  return p[champ] ? '<span style="font-size:.7rem;color:var(--success);margin-left:.3rem;">✓ partagé</span>'
+                  : '<span style="font-size:.7rem;color:var(--clay-lt);margin-left:.3rem;">non partagé</span>';
+}
+
 function afficherInfosMonCompte() {
   const u = utilisateurCourant;
   const grid = document.getElementById('adh-compte-info-grid');
   const pseudoTitre = document.getElementById('adh-compte-pseudo-titre');
   if (!grid) return;
   if (pseudoTitre) pseudoTitre.textContent = u.pseudo || '';
+  const p = u.partages || {};
   grid.innerHTML = `
-    <div class="profile-info-card full-width"><div class="pil">Email</div><div class="pval" style="font-size:.95rem">${u.email||'—'}</div></div>
-    <div class="profile-info-card"><div class="pil">Téléphone</div><div class="pval">${formatTel(u.telephone)}</div></div>
+    <div class="profile-info-card"><div class="pil">Prénom</div><div class="pval">${u.prenom||'—'}</div></div>
+    <div class="profile-info-card"><div class="pil">Nom ${partageLabel('nom')}</div><div class="pval">${u.nom||'—'}</div></div>
+    <div class="profile-info-card full-width"><div class="pil">Email ${partageLabel('email')}</div><div class="pval" style="font-size:.95rem">${u.email||'—'}</div></div>
+    <div class="profile-info-card"><div class="pil">Téléphone ${partageLabel('telephone')}</div><div class="pval">${formatTel(u.telephone)}</div></div>
+    <div class="profile-info-card"><div class="pil">Rue ${partageLabel('rue')}</div><div class="pval">${u.rue||'—'}</div></div>
+    <div class="profile-info-card"><div class="pil">Code postal</div><div class="pval">${u.codePostal||'—'}</div></div>
+    <div class="profile-info-card"><div class="pil">Ville</div><div class="pval">${u.ville||'—'}</div></div>
     <div class="profile-info-card"><div class="pil">Membre depuis</div><div class="pval">${formatDate(u.dateDebutAdhesion)||'—'}</div></div>
     <div class="profile-info-card"><div class="pil">Fin d'adhésion</div><div class="pval">${formatDate(u.dateFinAdhesion)||'—'}</div></div>
     <div class="profile-info-card"><div class="pil">Statut</div><div class="pval">${badgeStatut(calculerStatutAdhesion(u))}</div></div>
   `;
-  // Pré-remplir le champ téléphone avec la valeur actuelle
+  // Pré-remplir les champs de modification
+  const fields = ['prenom','nom','rue','codePostal','ville'];
+  fields.forEach(f => { const el = document.getElementById('adh-new-'+f); if (el) el.value = u[f]||''; });
   const telInput = document.getElementById('adh-new-tel');
   if (telInput) telInput.value = u.telephone || '';
+  // Cases de partage
+  CHAMPS_PROFIL.filter(c => c.partage).forEach(c => {
+    const cb = document.getElementById('adh-share-'+c.id);
+    if (cb) cb.checked = !!(u.partages||{})[c.id];
+  });
   // Réinitialiser les formulaires email et pseudo
   document.getElementById('adh-email-step1')?.classList.remove('hidden');
   document.getElementById('adh-email-step2')?.classList.add('hidden');
@@ -2326,21 +2422,33 @@ function afficherInfosMonCompte() {
 // =====================================================================
 // MODIFIER LE TÉLÉPHONE
 // =====================================================================
-window.changerTelephone = async function() {
-  const tel = document.getElementById('adh-new-tel').value.trim();
-  const telDigits = tel.replace(/\D/g, '');
+window.enregistrerInfosAdherent = async function() {
+  const prenom     = document.getElementById('adh-new-prenom')?.value.trim()||'';
+  const nom        = document.getElementById('adh-new-nom')?.value.trim()||'';
+  const tel        = document.getElementById('adh-new-tel')?.value.trim()||'';
+  const rue        = document.getElementById('adh-new-rue')?.value.trim()||'';
+  const codePostal = document.getElementById('adh-new-codePostal')?.value.trim()||'';
+  const ville      = document.getElementById('adh-new-ville')?.value.trim()||'';
+  const telDigits  = tel.replace(/\D/g,'');
   if (tel && !/^\d{10}$/.test(telDigits)) {
     toast('Le numéro de téléphone doit contenir exactement 10 chiffres.','warning'); return;
   }
+  const partages = {
+    nom:        document.getElementById('adh-share-nom')?.checked||false,
+    email:      document.getElementById('adh-share-email')?.checked||false,
+    telephone:  document.getElementById('adh-share-telephone')?.checked||false,
+    rue:        document.getElementById('adh-share-rue')?.checked||false,
+    codePostal: document.getElementById('adh-share-rue')?.checked||false,
+    ville:      document.getElementById('adh-share-rue')?.checked||false,
+  };
   try {
-    const valeur = telDigits || null; // stocker les chiffres seuls, l'affichage formate
-    await updateDoc(doc(db,'utilisateurs', utilisateurCourant.id), { telephone: valeur });
-    utilisateurCourant.telephone = valeur;
-    toast('Téléphone mis à jour.','success');
+    const data = { prenom:prenom||null, nom:nom||null, telephone:telDigits||null,
+                   rue:rue||null, codePostal:codePostal||null, ville:ville||null, partages };
+    await updateDoc(doc(db,'utilisateurs', utilisateurCourant.id), data);
+    Object.assign(utilisateurCourant, data);
+    toast('Informations mises à jour.','success');
     afficherInfosMonCompte();
-  } catch(e) {
-    toast('Erreur : '+e.message,'error');
-  }
+  } catch(e) { toast('Erreur : '+e.message,'error'); }
 };
 
 // =====================================================================
@@ -2701,11 +2809,20 @@ window.ouvrirFicheAdherent = function(id) {
   document.getElementById('modal-adh-contenu').innerHTML = `
     <h3 style="margin-bottom:.75rem;color:var(--clay)">👤 Informations personnelles</h3>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.75rem;">
-
+      <div class="form-group"><label class="form-label">Prénom</label>
+        <input class="form-input" id="fiche-prenom" type="text" value="${u.prenom||''}" placeholder="Prénom"></div>
+      <div class="form-group"><label class="form-label">Nom</label>
+        <input class="form-input" id="fiche-nom" type="text" value="${u.nom||''}" placeholder="Nom"></div>
       <div class="form-group"><label class="form-label">Téléphone</label>
         <input class="form-input" id="fiche-tel" type="tel" value="${u.telephone||''}" placeholder="06…"></div>
       <div class="form-group"><label class="form-label">Email</label>
         <input class="form-input" id="fiche-email" type="email" value="${u.email||''}" placeholder="email@…"></div>
+      <div class="form-group" style="grid-column:1/-1"><label class="form-label">Rue</label>
+        <input class="form-input" id="fiche-rue" type="text" value="${u.rue||''}" placeholder="Rue"></div>
+      <div class="form-group"><label class="form-label">Code postal</label>
+        <input class="form-input" id="fiche-codePostal" type="text" value="${u.codePostal||''}" placeholder="75000" maxlength="5"></div>
+      <div class="form-group"><label class="form-label">Ville</label>
+        <input class="form-input" id="fiche-ville" type="text" value="${u.ville||''}" placeholder="Paris"></div>
     </div>
     <button class="btn btn-secondary btn-sm" style="margin-bottom:1rem;" onclick="enregistrerIdentite('${id}')">💾 Enregistrer les infos</button>
     <hr class="separator">
@@ -3676,6 +3793,18 @@ function escHtml(str) {
 // PARAMÈTRES (quota + horaires) — Firebase config/parametres
 // =====================================================================
 const JOURS_SEMAINE_NOMS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+
+// Champs du profil adhérent (hors pseudo/email/mdp)
+const CHAMPS_PROFIL = [
+  { id: 'prenom',    label: 'Prénom',          type: 'text',  partage: false, obligatoire: true,  partageDefaut: false },
+  { id: 'nom',       label: 'Nom',             type: 'text',  partage: true,  obligatoire: false, partageDefaut: false },
+  { id: 'telephone', label: 'Téléphone',       type: 'tel',   partage: true,  obligatoire: false, partageDefaut: true  },
+  { id: 'rue',       label: 'Rue',             type: 'text',  partage: true,  obligatoire: false, partageDefaut: false },
+  { id: 'codePostal',label: 'Code postal',     type: 'text',  partage: true,  obligatoire: false, partageDefaut: false },
+  { id: 'ville',     label: 'Ville',           type: 'text',  partage: true,  obligatoire: false, partageDefaut: false },
+];
+// Champs obligatoires par défaut (modifiables par l'admin dans Paramètres)
+let CHAMPS_OBLIGATOIRES = { prenom: true, nom: false, telephone: false, rue: false, codePostal: false, ville: false };
 const H_PARAM_DEBUT = 6;
 const H_PARAM_FIN   = 24; // exclusif → dernière case = 23h30
 
@@ -3683,6 +3812,7 @@ const H_PARAM_FIN   = 24; // exclusif → dernière case = 23h30
 function appliquerParametres(params) {
   if (!params) return;
   if (typeof params.maxHeuresSem === 'number') MAX_HEURES_SEM = params.maxHeuresSem;
+  if (params.champsObligatoires) CHAMPS_OBLIGATOIRES = { ...CHAMPS_OBLIGATOIRES, ...params.champsObligatoires };
 
   if (params.horaires) {
     CRENEAUX_PAR_JOUR = {};
@@ -3795,6 +3925,18 @@ function ouvrirModalParametres() {
     grid.appendChild(section);
   }
 
+  // Construire la grille des champs obligatoires
+  const champsGrid = document.getElementById('param-champs-grid');
+  if (champsGrid) {
+    champsGrid.innerHTML = CHAMPS_PROFIL.map(c => `
+      <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;font-size:.88rem;">
+        <input type="checkbox" data-champ="${c.id}"
+               ${CHAMPS_OBLIGATOIRES[c.id] ? 'checked' : ''}
+               style="accent-color:var(--terracotta);width:15px;height:15px;">
+        <span>${c.label}</span>
+      </label>`).join('');
+  }
+
   ouvrirModale('modal-parametres');
 }
 window.ouvrirModalParametres = ouvrirModalParametres;
@@ -3812,7 +3954,11 @@ async function sauvegarderParametres() {
     if (cochees.length > 0) horaires[dow] = cochees.sort((a,b)=>a-b);
   }
 
-  const params = { maxHeuresSem: quota, horaires };
+  // Lire les cases à cocher des champs obligatoires
+  const champsObl = {};
+  document.querySelectorAll('[data-champ]').forEach(cb => { champsObl[cb.dataset.champ] = cb.checked; });
+  CHAMPS_OBLIGATOIRES = champsObl;
+  const params = { maxHeuresSem: quota, horaires, champsObligatoires: champsObl };
   try {
     await setDoc(doc(db, 'config', 'parametres'), params);
     appliquerParametres(params);
@@ -3970,16 +4116,42 @@ let verifData = null;
 function emailValide(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e); }
 
 window.demanderVerificationEmail = async function(renvoyer=false) {
-  const pseudo = document.getElementById('reg-pseudo').value.trim();
-  const email  = document.getElementById('reg-email').value.trim();
-  const tel    = document.getElementById('reg-tel')?.value.trim()||'';
-  const mdp    = document.getElementById('reg-mdp').value;
-  const mdp2   = document.getElementById('reg-mdp2').value;
+  const pseudo     = document.getElementById('reg-pseudo').value.trim();
+  const prenom     = document.getElementById('reg-prenom')?.value.trim()||'';
+  const nom        = document.getElementById('reg-nom')?.value.trim()||'';
+  const email      = document.getElementById('reg-email').value.trim();
+  const tel        = document.getElementById('reg-tel')?.value.trim()||'';
+  const rue        = document.getElementById('reg-rue')?.value.trim()||'';
+  const codePostal = document.getElementById('reg-codePostal')?.value.trim()||'';
+  const ville      = document.getElementById('reg-ville')?.value.trim()||'';
+  const mdp        = document.getElementById('reg-mdp').value;
+  const mdp2       = document.getElementById('reg-mdp2').value;
+  const partages   = {
+    nom:       document.getElementById('reg-share-nom')?.checked||false,
+    email:     document.getElementById('reg-share-email')?.checked||true,
+    telephone: document.getElementById('reg-share-telephone')?.checked||true,
+    rue:       document.getElementById('reg-share-rue')?.checked||false,
+    codePostal:document.getElementById('reg-share-rue')?.checked||false,
+    ville:     document.getElementById('reg-share-rue')?.checked||false,
+  };
   const errEl  = document.getElementById('reg-error');
   errEl.classList.add('hidden');
 
   if (!pseudo||!email||!mdp)
     { showErr(errEl,'Veuillez remplir les champs obligatoires.'); return; }
+  // Vérifier les champs obligatoires configurés par l'admin
+  if (CHAMPS_OBLIGATOIRES.prenom && !prenom)
+    { showErr(errEl,'Le prénom est obligatoire.'); return; }
+  if (CHAMPS_OBLIGATOIRES.nom && !nom)
+    { showErr(errEl,'Le nom est obligatoire.'); return; }
+  if (CHAMPS_OBLIGATOIRES.telephone && !tel)
+    { showErr(errEl,'Le téléphone est obligatoire.'); return; }
+  if (CHAMPS_OBLIGATOIRES.rue && !rue)
+    { showErr(errEl,'La rue est obligatoire.'); return; }
+  if (CHAMPS_OBLIGATOIRES.codePostal && !codePostal)
+    { showErr(errEl,'Le code postal est obligatoire.'); return; }
+  if (CHAMPS_OBLIGATOIRES.ville && !ville)
+    { showErr(errEl,'La ville est obligatoire.'); return; }
   if (!emailValide(email)) { showErr(errEl,'Adresse email invalide.'); return; }
   if (mdp.length < 6) { showErr(errEl,'Mot de passe : minimum 6 caractères.'); return; }
   if (mdp !== mdp2) { showErr(errEl,'Les mots de passe ne correspondent pas.'); return; }
@@ -4005,7 +4177,7 @@ window.demanderVerificationEmail = async function(renvoyer=false) {
     const code = String(Math.floor(100000+Math.random()*900000));
     // Stocker les données d'inscription temporairement (mot de passe en clair,
     // Firebase Auth le hachera côté serveur lors de la création du compte)
-    verifData  = {code, email, pseudo, tel, mdp, expireAt:Date.now()+10*60*1000};
+    verifData  = {code, email, pseudo, prenom, nom, tel, rue, codePostal, ville, partages, mdp, expireAt:Date.now()+10*60*1000};
     document.getElementById('verif-email-display').textContent = email;
 
     const ok = await envoyerEmail(email, pseudo,
@@ -4044,12 +4216,18 @@ window.verifierCode = async function() {
 
     // 2. Créer le document Firestore avec l'UID comme identifiant (sans mot de passe)
     await setDoc(doc(db,'utilisateurs', uid), {
-      pseudo:    verifData.pseudo,
+      pseudo:      verifData.pseudo,
       pseudoLower: verifData.pseudo.toLowerCase(),
-      telephone: verifData.tel||null,
-      email:     verifData.email,
-      role:      'adherent',
-      statut:    'en_attente',
+      prenom:      verifData.prenom||null,
+      nom:         verifData.nom||null,
+      telephone:   verifData.tel||null,
+      rue:         verifData.rue||null,
+      codePostal:  verifData.codePostal||null,
+      ville:       verifData.ville||null,
+      email:       verifData.email,
+      partages:    verifData.partages||{},
+      role:        'adherent',
+      statut:      'en_attente',
       emailVerifie: true,
       dateInscription:   new Date().toISOString(),
       datePaiement:      null,
@@ -4066,7 +4244,7 @@ window.verifierCode = async function() {
     showAuthTab('login');
     document.getElementById('reg-step1').classList.remove('hidden');
     document.getElementById('reg-step2').classList.add('hidden');
-    ['reg-pseudo','reg-email','reg-tel','reg-mdp','reg-mdp2']
+    ['reg-pseudo','reg-prenom','reg-nom','reg-email','reg-tel','reg-rue','reg-codePostal','reg-ville','reg-mdp','reg-mdp2']
       .forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
   } catch(e) {
     if (e.code === 'auth/email-already-in-use') {
@@ -4729,7 +4907,14 @@ function afficherContacts(ctx) {
   el.innerHTML=filtres.map(u=>{
     const ini=(u.pseudo||'?').substring(0,2).toUpperCase();
     const col=couleurs[(u.pseudo||'').charCodeAt(0)%couleurs.length];
-    return '<div class="contact-card"><div class="contact-avatar" style="background:'+col+'">'+ini+'</div><div class="contact-info"><div class="contact-nom">'+u.pseudo+'</div><div class="contact-ligne"><span>✉️</span><a href="mailto:'+u.email+'" class="contact-lien">'+u.email+'</a></div>'+(u.telephone?'<div class="contact-ligne"><span>📞</span><a href="tel:'+u.telephone+'" class="contact-lien">'+formatTel(u.telephone)+'</a></div>':'')+'</div></div>';
+    const p = u.partages||{};
+    const isAdmin = ctx==='admin';
+    let lignes = '<div class="contact-nom">'+(u.prenom||u.pseudo)+(u.nom&&(isAdmin||p.nom)?' '+u.nom:'')+'</div>';
+    lignes += '<div class="contact-ligne"><span>👤</span><span style="font-size:.78rem;color:var(--clay-lt);">'+u.pseudo+'</span></div>';
+    if (isAdmin||p.email) lignes += '<div class="contact-ligne"><span>✉️</span><a href="mailto:'+u.email+'" class="contact-lien">'+u.email+'</a></div>';
+    if (u.telephone&&(isAdmin||p.telephone)) lignes += '<div class="contact-ligne"><span>📞</span><a href="tel:'+u.telephone+'" class="contact-lien">'+formatTel(u.telephone)+'</a></div>';
+    if (u.rue&&(isAdmin||p.rue)) lignes += '<div class="contact-ligne"><span>📍</span><span>'+u.rue+(u.codePostal?' '+u.codePostal:'')+(u.ville?' '+u.ville:'')+'</span></div>';
+    return '<div class="contact-card"><div class="contact-avatar" style="background:'+col+'">'+ini+'</div><div class="contact-info">'+lignes+'</div></div>';
   }).join('');
 }
 window.filtrerContacts = function(ctx) { afficherContacts(ctx); };
@@ -4766,17 +4951,78 @@ window.changerMdpAdmin = async function() {
 // IDENTITÉ ADHÉRENT (admin)
 // =====================================================================
 window.enregistrerIdentite = async function(id) {
-  const tel   = document.getElementById('fiche-tel').value.trim();
-  const email = document.getElementById('fiche-email').value.trim();
+  const prenom     = document.getElementById('fiche-prenom')?.value.trim()||null;
+  const nom        = document.getElementById('fiche-nom')?.value.trim()||null;
+  const tel        = document.getElementById('fiche-tel')?.value.trim()||null;
+  const email      = document.getElementById('fiche-email')?.value.trim()||null;
+  const rue        = document.getElementById('fiche-rue')?.value.trim()||null;
+  const codePostal = document.getElementById('fiche-codePostal')?.value.trim()||null;
+  const ville      = document.getElementById('fiche-ville')?.value.trim()||null;
   try {
-    await updateDoc(doc(db,'utilisateurs',id), { telephone:tel||null, email:email||null });
+    const data = { prenom, nom, telephone:tel, email, rue, codePostal, ville };
+    await updateDoc(doc(db,'utilisateurs',id), data);
     const idx = allUsers.findIndex(u=>u.id===id);
-    if (idx!==-1) allUsers[idx] = {...allUsers[idx], telephone:tel, email};
+    if (idx!==-1) allUsers[idx] = {...allUsers[idx], ...data};
     toast('Informations enregistrées.', 'success');
   } catch(e) { toast('Erreur : '+e.message, 'error'); }
 };
 
 // =====================================================================
+
+// =====================================================================
+// EXPORT PDF LISTE ADHÉRENTS
+// =====================================================================
+window.exporterAdherentsPDF = function() {
+  const membres = allUsers
+    .filter(u => u.role === 'adherent' && u.statut !== 'refuse')
+    .sort((a, b) => (a.nom||a.pseudo||'').localeCompare(b.nom||b.pseudo||''));
+
+  const dateExport = new Date().toLocaleDateString('fr-FR');
+  const lignes = membres.map((u, i) => `
+    <tr style="background:${i%2===0?'#fff':'#f9f6f3'}">
+      <td>${u.prenom||'—'}</td>
+      <td>${u.nom||'—'}</td>
+      <td>${u.pseudo||'—'}</td>
+      <td>${u.email||'—'}</td>
+      <td>${u.telephone ? formatTel(u.telephone) : '—'}</td>
+      <td>${[u.rue, u.codePostal, u.ville].filter(Boolean).join(', ')||'—'}</td>
+      <td style="text-align:center;">${badgeStatutTexte(calculerStatutAdhesion(u))}</td>
+    </tr>`).join('');
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+  <title>Adhérents — Julien Céramiques</title>
+  <style>
+    body { font-family: Georgia, serif; font-size: 11px; color: #333; margin: 24px; }
+    h1 { font-size: 18px; color: #8B4513; margin-bottom: 4px; }
+    .meta { font-size: 10px; color: #888; margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #8B4513; color: #fff; padding: 6px 8px; text-align: left; font-size: 10px; }
+    td { padding: 5px 8px; border-bottom: 1px solid #e8e0d8; vertical-align: top; }
+    @media print { body { margin: 10px; } }
+  </style></head><body>
+  <h1>🏺 Julien Céramiques — Liste des adhérents</h1>
+  <div class="meta">Export du ${dateExport} — ${membres.length} adhérent(s)</div>
+  <table>
+    <thead><tr>
+      <th>Prénom</th><th>Nom</th><th>Pseudo</th><th>Email</th>
+      <th>Téléphone</th><th>Adresse</th><th>Statut</th>
+    </tr></thead>
+    <tbody>${lignes}</tbody>
+  </table>
+  </body></html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 500);
+};
+
+function badgeStatutTexte(statut) {
+  const map = { actif:'Actif', expire:'Expiré', en_attente:'En attente', suspendu:'Suspendu', refuse:'Refusé' };
+  return map[statut] || statut;
+}
+
 // RÉINITIALISATION MOT DE PASSE OUBLIÉ
 // Flux simplifié : pseudo/email → recherche Firestore → sendPasswordResetEmail Firebase
 // L'utilisateur reçoit un lien officiel Firebase pour choisir son nouveau mot de passe.
@@ -4954,6 +5200,17 @@ init().catch(e => {
         Cochez chaque demi-heure ouverte à la réservation (6h00 → 24h00)
       </p>
       <div id="param-jours-grid"></div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--beige-dk);margin:1.25rem 0;">
+
+    <!-- Champs obligatoires à l'inscription -->
+    <div class="form-group" style="margin-bottom:.5rem;">
+      <label class="form-label">📋 Champs obligatoires à l'inscription</label>
+      <p style="font-size:.8rem;color:var(--clay-lt);margin:.25rem 0 .85rem;">
+        Les champs cochés seront obligatoires lors de l'inscription d'un nouvel adhérent.
+      </p>
+      <div id="param-champs-grid" style="display:flex;flex-direction:column;gap:.5rem;"></div>
     </div>
 
     <div style="display:flex;gap:.75rem;margin-top:1.5rem;">
