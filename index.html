@@ -4,7 +4,7 @@
 <!--
 =======================================================================
   ATELIER DE POTERIE - Application de gestion complète
-  Développée pour : julienceramiques@gmail.com
+  Développée par : julienceramiques@gmail.com
 =======================================================================
 
   CONFIGURATION FIREBASE - INSTRUCTIONS :
@@ -36,7 +36,7 @@
          // Utilisateurs : autorise l'inscription (création) et la lecture/écriture
          // NOTE : protéger davantage avec Firebase Authentication (voir recommandation)
          match /utilisateurs/{userId} {
-           allow create: if request.resource.data.keys().hasAll(['pseudo','email','role','statut']); // motDePasse retiré (géré par Firebase Auth)
+           allow create: if request.resource.data.keys().hasAll(['pseudo','courriel','role','statut']); // motDePasse retiré (géré par Firebase Auth)
            allow read, update, delete: if true; // ⚠️ À restreindre avec Firebase Auth
          }
 
@@ -1058,8 +1058,8 @@ tr:hover td { background: var(--cream); }
 <!-- ===== PAGE AUTH (hors de #app pour éviter les conflits de positionnement fixed) ===== -->
 <div id="page-auth" style="display:none;"><div class="auth-wrapper">
         <div class="auth-logo">
-          <h1>🏺 Julien Céramiques</h1>
-          <p>Atelier Céramique — Espace membres</p>
+          <h1>🏺 Atelier Partagé</h1>
+          <p>Atelier Partagé — Espace membres</p>
         </div>
         <div class="auth-card">
           <div class="auth-tabs">
@@ -1071,7 +1071,7 @@ tr:hover td { background: var(--cream); }
           <div id="form-login">
             <div class="form-group">
               <label class="form-label">Pseudo</label>
-              <input class="form-input" id="login-pseudo" type="text" placeholder="Votre pseudo ou email" autocomplete="username">
+              <input class="form-input" id="login-pseudo" type="text" placeholder="Votre pseudo ou courriel" autocomplete="username">
             </div>
             <div class="form-group">
               <label class="form-label">Mot de passe</label>
@@ -1089,12 +1089,12 @@ tr:hover td { background: var(--cream); }
 
           <!-- Réinitialisation mot de passe -->
           <div id="form-reinit" class="hidden">
-            <!-- Étape 1 : saisir pseudo ou email -->
+            <!-- Étape 1 : saisir pseudo ou courriel -->
             <div id="reinit-step1">
-              <p style="font-size:.9rem;color:var(--earth-lt);margin-bottom:1rem;">Saisissez votre pseudo ou adresse email. Vous recevrez un lien officiel Firebase pour choisir un nouveau mot de passe.</p>
+              <p style="font-size:.9rem;color:var(--earth-lt);margin-bottom:1rem;">Saisissez votre pseudo ou adresse courriel. Vous recevrez un lien officiel Firebase pour choisir un nouveau mot de passe.</p>
               <div class="form-group">
-                <label class="form-label">Pseudo ou Email</label>
-                <input class="form-input" id="reinit-pseudo-email" type="text" placeholder="Votre pseudo ou email">
+                <label class="form-label">Pseudo ou Courriel</label>
+                <input class="form-input" id="reinit-pseudo-email" type="text" placeholder="Votre pseudo ou courriel">
               </div>
               <div id="reinit-error1" class="alert alert-danger hidden" style="font-size:.85rem;padding:.6rem .85rem;"></div>
               <button class="btn btn-primary btn-full mt-2" onclick="envoyerCodeReinit()">Envoyer le lien →</button>
@@ -1103,8 +1103,8 @@ tr:hover td { background: var(--cream); }
             <!-- Étape 2 : confirmation envoi -->
             <div id="reinit-step2" class="hidden">
               <div class="alert alert-success" style="margin-bottom:1rem;font-size:.85rem;">
-                ✅ Un email de réinitialisation a été envoyé à <strong id="reinit-email-display"></strong>.<br>
-                Cliquez sur le lien dans l'email pour choisir un nouveau mot de passe. Vérifiez vos spams si besoin.
+                ✅ Un courriel de réinitialisation a été envoyé à <strong id="reinit-email-display"></strong>.<br>
+                Cliquez sur le lien dans le courriel pour choisir un nouveau mot de passe. Vérifiez vos spams si besoin.
               </div>
               <button class="btn btn-primary btn-full" onclick="retourConnexion()">Retour à la connexion</button>
               <button class="btn btn-ghost btn-full mt-1" onclick="envoyerCodeReinit(true)" style="font-size:.82rem;color:var(--clay-lt);">Renvoyer l'email</button>
@@ -1139,11 +1139,11 @@ tr:hover td { background: var(--cream); }
                 </label>
               </div>
               <div class="form-group">
-                <label class="form-label">Email <span id="reg-lbl-email-obl" style="color:var(--danger);font-size:.85rem;"></span></label>
+                <label class="form-label">Courriel <span id="reg-lbl-email-obl" style="color:var(--danger);font-size:.85rem;"></span></label>
                 <input class="form-input" id="reg-email" type="email" placeholder="votre@email.com">
                 <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.8rem;color:var(--clay-lt);margin-top:.3rem;">
                   <input type="checkbox" id="reg-share-email" checked style="accent-color:var(--terracotta);width:13px;height:13px;">
-                  <span>J'autorise à communiquer mon email aux autres adhérents</span>
+                  <span>J'autorise à communiquer mon courriel aux autres adhérents</span>
                 </label>
               </div>
               <div class="form-group">
@@ -1368,14 +1368,14 @@ tr:hover td { background: var(--cream); }
 
           <hr class="separator" style="margin:1.5rem 0;">
 
-          <!-- Adresse email -->
-          <h3 style="margin-bottom:.75rem;">✉️ Adresse email</h3>
+          <!-- Adresse courriel -->
+          <h3 style="margin-bottom:.75rem;">✉️ Adresse courriel</h3>
 
           <!-- Étape 1 : saisir la nouvelle adresse -->
           <div id="adh-email-step1">
             <p style="font-size:.88rem;color:var(--earth-lt);margin-bottom:.75rem;">Un lien de confirmation sera envoyé à votre nouvelle adresse. Cliquez dessus pour valider le changement. Votre adresse actuelle reste active jusque-là.</p>
             <div class="form-group" style="max-width:360px">
-              <label class="form-label">Nouvelle adresse email</label>
+              <label class="form-label">Nouvelle adresse courriel</label>
               <input class="form-input" id="adh-new-email" type="email" placeholder="nouvelle@email.com" autocomplete="email">
             </div>
             <div id="adh-email-error" class="alert alert-danger hidden" style="font-size:.85rem;padding:.6rem .85rem;max-width:360px;margin-bottom:.75rem;"></div>
@@ -1391,7 +1391,7 @@ tr:hover td { background: var(--cream); }
             </div>
             <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-top:.75rem;">
               <button class="btn btn-ghost" style="font-size:.85rem;" onclick="demanderChangementEmail(true)">Renvoyer le lien</button>
-              <button class="btn btn-ghost" style="font-size:.85rem;" onclick="retourSaisieEmail()">← Modifier l'adresse</button>
+              <button class="btn btn-ghost" style="font-size:.85rem;" onclick="retourSaisieEmail()">← Modifier l'adresse courriel</button>
             </div>
           </div>
 
@@ -1476,7 +1476,7 @@ tr:hover td { background: var(--cream); }
             <table>
               <thead>
                 <tr>
-                  <th>Pseudo</th><th>Email</th><th>Statut</th>
+                  <th>Pseudo</th><th>Courriel</th><th>Statut</th>
                   <th>Fin adhésion</th><th>H/sem</th><th>Actions</th>
                 </tr>
               </thead>
@@ -2082,9 +2082,9 @@ window.connexion = async function() {
     const estEmail = saisie.includes('@');
 
     if (estEmail) {
-      // Recherche par email (insensible à la casse)
+      // Recherche par courriel (insensible à la casse)
       const emailLw = saisie.toLowerCase();
-      const q = query(collection(db,'utilisateurs'), where('email','==',emailLw));
+      const q = query(collection(db,'utilisateurs'), where('courriel','==',emailLw));
       const snap = await getDocs(q);
       match = snap.docs[0] || null;
       // Fallback : email avec casse différente ou emailEnAttente
@@ -2120,14 +2120,14 @@ window.connexion = async function() {
     if (userData.statut === 'refuse')     { showErr(errEl,'Ce compte a été supprimé. Vous pouvez créer un nouveau compte via le formulaire d\'inscription.'); return; }
 
     // Connexion via Firebase Auth (mot de passe vérifié côté serveur)
-    // Si l'utilisateur a confirmé un changement d'email, Firebase Auth a le nouvel email
+    // Si l'utilisateur a confirmé un changement d'email, Firebase Auth a le nouveau courriel
     // mais Firestore a encore l'ancien → on tente les deux
     try {
       await signInWithEmailAndPassword(auth, userData.email, mdp);
     } catch(e1) {
       if ((e1.code === 'auth/invalid-credential' || e1.code === 'auth/wrong-password' || e1.code === 'auth/invalid-login-credentials')
           && userData.emailEnAttente) {
-        // L'utilisateur a confirmé son changement d'email → tenter avec le nouvel email
+        // L'utilisateur a confirmé son changement d'email → tenter avec le nouveau courriel
         await signInWithEmailAndPassword(auth, userData.emailEnAttente, mdp);
         // onAuthStateChanged synchronisera Firestore automatiquement
       } else {
@@ -2416,8 +2416,8 @@ function afficherInfosMonCompte() {
   grid.innerHTML = `
     <div class="profile-info-card"><div class="pil">Prénom</div><div class="pval">${u.prenom||'—'}</div></div>
     <div class="profile-info-card"><div class="pil">Nom</div><div class="pval">${u.nom||'—'}</div>${partageCheckbox('nom')}</div>
-    <div class="profile-info-card full-width"><div style="display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap;"><div class="pil">Email</div><div class="pval" style="font-size:.95rem">${u.email||'—'}</div></div>${partageCheckbox('email')}</div>
-    <div class="profile-info-card"><div style="display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap;"><div class="pil">Téléphone</div><div class="pval">${formatTel(u.telephone)}</div></div>${partageCheckbox('telephone')}</div>
+    <div class="profile-info-card full-width"><div style="display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap;"><div class="pil">Courriel</div><div class="pval" style="font-size:.95rem">${u.email||'—'}</div></div>${partageCheckbox('courriel')}</div>
+    <div class="profile-info-card full-width"><div style="display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap;"><div class="pil">Téléphone</div><div class="pval">${formatTel(u.telephone)}</div></div>${partageCheckbox('telephone')}</div>
     <div class="profile-info-card full-width"><div class="pil">Adresse</div><div class="pval">${adresse}</div>${partageCheckbox('rue')}</div>
   `;
   // Pré-remplir les champs de modification
@@ -2474,7 +2474,7 @@ window.enregistrerInfosAdherent = async function() {
 // =====================================================================
 // MODIFIER L'EMAIL — via verifyBeforeUpdateEmail (Firebase Auth)
 // =====================================================================
-let emailEnAttenteLocal = null; // mémorise le nouvel email pendant la session
+let emailEnAttenteLocal = null; // mémorise le nouveau courriel pendant la session
 
 window.demanderChangementEmail = async function(renvoyer = false) {
   const newEmail = renvoyer
@@ -2483,21 +2483,21 @@ window.demanderChangementEmail = async function(renvoyer = false) {
   const errEl = document.getElementById('adh-email-error');
   errEl.classList.add('hidden');
 
-  if (!newEmail) { showErr(errEl, 'Veuillez saisir une adresse email.'); return; }
-  if (!emailValide(newEmail)) { showErr(errEl, 'Adresse email invalide.'); return; }
+  if (!newEmail) { showErr(errEl, 'Veuillez saisir une adresse courriel.'); return; }
+  if (!emailValide(newEmail)) { showErr(errEl, 'Adresse courriel invalide.'); return; }
   if (newEmail === (utilisateurCourant.email || '').toLowerCase()) {
-    showErr(errEl, "C'est déjà votre adresse email actuelle."); return;
+    showErr(errEl, "C'est déjà votre adresse courriel actuelle."); return;
   }
 
   const btn = document.getElementById('btn-adh-email-envoyer');
   if (btn) { btn.disabled = true; btn.textContent = 'Envoi…'; }
 
   try {
-    // Vérifier que cet email n'est pas déjà utilisé dans Firestore
+    // Vérifier que ce courriel n'est pas déjà utilisé dans Firestore
     if (!renvoyer) {
-      const snap = await getDocs(query(collection(db, 'utilisateurs'), where('email', '==', newEmail)));
+      const snap = await getDocs(query(collection(db, 'utilisateurs'), where('courriel', '==', newEmail)));
       if (!snap.empty) {
-        showErr(errEl, 'Cette adresse email est déjà utilisée par un autre compte.');
+        showErr(errEl, 'Cette adresse courriel est déjà utilisée par un autre compte.');
         if (btn) { btn.disabled = false; btn.textContent = 'Envoyer le lien →'; }
         return;
       }
@@ -2507,7 +2507,7 @@ window.demanderChangementEmail = async function(renvoyer = false) {
     await verifyBeforeUpdateEmail(auth.currentUser, newEmail);
     emailEnAttenteLocal = newEmail;
 
-    // Stocker le nouvel email en attente dans Firestore
+    // Stocker le nouveau courriel en attente dans Firestore
     // → permet à la connexion de fonctionner même après confirmation Firebase Auth
     await updateDoc(doc(db,'utilisateurs', utilisateurCourant.id), {
       emailEnAttente: newEmail
@@ -2521,9 +2521,9 @@ window.demanderChangementEmail = async function(renvoyer = false) {
 
   } catch(e) {
     if (e.code === 'auth/requires-recent-login') {
-      showErr(errEl, 'Session trop ancienne. Déconnectez-vous puis reconnectez-vous avant de changer l\'email.');
+      showErr(errEl, 'Session trop ancienne. Déconnectez-vous puis reconnectez-vous avant de changer le courriel.');
     } else if (e.code === 'auth/email-already-in-use') {
-      showErr(errEl, 'Cette adresse email est déjà associée à un compte Firebase.');
+      showErr(errEl, 'Cette adresse courriel est déjà associée à un compte Firebase.');
     } else {
       showErr(errEl, 'Erreur : ' + e.message);
     }
@@ -2835,8 +2835,8 @@ window.ouvrirFicheAdherent = function(id) {
         <input class="form-input" id="fiche-nom" type="text" value="${u.nom||''}" placeholder="Nom"></div>
       <div class="form-group"><label class="form-label">Téléphone</label>
         <input class="form-input" id="fiche-tel" type="tel" value="${u.telephone||''}" placeholder="06…"></div>
-      <div class="form-group"><label class="form-label">Email</label>
-        <input class="form-input" id="fiche-email" type="email" value="${u.email||''}" placeholder="email@…"></div>
+      <div class="form-group"><label class="form-label">Courriel</label>
+        <input class="form-input" id="fiche-email" type="email" value="${u.email||''}" placeholder="courriel@…"></div>
       <div class="form-group" style="grid-column:1/-1"><label class="form-label">Rue</label>
         <input class="form-input" id="fiche-rue" type="text" value="${u.rue||''}" placeholder="Rue"></div>
       <div class="form-group"><label class="form-label">Code postal</label>
@@ -4178,7 +4178,7 @@ window.demanderVerificationEmail = async function(renvoyer=false) {
     { showErr(errEl,'Le code postal est obligatoire.'); return; }
   if (CHAMPS_OBLIGATOIRES.ville && !ville)
     { showErr(errEl,'La ville est obligatoire.'); return; }
-  if (!emailValide(email)) { showErr(errEl,'Adresse email invalide.'); return; }
+  if (!emailValide(email)) { showErr(errEl,'Adresse courriel invalide.'); return; }
   if (mdp.length < 6) { showErr(errEl,'Mot de passe : minimum 6 caractères.'); return; }
   if (mdp !== mdp2) { showErr(errEl,'Les mots de passe ne correspondent pas.'); return; }
   const telDigits = tel.replace(/\D/g,'');
@@ -4192,12 +4192,12 @@ window.demanderVerificationEmail = async function(renvoyer=false) {
     // Vérifier unicité pseudo et email via requêtes ciblées (sans charger tous les docs)
     const [snapPseudo, snapEmail] = await Promise.all([
       getDocs(query(collection(db,'utilisateurs'), where('pseudoLower','==',pseudo.toLowerCase()))),
-      getDocs(query(collection(db,'utilisateurs'), where('email','==',email.toLowerCase()))),
+      getDocs(query(collection(db,'utilisateurs'), where('courriel','==',email.toLowerCase()))),
     ]);
     if (!snapPseudo.empty)
       { showErr(errEl,'Ce pseudo est déjà utilisé.'); btn.disabled=false; btn.textContent='Vérifier mon adresse mail →'; return; }
     if (!snapEmail.empty)
-      { showErr(errEl,'Cette adresse email est déjà utilisée.'); btn.disabled=false; btn.textContent='Vérifier mon adresse mail →'; return; }
+      { showErr(errEl,'Cette adresse courriel est déjà utilisée.'); btn.disabled=false; btn.textContent='Vérifier mon adresse mail →'; return; }
 
     // Générer un code de vérification à 6 chiffres
     const code = String(Math.floor(100000+Math.random()*900000));
@@ -4207,7 +4207,7 @@ window.demanderVerificationEmail = async function(renvoyer=false) {
     document.getElementById('verif-email-display').textContent = email;
 
     const ok = await envoyerEmail(email, pseudo,
-      'Code de vérification — Julien Céramiques',
+      'Code de vérification — Atelier Partagé',
       'Bonjour '+pseudo+',\n\nCode : '+code+'\n\nValable 10 minutes.\n\nJulien Céramiques');
     if (!ok) toast('Échec d\'envoi de l\'email. Vérifiez votre adresse ou réessayez dans quelques instants.', 'warning');
 
@@ -4285,7 +4285,7 @@ window.verifierCode = async function() {
         if (snap.exists() && snap.data().statut !== 'suspendu') {
           // Compte déjà actif — ce n'est pas un ancien adhérent supprimé
           await signOut(auth);
-          showErr(errEl,'Cette adresse email est déjà utilisée par un compte actif.');
+          showErr(errEl,'Cette adresse courriel est déjà utilisée par un compte actif.');
           btn.disabled=false; btn.textContent='Valider le code'; return;
         }
 
@@ -4316,7 +4316,7 @@ window.verifierCode = async function() {
 
       } catch(e2) {
         if (e2.code === 'auth/wrong-password' || e2.code === 'auth/invalid-credential' || e2.code === 'auth/invalid-login-credentials') {
-          showErr(errEl,'Cette adresse email est déjà associée à un compte. Si vous avez déjà été membre, utilisez votre ancien mot de passe.');
+          showErr(errEl,'Cette adresse courriel est déjà associée à un compte. Si vous avez déjà été membre, utilisez votre ancien mot de passe.');
         } else {
           showErr(errEl,'Erreur : '+e2.message);
         }
@@ -4384,7 +4384,7 @@ window.soumettreinscription = async function() {
   // Validations
   if (!pseudo || !email || !mdp)
     { showErr(errEl, 'Veuillez remplir les champs obligatoires.'); return; }
-  if (!emailValide(email)) { showErr(errEl, 'Adresse email invalide.'); return; }
+  if (!emailValide(email)) { showErr(errEl, 'Adresse courriel invalide.'); return; }
   if (mdp.length < 6) { showErr(errEl, 'Mot de passe : minimum 6 caractères.'); return; }
   if (mdp !== mdp2) { showErr(errEl, 'Les mots de passe ne correspondent pas.'); return; }
   const telDigits = tel.replace(/\D/g, '');
@@ -4401,7 +4401,7 @@ window.soumettreinscription = async function() {
     // Vérifier unicité pseudo et email
     const [snapPseudo, snapEmail] = await Promise.all([
       getDocs(query(collection(db,'utilisateurs'), where('pseudoLower','==', pseudo.toLowerCase()))),
-      getDocs(query(collection(db,'utilisateurs'), where('email','==', email))),
+      getDocs(query(collection(db,'utilisateurs'), where('courriel','==', email))),
     ]);
     // Bloquer si le pseudo est pris par un autre compte actif
     if (!snapPseudo.empty) {
@@ -4415,7 +4415,7 @@ window.soumettreinscription = async function() {
     if (!snapEmail.empty) {
       const docEmail = snapEmail.docs[0];
       if (docEmail.data().statut !== 'refuse') {
-        showErr(errEl,'Cette adresse email est déjà utilisée.'); btn.disabled=false; btn.textContent='Créer mon compte →'; return;
+        showErr(errEl,'Cette adresse courriel est déjà utilisée.'); btn.disabled=false; btn.textContent='Créer mon compte →'; return;
       }
       // Statut 'refuse' → on laisse passer, la logique Auth prend le relais
     }
@@ -4429,7 +4429,7 @@ window.soumettreinscription = async function() {
     } catch(e) {
       if (e.code === 'auth/email-already-in-use') {
         // Firebase Auth existe déjà — vérifier le statut Firestore
-        const snapExist = await getDocs(query(collection(db,'utilisateurs'), where('email','==', email)));
+        const snapExist = await getDocs(query(collection(db,'utilisateurs'), where('courriel','==', email)));
         if (!snapExist.empty) {
           const docExist   = snapExist.docs[0];
           const statutExist = docExist.data().statut;
@@ -4452,7 +4452,7 @@ window.soumettreinscription = async function() {
             showErr(errEl, 'Ce compte a été suspendu. Contactez l\'administrateur.');
             btn.disabled=false; btn.textContent='Créer mon compte →'; return;
           } else {
-            showErr(errEl, 'Cette adresse email est déjà associée à un compte actif.');
+            showErr(errEl, 'Cette adresse courriel est déjà associée à un compte actif.');
             btn.disabled=false; btn.textContent='Créer mon compte →'; return;
           }
         } else {
@@ -4508,7 +4508,7 @@ window.soumettreinscription = async function() {
     });
     reinscriptionEnCours = false; // réinscription terminée, surveillance réactivée
 
-    // Notifier l'admin par email
+    // Notifier l'admin par courriel
     const notifOk = await notifierAdmin(pseudo, email, telDigits || null, estReinscription);
     if (!notifOk) console.warn('Notification admin non envoyée — vérifiez la clé Web3Forms et le domaine.');
 
@@ -5184,7 +5184,7 @@ window.envoyerCodeReinit = async function(renvoyer = false) {
       }
       email = userData.email;
     } else {
-      // Recherche par email : on cherche avec la valeur telle quelle ET en minuscule
+      // Recherche par courriel : on cherche avec la valeur telle quelle ET en minuscule
       const snapAll = await getDocs(collection(db,'utilisateurs'));
       const match = snapAll.docs.find(d => (d.data().email||'').toLowerCase() === valLow);
       if (match) {
@@ -5198,7 +5198,7 @@ window.envoyerCodeReinit = async function(renvoyer = false) {
     }
 
     if (!email) {
-      showErr(errEl, 'Aucun compte trouvé avec ce pseudo ou cet email.');
+      showErr(errEl, 'Aucun compte trouvé avec ce pseudo ou ce courriel.');
       btn.disabled = false; btn.textContent = 'Envoyer le lien →'; return;
     }
 
