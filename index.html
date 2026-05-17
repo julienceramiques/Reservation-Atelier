@@ -2377,13 +2377,13 @@ window.annulerReservation = async function(id) {
   } catch(e) { toast('Erreur : '+e.message, 'error'); }
 };
 
-function partageCheckbox(champ, label) {
+function partageCheckbox(champ) {
   const p = utilisateurCourant.partages || {};
   const checked = p[champ] ? 'checked' : '';
-  return `<label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--clay-lt);margin-top:.3rem;cursor:default;">
-    <input type="checkbox" ${checked} disabled style="accent-color:var(--terracotta);width:13px;height:13px;">
-    <span>Partagé avec les autres adhérents</span>
-  </label>`;
+  return '<label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--clay-lt);margin-top:.3rem;cursor:default;">'
+    + '<input type="checkbox" ' + checked + ' disabled style="accent-color:var(--terracotta);width:13px;height:13px;">'
+    + '<span>Partagé avec les autres adhérents</span>'
+    + '</label>';
 }
 
 function afficherInfosMonCompte() {
