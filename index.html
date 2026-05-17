@@ -4998,27 +4998,36 @@ window.exporterAdherentsPDF = function() {
   const maxY = pageH - mB - 8;
 
   function drawHeader() {
-    doc.setFillColor(139, 69, 19);
-    doc.rect(0, 0, pageW, 20, 'F');
-    doc.setTextColor(255, 255, 255);
+    // Bandeau terracotta clair (lisible en N&B)
+    doc.setFillColor(220, 175, 140);
+    doc.rect(0, 0, pageW, 28, 'F');
+    // Ligne 1 : Julien Ceramiques + date export a droite
+    doc.setTextColor(0, 0, 0);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(13);
-    doc.text('Julien Ceramiques  -  Liste des adherents', mL, 10);
+    doc.setFontSize(14);
+    doc.text('Julien Ceramiques  -  Atelier partage', mL, 10);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.text('Export du ' + dateStr, pageW - mR, 10, { align: 'right' });
+    // Ligne 2 : Liste des adherents
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text('Liste des adherents', mL, 18);
+    // Ligne 3 : nombre d'adherents
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    doc.text('Export du ' + dateStr, pageW - mR, 10, { align: 'right' });
-    doc.text(membres.length + ' adherent(s)', mL, 17);
+    doc.text(membres.length + ' adherent(s)', mL, 25);
   }
 
   drawHeader();
-  let y = 26;
+  let y = 34;
 
   membres.forEach((u) => {
     if (y + blockH > maxY) {
       doc.addPage();
       pageNum++;
       drawHeader();
-      y = 26;
+      y = 34;
     }
 
     const nomComplet = [u.prenom, u.nom].filter(Boolean).join(' ') || u.pseudo || '-';
@@ -5049,12 +5058,13 @@ window.exporterAdherentsPDF = function() {
     doc.setFontSize(9.5);
     doc.text('Statut : ' + statut + '   Debut : ' + debut + '   Fin : ' + fin + '   Moy./sem. : ' + formatHeures(hSem), mL + 55, y + lh * 2);
 
-    y += blockH;
-
-    // Separateur bien visible
+    // Separateur en bas du bloc
     doc.setDrawColor(60, 60, 60);
     doc.setLineWidth(0.5);
-    doc.line(mL, y - 2, pageW - mR, y - 2);
+    doc.line(mL, y + blockH - 2, pageW - mR, y + blockH - 2);
+
+    y += blockH;
+
   });
 
   // Pied de page sur toutes les pages
