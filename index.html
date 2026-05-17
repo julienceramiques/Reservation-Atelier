@@ -1473,7 +1473,12 @@ tr:hover td { background: var(--cream); }
           </div>
           <div style="display:flex;align-items:center;gap:.75rem;padding:.6rem 0 .75rem;border-bottom:1px solid var(--beige-dk);margin-bottom:.75rem;">
             <button class="btn btn-secondary" onclick="exporterAdherentsPDF()" style="display:flex;align-items:center;gap:.5rem;">
-              <span style="font-size:1.3rem;">📄</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="26" viewBox="0 0 22 26" style="flex-shrink:0;">
+                <rect x="1" y="1" width="20" height="24" rx="2" ry="2" fill="#fff" stroke="#888" stroke-width="1.2"/>
+                <polyline points="13,1 13,7 19,7" fill="#e8d9c8" stroke="#888" stroke-width="1.2"/>
+                <rect x="1" y="14" width="20" height="9" rx="1" fill="#C4622D"/>
+                <text x="11" y="21.5" font-family="helvetica,sans-serif" font-size="6" font-weight="bold" fill="#fff" text-anchor="middle">PDF</text>
+              </svg>
               <span style="font-size:.85rem;">Sauvegarde de la liste des adhérents</span>
             </button>
           </div>
@@ -5059,7 +5064,7 @@ window.exporterAdherentsPDF = function() {
     doc.text('Statut : ' + statut + '   Debut : ' + debut + '   Fin : ' + fin + '   Moy./sem. : ' + formatHeures(hSem), mL + 55, y + lh * 2);
 
     // Separateur : exactement au milieu entre la dernière ligne (y + lh*2) et le début du bloc suivant (y + blockH)
-    const sepY = y + lh * 2 + (blockH - lh * 2) / 2 - 4;
+    const sepY = y + lh * 2 + (blockH - lh * 2) / 2 - 1;
     doc.setDrawColor(180, 180, 180);
     doc.setLineWidth(0.3);
     doc.line(mL, sepY, pageW - mR, sepY);
