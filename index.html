@@ -1584,54 +1584,77 @@ tr:hover td { background: var(--cream); }
       <div id="tab-admin-mon-compte" class="tab-content hidden">
         <div style="display:flex;flex-wrap:wrap;gap:1.5rem;align-items:flex-start;">
 
-          <!-- Mes informations -->
+          <!-- Mes informations : vue affichage -->
           <div class="card" style="flex:1;min-width:300px;max-width:520px;">
-            <div class="card-header"><h2>👤 Mes informations</h2></div>
-            <div class="form-group">
-              <label class="form-label">Pseudo</label>
-              <input class="form-input" id="admin-param-pseudo" type="text" placeholder="Pseudo">
+            <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+              <h2>👤 Mes informations</h2>
+              <button class="btn btn-secondary btn-sm" onclick="adminBasculerEdition(true)">✏️ Modifier</button>
             </div>
-            <div class="form-group">
-              <label class="form-label">Prénom</label>
-              <input class="form-input" id="admin-param-prenom" type="text" placeholder="Prénom">
+
+            <!-- Vue affichage -->
+            <div id="admin-info-view">
+              <div class="profile-grid" id="admin-info-grid" style="margin-bottom:1rem;"></div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Nom</label>
-              <input class="form-input" id="admin-param-nom" type="text" placeholder="Nom">
-              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--clay-lt);margin-top:.4rem;cursor:pointer;">
-                <input type="checkbox" id="admin-share-nom" style="accent-color:var(--terracotta);width:13px;height:13px;">
-                <span>Partagé avec les adhérents</span>
-              </label>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Courriel</label>
-              <input class="form-input" id="admin-param-email" type="email" placeholder="courriel@exemple.com">
-              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--clay-lt);margin-top:.4rem;cursor:pointer;">
-                <input type="checkbox" id="admin-share-email" style="accent-color:var(--terracotta);width:13px;height:13px;">
-                <span>Partagé avec les adhérents</span>
-              </label>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Téléphone</label>
-              <input class="form-input" id="admin-param-telephone" type="tel" placeholder="06 00 00 00 00">
-              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--clay-lt);margin-top:.4rem;cursor:pointer;">
-                <input type="checkbox" id="admin-share-telephone" style="accent-color:var(--terracotta);width:13px;height:13px;">
-                <span>Partagé avec les adhérents</span>
-              </label>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Adresse de l'atelier</label>
-              <input class="form-input" id="admin-param-rue" type="text" placeholder="Rue" style="margin-bottom:.4rem;">
-              <div style="display:flex;gap:.5rem;">
-                <input class="form-input" id="admin-param-codePostal" type="text" placeholder="Code postal" maxlength="5" style="width:110px;">
-                <input class="form-input" id="admin-param-ville" type="text" placeholder="Ville" style="flex:1;">
+
+            <!-- Vue édition -->
+            <div id="admin-info-edit" class="hidden">
+              <div class="form-group">
+                <label class="form-label">Pseudo</label>
+                <input class="form-input" id="admin-param-pseudo" type="text" placeholder="Pseudo">
               </div>
-              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--clay-lt);margin-top:.4rem;cursor:pointer;">
-                <input type="checkbox" id="admin-share-adresse" style="accent-color:var(--terracotta);width:13px;height:13px;">
-                <span>Partagé avec les adhérents</span>
-              </label>
+              <div class="form-group">
+                <label class="form-label">Prénom</label>
+                <input class="form-input" id="admin-param-prenom" type="text" placeholder="Prénom">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Nom</label>
+                <input class="form-input" id="admin-param-nom" type="text" placeholder="Nom">
+                <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--clay-lt);margin-top:.4rem;cursor:pointer;">
+                  <input type="checkbox" id="admin-share-nom" style="accent-color:var(--terracotta);width:13px;height:13px;">
+                  <span>Partagé avec les adhérents</span>
+                </label>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Courriel</label>
+                <input class="form-input" id="admin-param-email" type="email" placeholder="courriel@exemple.com">
+                <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--clay-lt);margin-top:.4rem;cursor:pointer;">
+                  <input type="checkbox" id="admin-share-email" style="accent-color:var(--terracotta);width:13px;height:13px;">
+                  <span>Partagé avec les adhérents</span>
+                </label>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Téléphone</label>
+                <input class="form-input" id="admin-param-telephone" type="tel" placeholder="06 00 00 00 00">
+                <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--clay-lt);margin-top:.4rem;cursor:pointer;">
+                  <input type="checkbox" id="admin-share-telephone" style="accent-color:var(--terracotta);width:13px;height:13px;">
+                  <span>Partagé avec les adhérents</span>
+                </label>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Adresse de l'atelier</label>
+                <input class="form-input" id="admin-param-rue" type="text" placeholder="Rue" style="margin-bottom:.4rem;">
+                <div style="display:flex;gap:.5rem;">
+                  <input class="form-input" id="admin-param-codePostal" type="text" placeholder="Code postal" maxlength="5" style="width:110px;">
+                  <input class="form-input" id="admin-param-ville" type="text" placeholder="Ville" style="flex:1;">
+                </div>
+                <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--clay-lt);margin-top:.4rem;cursor:pointer;">
+                  <input type="checkbox" id="admin-share-adresse" style="accent-color:var(--terracotta);width:13px;height:13px;">
+                  <span>Partagé avec les adhérents</span>
+                </label>
+              </div>
+              <div style="display:flex;gap:.75rem;margin-top:.5rem;">
+                <button class="btn btn-primary" onclick="enregistrerParamsAdmin()">💾 Enregistrer</button>
+                <button class="btn btn-secondary" onclick="adminBasculerEdition(false)">Annuler</button>
+              </div>
             </div>
-            <button class="btn btn-primary" onclick="enregistrerParamsAdmin()">💾 Enregistrer</button>
+          </div>
+
+          <!-- Paramètres inscription -->
+          <div class="card" style="flex:1;min-width:280px;max-width:380px;">
+            <div class="card-header"><h2>📋 Paramètres inscription</h2></div>
+            <p style="font-size:.85rem;color:var(--clay-lt);margin-bottom:1rem;">Cochez les champs que le nouvel adhérent devra obligatoirement remplir lors de son inscription.</p>
+            <div id="param-inscr-champs" style="display:flex;flex-direction:column;gap:.65rem;margin-bottom:1.2rem;"></div>
+            <button class="btn btn-primary" onclick="sauvegarderChampsInscription()">💾 Enregistrer</button>
           </div>
 
           <!-- Mot de passe -->
@@ -5055,11 +5078,64 @@ window.changerMdpAdmin = async function() {
 // PARAMÈTRES ADMIN
 // =====================================================================
 
+function adminPartageCheckbox(champ, valeur) {
+  const checked = valeur ? 'checked' : '';
+  const oc = 'onchange="togglePartageAdmin(' + "'" + champ + "'" + ', this.checked)"';
+  return '<label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--clay-lt);margin-top:.3rem;cursor:pointer;">'
+    + '<input type="checkbox" ' + checked + ' ' + oc + ' style="accent-color:var(--terracotta);width:13px;height:13px;">'
+    + '<span>Partagé avec les adhérents</span>'
+    + '</label>';
+}
+
+window.togglePartageAdmin = async function(champ, valeur) {
+  try {
+    const partages = Object.assign({}, utilisateurCourant.partages || {}, { [champ]: valeur });
+    await updateDoc(doc(db, 'utilisateurs', utilisateurCourant.id), { partages });
+    utilisateurCourant.partages = partages;
+  } catch(e) {
+    toast('Erreur lors de la sauvegarde : ' + e.message, 'error');
+  }
+};
+
+window.adminBasculerEdition = function(editer) {
+  const view = document.getElementById('admin-info-view');
+  const edit = document.getElementById('admin-info-edit');
+  const btn  = document.querySelector('[onclick="adminBasculerEdition(true)"]');
+  if (editer) {
+    view.classList.add('hidden');
+    edit.classList.remove('hidden');
+    if (btn) btn.classList.add('hidden');
+  } else {
+    edit.classList.add('hidden');
+    view.classList.remove('hidden');
+    if (btn) btn.classList.remove('hidden');
+    chargerParamsAdmin();
+  }
+};
+
 function chargerParamsAdmin() {
   const u = utilisateurCourant;
   if (!u) return;
+
+  // Vue affichage : profile-info-card
+  const grid = document.getElementById('admin-info-grid');
+  if (grid) {
+    const p = u.partages || {};
+    const adresseParts = [u.rue, u.codePostal && u.ville ? u.codePostal + ' ' + u.ville : u.codePostal || u.ville].filter(Boolean);
+    const adresse = adresseParts.join(', ') || '—';
+    grid.innerHTML = ''
+      + '<div class="profile-info-card"><div class="pil">Pseudo</div><div class="pval">' + (u.pseudo || '—') + '</div></div>'
+      + '<div class="profile-info-card"><div class="pil">Prénom</div><div class="pval">' + (u.prenom || '—') + '</div></div>'
+      + '<div class="profile-info-card"><div class="pil">Nom</div><div class="pval">' + (u.nom || '—') + '</div>' + adminPartageCheckbox('nom', p.nom) + '</div>'
+      + '<div class="profile-info-card full-width"><div style="display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap;"><div class="pil">Courriel</div><div class="pval" style="font-size:.95rem">' + (u.email || '—') + '</div></div>' + adminPartageCheckbox('email', p.email) + '</div>'
+      + '<div class="profile-info-card"><div style="display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap;"><div class="pil">Téléphone</div><div class="pval">' + (formatTel(u.telephone) || '—') + '</div></div>' + adminPartageCheckbox('telephone', p.telephone) + '</div>'
+      + '<div class="profile-info-card full-width"><div class="pil">Adresse</div><div class="pval">' + adresse + '</div>' + adminPartageCheckbox('rue', p.rue) + '</div>';
+  }
+
+  // Vue édition : pré-remplir les champs
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
   const chk = (id, val) => { const el = document.getElementById(id); if (el) el.checked = !!val; };
+  const p = u.partages || {};
   set('admin-param-pseudo',    u.pseudo);
   set('admin-param-prenom',    u.prenom);
   set('admin-param-nom',       u.nom);
@@ -5068,12 +5144,44 @@ function chargerParamsAdmin() {
   set('admin-param-rue',       u.rue);
   set('admin-param-codePostal',u.codePostal);
   set('admin-param-ville',     u.ville);
-  const p = u.partages || {};
   chk('admin-share-nom',       p.nom);
   chk('admin-share-email',     p.email);
   chk('admin-share-telephone', p.telephone);
   chk('admin-share-adresse',   p.rue);
+
+  // S'assurer qu'on est en vue affichage
+  adminBasculerEdition(false);
+
+  // Remplir la section paramètres inscription
+  const champsDiv = document.getElementById('param-inscr-champs');
+  if (champsDiv) {
+    champsDiv.innerHTML = CHAMPS_PROFIL.map(c =>
+      '<label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;font-size:.88rem;">'
+      + '<input type="checkbox" data-inscr-champ="' + c.id + '" '
+      + (CHAMPS_OBLIGATOIRES[c.id] ? 'checked' : '')
+      + ' style="accent-color:var(--terracotta);width:15px;height:15px;">'
+      + '<span>' + c.label + '</span>'
+      + '</label>'
+    ).join('');
+  }
 }
+
+window.sauvegarderChampsInscription = async function() {
+  const champsObl = {};
+  document.querySelectorAll('[data-inscr-champ]').forEach(cb => {
+    champsObl[cb.dataset.inscrChamp] = cb.checked;
+  });
+  CHAMPS_OBLIGATOIRES = { ...CHAMPS_OBLIGATOIRES, ...champsObl };
+  try {
+    const snap = await getDoc(doc(db, 'config', 'parametres'));
+    const existing = snap.exists() ? snap.data() : {};
+    const params = { ...existing, champsObligatoires: CHAMPS_OBLIGATOIRES };
+    await setDoc(doc(db, 'config', 'parametres'), params);
+    appliquerParametres(params);
+    mettreAJourIndicateursInscription();
+    toast('Champs obligatoires mis à jour.', 'success');
+  } catch(e) { toast('Erreur : ' + e.message, 'error'); }
+};
 
 window.enregistrerParamsAdmin = async function() {
   const get = id => document.getElementById(id)?.value.trim() || '';
@@ -5107,6 +5215,7 @@ window.enregistrerParamsAdmin = async function() {
     await updateDoc(doc(db, 'utilisateurs', utilisateurCourant.id), data);
     Object.assign(utilisateurCourant, data);
     toast('Paramètres enregistrés !', 'success');
+    adminBasculerEdition(false);
   } catch(e) {
     toast('Erreur : ' + e.message, 'error');
   }
