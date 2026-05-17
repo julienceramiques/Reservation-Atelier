@@ -2395,11 +2395,9 @@ function afficherInfosMonCompte() {
   const adhesionInfo = document.getElementById('adh-adhesion-info');
   if (adhesionInfo) {
     const statut = calculerStatutAdhesion(u);
-    adhesionInfo.innerHTML = `
-      <span><strong>Membre depuis :</strong> ${formatDate(u.dateDebutAdhesion)||'—'}</span>
-      <span><strong>Fin d'adhésion :</strong> ${formatDate(u.dateFinAdhesion)||'—'}</span>
-      <span><strong>Statut :</strong> ${badgeStatut(statut)}</span>
-    `;
+    adhesionInfo.innerHTML = '<span><strong>Membre depuis :</strong> ' + (formatDate(u.dateDebutAdhesion)||'—') + '</span>'
+      + ' <span><strong>Fin d\'adhésion :</strong> ' + (formatDate(u.dateFinAdhesion)||'—') + '</span>'
+      + ' <span><strong>Statut :</strong> ' + badgeStatut(statut) + '</span>';
   }
   const p = u.partages || {};
   const adresseParts = [u.rue, u.codePostal && u.ville ? u.codePostal+' '+u.ville : u.codePostal||u.ville].filter(Boolean);
@@ -2895,7 +2893,7 @@ window.enregistrerPaiement = async function(id) {
 
   // Validation : fin sans début interdit
   if (fin && !debut) {
-    toast('Veuillez définir une date de début d'adhésion avant de saisir une date de fin.', 'error');
+    toast('Veuillez définir une date de début d\'adhésion avant de saisir une date de fin.', 'error');
     return;
   }
 
@@ -5037,18 +5035,18 @@ window.exporterAdherentsPDF = function() {
     doc.setTextColor(0, 0, 0);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
-    doc.text('Julien C\u00e9ramiques  -  Atelier partag\u00e9', mL, 10);
+    doc.text('Julien Céramiques  -  Atelier partagé', mL, 10);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
     doc.text('Export du ' + dateStr, pageW - mR, 10, { align: 'right' });
-    // Ligne 2 : Liste des adhérents  –  nombre juste après
+    // Ligne 2 : Liste des adhérents + nombre juste après
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
-    doc.text('Liste des adh\u00e9rents', mL, 19);
-    const titreW = doc.getTextWidth('Liste des adh\u00e9rents');
+    doc.text('Liste des adhérents', mL, 19);
+    const titreW = doc.getTextWidth('Liste des adhérents');
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    doc.text('\u2013  ' + membres.length + ' adh\u00e9rent(s)', mL + titreW + 3, 19);
+    doc.text('–  ' + membres.length + ' adhérent(s)', mL + titreW + 3, 19);
   }
 
   drawHeader();
@@ -5090,7 +5088,7 @@ window.exporterAdherentsPDF = function() {
     doc.setFontSize(9.5);
     doc.text('Statut : ' + statut + '   Debut : ' + debut + '   Fin : ' + fin + '   Moy./sem. : ' + formatHeures(hSem), mL + 55, y + lh * 2);
 
-    // Separateur : exactement au milieu entre la dernière ligne (y + lh*2) et le début du bloc suivant (y + blockH)
+    // Separateur : au milieu entre dernière ligne et bloc suivant, remonté de 1pt
     const sepY = y + lh * 2 + (blockH - lh * 2) / 2 - 1;
     doc.setDrawColor(180, 180, 180);
     doc.setLineWidth(0.3);
