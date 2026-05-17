@@ -1234,7 +1234,7 @@ tr:hover td { background: var(--cream); }
       <button class="tab-btn" onclick="showAdminTab('contacts')">📇 Contacts</button>
       <button class="tab-btn" onclick="showAdminTab('infos')">✉️ Infos</button>
 
-      <button class="tab-btn" onclick="showAdminTab('mon-compte')">⚙️ Mon compte</button>
+      <button class="tab-btn" onclick="showAdminTab('mon-compte')">⚙️ Paramètres</button>
     </div>
   </div>
 
@@ -1580,21 +1580,76 @@ tr:hover td { background: var(--cream); }
           <div id="contacts-list-admin" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:.75rem;"></div>
         </div>
       </div>
-      <!-- Mon compte admin -->
+      <!-- Paramètres admin -->
       <div id="tab-admin-mon-compte" class="tab-content hidden">
-        <div class="card" style="max-width:480px;">
-          <div class="card-header"><h2>⚙️ Mon compte admin</h2></div>
-          <div class="form-group"><label class="form-label">Nouveau mot de passe</label>
-            <div class="mdp-wrap">
-              <input class="form-input" id="admin-new-mdp" type="password" placeholder="Min. 6 caractères">
-              <button type="button" class="btn-eye" onclick="toggleMdp('admin-new-mdp',this)" title="Voir le mot de passe"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-            </div></div>
-          <div class="form-group"><label class="form-label">Confirmer</label>
-            <div class="mdp-wrap">
-              <input class="form-input" id="admin-new-mdp2" type="password" placeholder="Répétez le mot de passe">
-              <button type="button" class="btn-eye" onclick="toggleMdp('admin-new-mdp2',this)" title="Voir le mot de passe"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-            </div></div>
-          <button class="btn btn-primary" onclick="changerMdpAdmin()">Modifier le mot de passe</button>
+        <div style="display:flex;flex-wrap:wrap;gap:1.5rem;align-items:flex-start;">
+
+          <!-- Mes informations -->
+          <div class="card" style="flex:1;min-width:300px;max-width:520px;">
+            <div class="card-header"><h2>👤 Mes informations</h2></div>
+            <div class="form-group">
+              <label class="form-label">Pseudo</label>
+              <input class="form-input" id="admin-param-pseudo" type="text" placeholder="Pseudo">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Prénom</label>
+              <input class="form-input" id="admin-param-prenom" type="text" placeholder="Prénom">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nom</label>
+              <input class="form-input" id="admin-param-nom" type="text" placeholder="Nom">
+              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--clay-lt);margin-top:.4rem;cursor:pointer;">
+                <input type="checkbox" id="admin-share-nom" style="accent-color:var(--terracotta);width:13px;height:13px;">
+                <span>Partagé avec les adhérents</span>
+              </label>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Courriel</label>
+              <input class="form-input" id="admin-param-email" type="email" placeholder="courriel@exemple.com">
+              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--clay-lt);margin-top:.4rem;cursor:pointer;">
+                <input type="checkbox" id="admin-share-email" style="accent-color:var(--terracotta);width:13px;height:13px;">
+                <span>Partagé avec les adhérents</span>
+              </label>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Téléphone</label>
+              <input class="form-input" id="admin-param-telephone" type="tel" placeholder="06 00 00 00 00">
+              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--clay-lt);margin-top:.4rem;cursor:pointer;">
+                <input type="checkbox" id="admin-share-telephone" style="accent-color:var(--terracotta);width:13px;height:13px;">
+                <span>Partagé avec les adhérents</span>
+              </label>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Adresse de l'atelier</label>
+              <input class="form-input" id="admin-param-rue" type="text" placeholder="Rue" style="margin-bottom:.4rem;">
+              <div style="display:flex;gap:.5rem;">
+                <input class="form-input" id="admin-param-codePostal" type="text" placeholder="Code postal" maxlength="5" style="width:110px;">
+                <input class="form-input" id="admin-param-ville" type="text" placeholder="Ville" style="flex:1;">
+              </div>
+              <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--clay-lt);margin-top:.4rem;cursor:pointer;">
+                <input type="checkbox" id="admin-share-adresse" style="accent-color:var(--terracotta);width:13px;height:13px;">
+                <span>Partagé avec les adhérents</span>
+              </label>
+            </div>
+            <button class="btn btn-primary" onclick="enregistrerParamsAdmin()">💾 Enregistrer</button>
+          </div>
+
+          <!-- Mot de passe -->
+          <div class="card" style="flex:1;min-width:280px;max-width:380px;">
+            <div class="card-header"><h2>🔒 Mot de passe</h2></div>
+            <div class="form-group"><label class="form-label">Nouveau mot de passe</label>
+              <div class="mdp-wrap">
+                <input class="form-input" id="admin-new-mdp" type="password" placeholder="Min. 6 caractères">
+                <button type="button" class="btn-eye" onclick="toggleMdp('admin-new-mdp',this)" title="Voir le mot de passe"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+              </div></div>
+            <div class="form-group"><label class="form-label">Confirmer</label>
+              <div class="mdp-wrap">
+                <input class="form-input" id="admin-new-mdp2" type="password" placeholder="Répétez le mot de passe">
+                <button type="button" class="btn-eye" onclick="toggleMdp('admin-new-mdp2',this)" title="Voir le mot de passe"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+              </div></div>
+            <button class="btn btn-primary" onclick="changerMdpAdmin()">Modifier le mot de passe</button>
+          </div>
+
         </div>
       </div>
     </div><!-- /page-admin -->
@@ -2659,6 +2714,7 @@ window.showAdminTab = function(tab) {
   if (tab==='exceptions') afficherExceptions();
   if (tab==='contacts')   afficherContacts('admin');
   if (tab==='infos')      afficherInfosAdmin();
+  if (tab==='mon-compte') chargerParamsAdmin();
 };
 
 async function afficherDashboardAdmin() {
@@ -4992,6 +5048,67 @@ window.changerMdpAdmin = async function() {
     } else {
       toast('Erreur : '+e.message,'error');
     }
+  }
+};
+
+// =====================================================================
+// PARAMÈTRES ADMIN
+// =====================================================================
+
+function chargerParamsAdmin() {
+  const u = utilisateurCourant;
+  if (!u) return;
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+  const chk = (id, val) => { const el = document.getElementById(id); if (el) el.checked = !!val; };
+  set('admin-param-pseudo',    u.pseudo);
+  set('admin-param-prenom',    u.prenom);
+  set('admin-param-nom',       u.nom);
+  set('admin-param-email',     u.email);
+  set('admin-param-telephone', u.telephone || '');
+  set('admin-param-rue',       u.rue);
+  set('admin-param-codePostal',u.codePostal);
+  set('admin-param-ville',     u.ville);
+  const p = u.partages || {};
+  chk('admin-share-nom',       p.nom);
+  chk('admin-share-email',     p.email);
+  chk('admin-share-telephone', p.telephone);
+  chk('admin-share-adresse',   p.rue);
+}
+
+window.enregistrerParamsAdmin = async function() {
+  const get = id => document.getElementById(id)?.value.trim() || '';
+  const chk = id => document.getElementById(id)?.checked || false;
+
+  const pseudo    = get('admin-param-pseudo');
+  const prenom    = get('admin-param-prenom');
+  const nom       = get('admin-param-nom');
+  const email     = get('admin-param-email');
+  const tel       = get('admin-param-telephone');
+  const rue       = get('admin-param-rue');
+  const cp        = get('admin-param-codePostal');
+  const ville     = get('admin-param-ville');
+
+  if (!pseudo)  { toast('Le pseudo est obligatoire.', 'warning'); return; }
+  const telDigits = tel.replace(/\D/g, '');
+  if (tel && !/^\d{10}$/.test(telDigits)) { toast('Le téléphone doit contenir 10 chiffres.', 'warning'); return; }
+  if (cp && !/^\d{5}$/.test(cp))          { toast('Le code postal doit contenir 5 chiffres.', 'warning'); return; }
+
+  const partages = {
+    nom:       chk('admin-share-nom'),
+    email:     chk('admin-share-email'),
+    telephone: chk('admin-share-telephone'),
+    rue:       chk('admin-share-adresse'),
+  };
+
+  try {
+    const data = { pseudo, prenom: prenom||null, nom: nom||null, email,
+                   telephone: telDigits||null, rue: rue||null,
+                   codePostal: cp||null, ville: ville||null, partages };
+    await updateDoc(doc(db, 'utilisateurs', utilisateurCourant.id), data);
+    Object.assign(utilisateurCourant, data);
+    toast('Paramètres enregistrés !', 'success');
+  } catch(e) {
+    toast('Erreur : ' + e.message, 'error');
   }
 };
 
