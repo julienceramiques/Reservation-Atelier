@@ -4981,78 +4981,94 @@ window.enregistrerIdentite = async function(id) {
 // =====================================================================
 window.exporterAdherentsPDF = function() {
   const { jsPDF } = window.jspdf;
-  if (!jsPDF) { toast('Bibliothèque PDF non chargée. Vérifiez votre connexion.', 'error'); return; }
+  if (!jsPDF) { toast('Bibliotheque PDF non chargee. Verifiez votre connexion.', 'error'); return; }
 
   const membres = allUsers
     .filter(u => u.role === 'adherent' && u.statut !== 'refuse')
     .sort((a, b) => (a.nom||a.pseudo||'').localeCompare(b.nom||b.pseudo||''));
 
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const pageW = 210, marginL = 14, marginR = 14, contentW = pageW - marginL - marginR;
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('fr-FR') + ' ' + now.toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'});
+  const doc   = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pageW = 210, pageH = 297, mL = 14, mR = 14, mB = 16;
+  const contentW = pageW - mL - mR;
+  const now   = new Date();
+  const dateStr = now.toLocaleDateString('fr-FR') + ' a ' + now.toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'});
+  let pageNum = 1;
+  const lh = 6.2;
+  const blockH = lh * 3 + 6;
+  const maxY = pageH - mB - 8;
 
-  // ── En-tête ──────────────────────────────────────────────────────────────
-  doc.setFillColor(139, 69, 19); // terracotta
-  doc.rect(0, 0, 210, 18, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(13);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Julien Céramiques — Liste des adhérents', marginL, 11);
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.text(dateStr, pageW - marginR, 11, { align: 'right' });
-  doc.setFontSize(9);
-  doc.text(membres.length + ' adhérent(s)', marginL, 16);
-
-  let y = 24;
-  const lineH = 5;
-  const col1 = marginL;         // prénom/nom (fixe)
-  const col2 = marginL + 36;    // infos
-
-  membres.forEach((u, i) => {
-    const hSem = heuresSemaineCourante(u.id);
-    const adresse = [u.rue, [u.codePostal, u.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ') || '—';
-    const statut  = badgeStatutTexte(calculerStatutAdhesion(u));
-    const debut   = formatDate(u.dateDebutAdhesion) || '—';
-    const fin     = formatDate(u.dateFinAdhesion)   || '—';
-
-    // Fond alterné
-    if (i % 2 === 0) {
-      doc.setFillColor(249, 246, 243);
-      doc.rect(marginL - 2, y - 1, contentW + 4, lineH * 3 + 3, 'F');
-    }
-
-    // Ligne 1 : prénom nom — pseudo — email — tel
+  function drawHeader() {
+    doc.setFillColor(139, 69, 19);
+    doc.rect(0, 0, pageW, 20, 'F');
+    doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.setTextColor(60, 40, 20);
-    const nomComplet = [u.prenom, u.nom].filter(Boolean).join(' ') || '—';
-    doc.text(nomComplet, col1, y + lineH * 0);
-
+    doc.setFontSize(13);
+    doc.text('Julien Ceramiques  -  Liste des adherents', mL, 10);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    doc.setTextColor(80, 60, 40);
-    const infosL1 = [u.pseudo ? '(' + u.pseudo + ')' : '', u.email||'', u.telephone ? formatTel(u.telephone) : ''].filter(Boolean).join('   ');
-    doc.text(infosL1, col2, y + lineH * 0);
+    doc.setFontSize(9);
+    doc.text('Export du ' + dateStr, pageW - mR, 10, { align: 'right' });
+    doc.text(membres.length + ' adherent(s)', mL, 17);
+  }
 
-    // Ligne 2 : adresse
-    doc.setFontSize(8);
-    doc.setTextColor(110, 90, 70);
-    doc.text('📍 ' + adresse, col2, y + lineH * 1);
+  drawHeader();
+  let y = 26;
 
-    // Ligne 3 : statut, adhésion, heures
-    const infosL3 = statut + '   Début : ' + debut + '   Fin : ' + fin + '   Moy. : ' + formatHeures(hSem) + '/sem';
-    doc.text(infosL3, col2, y + lineH * 2);
-
-    y += lineH * 3 + 4;
-
-    // Saut de page si nécessaire
-    if (y > 272) {
+  membres.forEach((u) => {
+    if (y + blockH > maxY) {
       doc.addPage();
-      y = 14;
+      pageNum++;
+      drawHeader();
+      y = 26;
     }
+
+    const nomComplet = [u.prenom, u.nom].filter(Boolean).join(' ') || u.pseudo || '-';
+    const pseudo     = u.pseudo ? '(' + u.pseudo + ')' : '';
+    const email      = u.email || '-';
+    const tel        = u.telephone ? formatTel(u.telephone) : '';
+    const adresse    = [u.rue, [u.codePostal, u.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ') || '-';
+    const statut     = badgeStatutTexte(calculerStatutAdhesion(u));
+    const debut      = formatDate(u.dateDebutAdhesion) || '-';
+    const fin        = formatDate(u.dateFinAdhesion) || '-';
+    const lundi      = lundiDeLaSemaine(new Date());
+    const hSem       = heuresSemaine(u.id, lundi);
+
+    // Ligne 1 : Prenom Nom (gras) | pseudo  email  tel
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    doc.text(nomComplet, mL, y);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9.5);
+    doc.text([pseudo, email, tel].filter(Boolean).join('   '), mL + 55, y);
+
+    // Ligne 2 : Adresse
+    doc.setFontSize(9.5);
+    doc.text('Adresse : ' + adresse, mL + 55, y + lh);
+
+    // Ligne 3 : Statut + adhesion + heures
+    doc.setFontSize(9.5);
+    doc.text('Statut : ' + statut + '   Debut : ' + debut + '   Fin : ' + fin + '   Moy./sem. : ' + formatHeures(hSem), mL + 55, y + lh * 2);
+
+    y += blockH;
+
+    // Separateur bien visible
+    doc.setDrawColor(60, 60, 60);
+    doc.setLineWidth(0.5);
+    doc.line(mL, y - 2, pageW - mR, y - 2);
   });
+
+  // Pied de page sur toutes les pages
+  const totalPages = pageNum;
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p);
+    doc.setDrawColor(60, 60, 60);
+    doc.setLineWidth(0.3);
+    doc.line(mL, pageH - mB, pageW - mR, pageH - mB);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(0, 0, 0);
+    doc.text('Page ' + p + ' / ' + totalPages, pageW / 2, pageH - mB + 4, { align: 'center' });
+  }
 
   doc.save('adherents_julien_ceramiques_' + now.toISOString().substring(0,10) + '.pdf');
 };
