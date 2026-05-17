@@ -2380,11 +2380,22 @@ window.annulerReservation = async function(id) {
 function partageCheckbox(champ) {
   const p = utilisateurCourant.partages || {};
   const checked = p[champ] ? 'checked' : '';
-  return '<label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--clay-lt);margin-top:.3rem;cursor:default;">'
-    + '<input type="checkbox" ' + checked + ' disabled style="accent-color:var(--terracotta);width:13px;height:13px;">'
+  const oc = 'onchange="togglePartage(' + "'" + champ + "'" + ', this.checked)"';
+  return '<label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--clay-lt);margin-top:.3rem;cursor:pointer;">'
+    + '<input type="checkbox" ' + checked + ' ' + oc + ' style="accent-color:var(--terracotta);width:13px;height:13px;cursor:pointer;">'
     + '<span>Partagé avec les autres adhérents</span>'
     + '</label>';
 }
+
+window.togglePartage = async function(champ, valeur) {
+  try {
+    const partages = Object.assign({}, utilisateurCourant.partages || {}, { [champ]: valeur });
+    await updateDoc(doc(db, 'utilisateurs', utilisateurCourant.id), { partages });
+    utilisateurCourant.partages = partages;
+  } catch(e) {
+    toast('Erreur lors de la sauvegarde : ' + e.message, 'error');
+  }
+};
 
 function afficherInfosMonCompte() {
   const u = utilisateurCourant;
