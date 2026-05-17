@@ -2416,8 +2416,8 @@ function afficherInfosMonCompte() {
   grid.innerHTML = `
     <div class="profile-info-card"><div class="pil">Prénom</div><div class="pval">${u.prenom||'—'}</div></div>
     <div class="profile-info-card"><div class="pil">Nom</div><div class="pval">${u.nom||'—'}</div>${partageCheckbox('nom')}</div>
-    <div class="profile-info-card full-width"><div class="pil">Email</div><div class="pval" style="font-size:.95rem">${u.email||'—'}</div>${partageCheckbox('email')}</div>
-    <div class="profile-info-card"><div class="pil">Téléphone</div><div class="pval">${formatTel(u.telephone)}</div>${partageCheckbox('telephone')}</div>
+    <div class="profile-info-card full-width"><div style="display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap;"><div class="pil">Email</div><div class="pval" style="font-size:.95rem">${u.email||'—'}</div></div>${partageCheckbox('email')}</div>
+    <div class="profile-info-card"><div style="display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap;"><div class="pil">Téléphone</div><div class="pval">${formatTel(u.telephone)}</div></div>${partageCheckbox('telephone')}</div>
     <div class="profile-info-card full-width"><div class="pil">Adresse</div><div class="pval">${adresse}</div>${partageCheckbox('rue')}</div>
   `;
   // Pré-remplir les champs de modification
