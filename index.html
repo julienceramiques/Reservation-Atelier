@@ -5009,13 +5009,14 @@ window.exporterAdherentsPDF = function() {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
     doc.text('Export du ' + dateStr, pageW - mR, 10, { align: 'right' });
-    // Ligne 2 : Liste des adhérents + nombre à droite
+    // Ligne 2 : Liste des adhérents  –  nombre juste après
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
     doc.text('Liste des adh\u00e9rents', mL, 19);
+    const titreW = doc.getTextWidth('Liste des adh\u00e9rents');
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    doc.text(membres.length + ' adh\u00e9rent(s)', pageW - mR, 19, { align: 'right' });
+    doc.text('\u2013  ' + membres.length + ' adh\u00e9rent(s)', mL + titreW + 3, 19);
   }
 
   drawHeader();
@@ -5057,10 +5058,11 @@ window.exporterAdherentsPDF = function() {
     doc.setFontSize(9.5);
     doc.text('Statut : ' + statut + '   Debut : ' + debut + '   Fin : ' + fin + '   Moy./sem. : ' + formatHeures(hSem), mL + 55, y + lh * 2);
 
-    // Separateur en bas du bloc (centré dans l'espace entre deux adhérents)
+    // Separateur : exactement au milieu entre la dernière ligne (y + lh*2) et le début du bloc suivant (y + blockH)
+    const sepY = y + lh * 2 + (blockH - lh * 2) / 2;
     doc.setDrawColor(180, 180, 180);
     doc.setLineWidth(0.3);
-    doc.line(mL, y + lh * 3 + 3, pageW - mR, y + lh * 3 + 3);
+    doc.line(mL, sepY, pageW - mR, sepY);
 
     y += blockH;
 
