@@ -5059,7 +5059,7 @@ window.exporterAdherentsPDF = function() {
     doc.text('Statut : ' + statut + '   Debut : ' + debut + '   Fin : ' + fin + '   Moy./sem. : ' + formatHeures(hSem), mL + 55, y + lh * 2);
 
     // Separateur : exactement au milieu entre la dernière ligne (y + lh*2) et le début du bloc suivant (y + blockH)
-    const sepY = y + lh * 2 + (blockH - lh * 2) / 2;
+    const sepY = y + lh * 2 + (blockH - lh * 2) / 2 - 4;
     doc.setDrawColor(180, 180, 180);
     doc.setLineWidth(0.3);
     doc.line(mL, sepY, pageW - mR, sepY);
