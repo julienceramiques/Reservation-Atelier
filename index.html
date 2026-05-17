@@ -321,9 +321,10 @@ main#main {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   display: none;
-  align-items: center; justify-content: center;
+  align-items: flex-start; justify-content: center;
   background: linear-gradient(135deg, var(--earth) 0%, var(--earth-lt) 50%, var(--clay) 100%);
   padding: 2rem;
+  padding-top: max(2rem, 5vh);
   z-index: 200;
   overflow-y: auto;
 }
@@ -4456,11 +4457,30 @@ window.soumettreinscription = async function() {
 
     // Créer ou réinitialiser le document Firestore
     // statut 'actif' d'emblée — l'admin gère les dates d'adhésion séparément
+    const prenom     = document.getElementById('reg-prenom')?.value.trim() || '';
+    const nom        = document.getElementById('reg-nom')?.value.trim() || '';
+    const rue        = document.getElementById('reg-rue')?.value.trim() || '';
+    const codePostal = document.getElementById('reg-codePostal')?.value.trim() || '';
+    const ville      = document.getElementById('reg-ville')?.value.trim() || '';
+    const shareNom   = document.getElementById('reg-share-nom')?.checked || false;
+    const shareEmail = document.getElementById('reg-share-email')?.checked || false;
+    const shareTel   = document.getElementById('reg-share-telephone')?.checked || false;
+    const shareRue   = document.getElementById('reg-share-rue')?.checked || false;
+
     await setDoc(doc(db,'utilisateurs', uid), {
       pseudo:            pseudo,
       pseudoLower:       pseudo.toLowerCase(),
+      prenom:            prenom || null,
+      nom:               nom || null,
       telephone:         telDigits || null,
       email:             email,
+      rue:               rue || null,
+      codePostal:        codePostal || null,
+      ville:             ville || null,
+      shareNom:          shareNom,
+      shareEmail:        shareEmail,
+      shareTelephone:    shareTel,
+      shareRue:          shareRue,
       role:              'adherent',
       statut:            'actif',
       emailVerifie:      true,
