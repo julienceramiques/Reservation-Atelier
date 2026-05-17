@@ -1246,7 +1246,8 @@ tr:hover td { background: var(--cream); }
 
       <!-- Dashboard adhérent -->
       <div id="tab-adh-dashboard" class="tab-content">
-        <h2 style="margin-bottom:1rem;">Bonjour, <span id="adh-pseudo-display" style="color:var(--terracotta)"></span> 👋</h2>
+        <h2 style="margin-bottom:.5rem;">Bonjour, <span id="adh-pseudo-display" style="color:var(--terracotta)"></span> 👋</h2>
+        <div id="adh-adhesion-info" style="display:flex;flex-wrap:wrap;gap:1.2rem;align-items:center;font-size:.88rem;color:var(--earth-lt);margin-bottom:1rem;"></div>
         <div class="profile-grid" id="adh-profile-grid"></div>
         <div class="card">
           <div class="card-header"><h3>Heures réservées cette semaine</h3></div>
@@ -1341,26 +1342,17 @@ tr:hover td { background: var(--cream); }
             <div class="form-group">
               <label class="form-label">Nom</label>
               <input class="form-input" id="adh-new-nom" type="text" placeholder="Votre nom">
-              <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.78rem;color:var(--clay-lt);margin-top:.3rem;">
-                <input type="checkbox" id="adh-share-nom" style="accent-color:var(--terracotta);width:13px;height:13px;">
-                <span>Partager mon nom</span>
-              </label>
+
             </div>
             <div class="form-group">
               <label class="form-label">Téléphone</label>
               <input class="form-input" id="adh-new-tel" type="tel" placeholder="Ex : 0612345678" maxlength="10">
-              <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.78rem;color:var(--clay-lt);margin-top:.3rem;">
-                <input type="checkbox" id="adh-share-telephone" style="accent-color:var(--terracotta);width:13px;height:13px;">
-                <span>Partager mon téléphone</span>
-              </label>
+
             </div>
             <div class="form-group">
               <label class="form-label">Rue</label>
               <input class="form-input" id="adh-new-rue" type="text" placeholder="Numéro et rue">
-              <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.78rem;color:var(--clay-lt);margin-top:.3rem;">
-                <input type="checkbox" id="adh-share-rue" style="accent-color:var(--terracotta);width:13px;height:13px;">
-                <span>Partager mon adresse</span>
-              </label>
+
             </div>
             <div class="form-group">
               <label class="form-label">Code postal</label>
@@ -1371,10 +1363,7 @@ tr:hover td { background: var(--cream); }
               <input class="form-input" id="adh-new-ville" type="text" placeholder="Paris">
             </div>
           </div>
-          <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.78rem;color:var(--clay-lt);margin:.25rem 0 .75rem;">
-            <input type="checkbox" id="adh-share-email" style="accent-color:var(--terracotta);width:13px;height:13px;">
-            <span>Partager mon email aux autres adhérents</span>
-          </label>
+
           <button class="btn btn-primary" onclick="enregistrerInfosAdherent()">💾 Enregistrer mes informations</button>
 
           <hr class="separator" style="margin:1.5rem 0;">
@@ -2388,10 +2377,13 @@ window.annulerReservation = async function(id) {
   } catch(e) { toast('Erreur : '+e.message, 'error'); }
 };
 
-function partageLabel(champ) {
+function partageCheckbox(champ, label) {
   const p = utilisateurCourant.partages || {};
-  return p[champ] ? '<span style="font-size:.7rem;color:var(--success);margin-left:.3rem;">✓ partagé</span>'
-                  : '<span style="font-size:.7rem;color:var(--clay-lt);margin-left:.3rem;">non partagé</span>';
+  const checked = p[champ] ? 'checked' : '';
+  return `<label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--clay-lt);margin-top:.3rem;cursor:default;">
+    <input type="checkbox" ${checked} disabled style="accent-color:var(--terracotta);width:13px;height:13px;">
+    <span>Partagé avec les autres adhérents</span>
+  </label>`;
 }
 
 function afficherInfosMonCompte() {
@@ -2400,18 +2392,24 @@ function afficherInfosMonCompte() {
   const pseudoTitre = document.getElementById('adh-compte-pseudo-titre');
   if (!grid) return;
   if (pseudoTitre) pseudoTitre.textContent = u.pseudo || '';
+  const adhesionInfo = document.getElementById('adh-adhesion-info');
+  if (adhesionInfo) {
+    const statut = calculerStatutAdhesion(u);
+    adhesionInfo.innerHTML = `
+      <span><strong>Membre depuis :</strong> ${formatDate(u.dateDebutAdhesion)||'—'}</span>
+      <span><strong>Fin d'adhésion :</strong> ${formatDate(u.dateFinAdhesion)||'—'}</span>
+      <span><strong>Statut :</strong> ${badgeStatut(statut)}</span>
+    `;
+  }
   const p = u.partages || {};
+  const adresseParts = [u.rue, u.codePostal && u.ville ? u.codePostal+' '+u.ville : u.codePostal||u.ville].filter(Boolean);
+  const adresse = adresseParts.join(', ') || '—';
   grid.innerHTML = `
     <div class="profile-info-card"><div class="pil">Prénom</div><div class="pval">${u.prenom||'—'}</div></div>
-    <div class="profile-info-card"><div class="pil">Nom ${partageLabel('nom')}</div><div class="pval">${u.nom||'—'}</div></div>
-    <div class="profile-info-card full-width"><div class="pil">Email ${partageLabel('email')}</div><div class="pval" style="font-size:.95rem">${u.email||'—'}</div></div>
-    <div class="profile-info-card"><div class="pil">Téléphone ${partageLabel('telephone')}</div><div class="pval">${formatTel(u.telephone)}</div></div>
-    <div class="profile-info-card"><div class="pil">Rue ${partageLabel('rue')}</div><div class="pval">${u.rue||'—'}</div></div>
-    <div class="profile-info-card"><div class="pil">Code postal</div><div class="pval">${u.codePostal||'—'}</div></div>
-    <div class="profile-info-card"><div class="pil">Ville</div><div class="pval">${u.ville||'—'}</div></div>
-    <div class="profile-info-card"><div class="pil">Membre depuis</div><div class="pval">${formatDate(u.dateDebutAdhesion)||'—'}</div></div>
-    <div class="profile-info-card"><div class="pil">Fin d'adhésion</div><div class="pval">${formatDate(u.dateFinAdhesion)||'—'}</div></div>
-    <div class="profile-info-card"><div class="pil">Statut</div><div class="pval">${badgeStatut(calculerStatutAdhesion(u))}</div></div>
+    <div class="profile-info-card"><div class="pil">Nom</div><div class="pval">${u.nom||'—'}</div>${partageCheckbox('nom')}</div>
+    <div class="profile-info-card full-width"><div class="pil">Email</div><div class="pval" style="font-size:.95rem">${u.email||'—'}</div>${partageCheckbox('email')}</div>
+    <div class="profile-info-card"><div class="pil">Téléphone</div><div class="pval">${formatTel(u.telephone)}</div>${partageCheckbox('telephone')}</div>
+    <div class="profile-info-card full-width"><div class="pil">Adresse</div><div class="pval">${adresse}</div>${partageCheckbox('rue')}</div>
   `;
   // Pré-remplir les champs de modification
   const fields = ['prenom','nom','rue','codePostal','ville'];
@@ -2894,6 +2892,12 @@ window.enregistrerPaiement = async function(id) {
   const montant = document.getElementById('fiche-montant').value;
   const fin     = document.getElementById('fiche-fin').value;
   const debut   = document.getElementById('fiche-debut').value;
+
+  // Validation : fin sans début interdit
+  if (fin && !debut) {
+    toast('Veuillez définir une date de début d'adhésion avant de saisir une date de fin.', 'error');
+    return;
+  }
 
   // Calculer fin automatique si non fourni
   let dateFinCal = fin;
