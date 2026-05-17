@@ -1448,14 +1448,14 @@ tr:hover td { background: var(--cream); }
 
       <!-- Dashboard admin -->
       <div id="tab-admin-dashboard" class="tab-content">
-        <div id="admin-expiration-section" class="hidden">
-          <h3 style="margin-bottom:.75rem;color:var(--warning)">⚠️ Adhésions expirant dans moins de 15 jours</h3>
-          <div id="admin-expiration-list" class="resa-list mb-2"></div>
-          <hr class="separator">
-        </div>
         <div id="admin-nouveaux-section" class="hidden">
           <h3 style="margin-bottom:.75rem;color:var(--terracotta)">🆕 Nouveaux inscrits sans adhésion</h3>
           <div id="admin-nouveaux-list" class="resa-list mb-2"></div>
+          <hr class="separator">
+        </div>
+        <div id="admin-expiration-section" class="hidden">
+          <h3 style="margin-bottom:.75rem;color:var(--warning)">⚠️ Adhésions expirant dans moins de 15 jours</h3>
+          <div id="admin-expiration-list" class="resa-list mb-2"></div>
           <hr class="separator">
         </div>
         <h3 style="margin-bottom:.75rem;">📈 Statistiques globales</h3>
@@ -4377,6 +4377,9 @@ window.soumettreinscription = async function() {
   const telDigits = tel.replace(/\D/g, '');
   if (tel && !/^\d{10}$/.test(telDigits))
     { showErr(errEl, 'Le numéro de téléphone doit contenir exactement 10 chiffres.'); return; }
+  const cp = document.getElementById('reg-codePostal')?.value.trim() || '';
+  if (cp && !/^\d{5}$/.test(cp))
+    { showErr(errEl, 'Le code postal doit contenir exactement 5 chiffres.'); return; }
 
   const btn = document.getElementById('btn-inscrire');
   btn.disabled = true; btn.textContent = 'Création du compte…';
