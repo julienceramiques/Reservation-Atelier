@@ -1284,18 +1284,11 @@ tr:hover td { background: var(--cream); }
 
       <!-- Contacts membres -->
       <div id="tab-adh-contacts" class="tab-content hidden">
-        <!-- Contact administrateur -->
+        <!-- Responsables Atelier -->
         <div class="card" style="margin-bottom:1rem;">
-          <div class="card-header"><h2>👨‍💼 Contact Administrateur</h2></div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:.75rem;">
-            <div class="contact-card">
-              <div class="contact-avatar" style="background:var(--terracotta);">JC</div>
-              <div class="contact-info">
-                <div class="contact-nom">Julien Céramiques</div>
-                <div class="contact-ligne"><span>👨‍💼</span><span>Administrateur</span></div>
-                <div class="contact-ligne"><span>✉️</span><a href="mailto:julienceramiques@gmail.com" class="contact-lien">julienceramiques@gmail.com</a></div>
-              </div>
-            </div>
+          <div class="card-header"><h2>🏺 Responsables Atelier</h2></div>
+          <div id="responsables-list-adh" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:.75rem;">
+            <p class="text-muted">Aucun responsable enregistré.</p>
           </div>
         </div>
         <!-- Contacts membres -->
@@ -1304,7 +1297,7 @@ tr:hover td { background: var(--cream); }
             <input class="form-input" id="search-contacts-adh" type="search" placeholder="Rechercher…"
               style="width:180px;padding:.4rem .75rem;" oninput="filtrerContacts('adh')"></div>
           <div class="alert alert-info" style="margin-bottom:1rem;font-size:.85rem;">
-            Ces informations sont partagées entre tous les membres de l'atelier Julien Céramiques.</div>
+            Ces informations sont partagées entre tous les membres de l'atelier Atelier Partagé.</div>
           <div id="contacts-list-adh" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:.75rem;"></div>
         </div>
       </div>
@@ -1573,6 +1566,17 @@ tr:hover td { background: var(--cream); }
       </div>
 
       <div id="tab-admin-contacts" class="tab-content hidden">
+        <!-- Responsables Atelier -->
+        <div class="card" style="margin-bottom:1rem;">
+          <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
+            <h2>🏺 Responsables Atelier</h2>
+            <button class="btn btn-primary btn-sm" onclick="ouvrirModalContact()">+ Créer un contact</button>
+          </div>
+          <div id="responsables-list-admin" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:.75rem;">
+            <p class="text-muted">Aucun responsable enregistré.</p>
+          </div>
+        </div>
+        <!-- Contacts membres -->
         <div class="card">
           <div class="card-header"><h2>📇 Contacts membres</h2>
             <input class="form-input" id="search-contacts-admin" type="search" placeholder="Rechercher…"
@@ -1681,6 +1685,71 @@ tr:hover td { background: var(--cream); }
 </div><!-- /app -->
 
 <!-- ===== MODALES ===== -->
+
+<!-- Modale contact responsable -->
+<div id="modal-contact" class="modal-overlay">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-contact-titre">Créer un contact</span>
+      <button class="modal-close" onclick="fermerModale('modal-contact')">✕</button>
+    </div>
+    <div style="padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:.75rem;">
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">Prénom <span style="color:var(--terracotta);">*</span></label>
+        <input class="form-input" id="contact-prenom" type="text" placeholder="Prénom">
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">Pseudo</label>
+        <input class="form-input" id="contact-pseudo" type="text" placeholder="Pseudo">
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">Rôle <span style="color:var(--terracotta);">*</span></label>
+        <input class="form-input" id="contact-role" type="text" placeholder="Ex : Responsable, Animateur…">
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">Nom</label>
+        <input class="form-input" id="contact-nom" type="text" placeholder="Nom">
+        <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--clay-lt);margin-top:.35rem;cursor:pointer;">
+          <input type="checkbox" id="contact-share-nom" style="accent-color:var(--terracotta);width:13px;height:13px;">
+          <span>Visible par les adhérents</span>
+        </label>
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">Courriel</label>
+        <input class="form-input" id="contact-email" type="email" placeholder="courriel@exemple.com">
+        <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--clay-lt);margin-top:.35rem;cursor:pointer;">
+          <input type="checkbox" id="contact-share-email" style="accent-color:var(--terracotta);width:13px;height:13px;">
+          <span>Visible par les adhérents</span>
+        </label>
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">Téléphone</label>
+        <input class="form-input" id="contact-telephone" type="tel" placeholder="06 00 00 00 00">
+        <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--clay-lt);margin-top:.35rem;cursor:pointer;">
+          <input type="checkbox" id="contact-share-telephone" style="accent-color:var(--terracotta);width:13px;height:13px;">
+          <span>Visible par les adhérents</span>
+        </label>
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">Adresse</label>
+        <input class="form-input" id="contact-rue" type="text" placeholder="Rue" style="margin-bottom:.35rem;">
+        <div style="display:flex;gap:.5rem;">
+          <input class="form-input" id="contact-cp" type="text" placeholder="Code postal" maxlength="5" style="width:110px;">
+          <input class="form-input" id="contact-ville" type="text" placeholder="Ville" style="flex:1;">
+        </div>
+        <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--clay-lt);margin-top:.35rem;cursor:pointer;">
+          <input type="checkbox" id="contact-share-adresse" style="accent-color:var(--terracotta);width:13px;height:13px;">
+          <span>Visible par les adhérents</span>
+        </label>
+      </div>
+      <div id="modal-contact-err" style="color:var(--error);font-size:.85rem;display:none;"></div>
+      <div style="display:flex;gap:.75rem;justify-content:flex-end;margin-top:.5rem;">
+        <button class="btn btn-secondary" onclick="fermerModale('modal-contact')">Annuler</button>
+        <button class="btn btn-primary" onclick="sauvegarderContact()">💾 Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Modale alerte universelle -->
 <div id="modal-alerte" class="modal-overlay" style="z-index:9100;">
@@ -2825,6 +2894,7 @@ async function chargerUtilisateurs() {
       // Rafraîchir l'interface admin si elle est active
       if (utilisateurCourant?.role === 'admin') {
         afficherDashboardAdmin();
+    chargerResponsables();
         afficherTableauAdherents();
       }
       resolve();
@@ -5022,6 +5092,7 @@ window.etendreFin = function(delta) {
 // CONTACTS MEMBRES
 // =====================================================================
 function afficherContacts(ctx) {
+  afficherResponsables(ctx);
   const listId  =ctx==='admin'?'contacts-list-admin':'contacts-list-adh';
   const searchId=ctx==='admin'?'search-contacts-admin':'search-contacts-adh';
   const q=(document.getElementById(searchId)?.value||'').toLowerCase();
@@ -5045,6 +5116,153 @@ function afficherContacts(ctx) {
   }).join('');
 }
 window.filtrerContacts = function(ctx) { afficherContacts(ctx); };
+
+// =====================================================================
+// RESPONSABLES ATELIER
+// =====================================================================
+
+let _contactEditId = null;
+let _allResponsables = [];
+
+async function chargerResponsables() {
+  try {
+    const snap = await getDocs(collection(db, 'responsables'));
+    _allResponsables = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    afficherResponsables('adh');
+    afficherResponsables('admin');
+  } catch(e) { console.warn('Erreur chargement responsables:', e); }
+}
+
+function afficherResponsables(ctx) {
+  const listId = ctx === 'admin' ? 'responsables-list-admin' : 'responsables-list-adh';
+  const el = document.getElementById(listId);
+  if (!el) return;
+  const isAdmin = ctx === 'admin';
+  const couleurs = ['#C4622D','#7A8C6A','#3A6B8A','#8B6347','#6B3FA0'];
+
+  const visibles = isAdmin ? _allResponsables : _allResponsables.filter(c => c.prenom || c.pseudo);
+
+  if (!visibles.length) { el.innerHTML = '<p class="text-muted">Aucun responsable enregistré.</p>'; return; }
+
+  el.innerHTML = visibles.map(c => {
+    const ini = ((c.prenom || c.pseudo || '?')).substring(0, 2).toUpperCase();
+    const col = couleurs[((c.prenom || c.pseudo || 'A')).charCodeAt(0) % couleurs.length];
+    const p = c.partages || {};
+    let lignes = '<div class="contact-nom">' + (c.prenom || '') + (c.pseudo ? ' (' + c.pseudo + ')' : '') + '</div>';
+    lignes += '<div class="contact-ligne"><span>🏷️</span><span style="font-size:.82rem;color:var(--clay-lt);">' + (c.role || '') + '</span></div>';
+    if (c.nom && (isAdmin || p.nom)) lignes += '<div class="contact-ligne"><span>👤</span><span>' + c.nom + '</span></div>';
+    if (c.email && (isAdmin || p.email)) lignes += '<div class="contact-ligne"><span>✉️</span><a href="mailto:' + c.email + '" class="contact-lien">' + c.email + '</a></div>';
+    if (c.telephone && (isAdmin || p.telephone)) lignes += '<div class="contact-ligne"><span>📞</span><a href="tel:' + c.telephone + '" class="contact-lien">' + formatTel(c.telephone) + '</a></div>';
+    const adr = [c.rue, c.cp && c.ville ? c.cp + ' ' + c.ville : c.cp || c.ville].filter(Boolean).join(', ');
+    if (adr && (isAdmin || p.adresse)) lignes += '<div class="contact-ligne"><span>📍</span><span>' + adr + '</span></div>';
+
+    let btns = '';
+    if (isAdmin) {
+      const ocMod = 'onclick="ouvrirModalContact(' + "'" + c.id + "'" + ')"';
+      const ocSup = 'onclick="supprimerContact(' + "'" + c.id + "'" + ')"';
+      btns = '<div style="display:flex;gap:.5rem;margin-top:.75rem;">'
+        + '<button class="btn btn-secondary btn-sm" ' + ocMod + '>✏️ Modifier</button>'
+        + '<button class="btn btn-sm" style="background:var(--error);color:#fff;" ' + ocSup + '>🗑️ Supprimer</button>'
+        + '</div>';
+    }
+
+    return '<div class="contact-card" style="flex-direction:column;">'
+      + '<div style="display:flex;gap:.75rem;">'
+      + '<div class="contact-avatar" style="background:' + col + ';flex-shrink:0;">' + ini + '</div>'
+      + '<div class="contact-info">' + lignes + '</div>'
+      + '</div>' + btns + '</div>';
+  }).join('');
+}
+
+window.ouvrirModalContact = function(id) {
+  _contactEditId = id || null;
+  const titre = document.getElementById('modal-contact-titre');
+  if (titre) titre.textContent = id ? 'Modifier le contact' : 'Créer un contact';
+  const err = document.getElementById('modal-contact-err');
+  if (err) { err.style.display = 'none'; err.textContent = ''; }
+
+  // Vider ou pré-remplir
+  const set = (elId, val) => { const el = document.getElementById(elId); if (el) el.value = val || ''; };
+  const chk = (elId, val) => { const el = document.getElementById(elId); if (el) el.checked = !!val; };
+
+  if (id) {
+    const c = _allResponsables.find(r => r.id === id);
+    if (!c) return;
+    const p = c.partages || {};
+    set('contact-prenom',    c.prenom);
+    set('contact-pseudo',    c.pseudo);
+    set('contact-role',      c.role);
+    set('contact-nom',       c.nom);
+    set('contact-email',     c.email);
+    set('contact-telephone', c.telephone);
+    set('contact-rue',       c.rue);
+    set('contact-cp',        c.cp);
+    set('contact-ville',     c.ville);
+    chk('contact-share-nom',       p.nom);
+    chk('contact-share-email',     p.email);
+    chk('contact-share-telephone', p.telephone);
+    chk('contact-share-adresse',   p.adresse);
+  } else {
+    ['contact-prenom','contact-pseudo','contact-role','contact-nom','contact-email',
+     'contact-telephone','contact-rue','contact-cp','contact-ville'].forEach(id => set(id, ''));
+    ['contact-share-nom','contact-share-email','contact-share-telephone','contact-share-adresse']
+      .forEach(id => chk(id, false));
+  }
+  ouvrirModale('modal-contact');
+};
+
+window.sauvegarderContact = async function() {
+  const get = id => document.getElementById(id)?.value.trim() || '';
+  const chk = id => document.getElementById(id)?.checked || false;
+  const err = document.getElementById('modal-contact-err');
+
+  const prenom = get('contact-prenom');
+  const role   = get('contact-role');
+  if (!prenom) { err.textContent = 'Le prénom est obligatoire.'; err.style.display = 'block'; return; }
+  if (!role)   { err.textContent = 'Le rôle est obligatoire.'; err.style.display = 'block'; return; }
+
+  const tel = get('contact-telephone').replace(/\D/g, '');
+  if (tel && !/^\d{10}$/.test(tel)) { err.textContent = 'Le téléphone doit contenir 10 chiffres.'; err.style.display = 'block'; return; }
+  const cp = get('contact-cp');
+  if (cp && !/^\d{5}$/.test(cp)) { err.textContent = 'Le code postal doit contenir 5 chiffres.'; err.style.display = 'block'; return; }
+
+  const data = {
+    prenom, pseudo: get('contact-pseudo'), role,
+    nom: get('contact-nom') || null,
+    email: get('contact-email') || null,
+    telephone: tel || null,
+    rue: get('contact-rue') || null,
+    cp: cp || null,
+    ville: get('contact-ville') || null,
+    partages: {
+      nom:       chk('contact-share-nom'),
+      email:     chk('contact-share-email'),
+      telephone: chk('contact-share-telephone'),
+      adresse:   chk('contact-share-adresse'),
+    }
+  };
+
+  try {
+    if (_contactEditId) {
+      await updateDoc(doc(db, 'responsables', _contactEditId), data);
+    } else {
+      await addDoc(collection(db, 'responsables'), data);
+    }
+    fermerModale('modal-contact');
+    await chargerResponsables();
+    toast(_contactEditId ? 'Contact mis à jour.' : 'Contact créé.', 'success');
+  } catch(e) { err.textContent = 'Erreur : ' + e.message; err.style.display = 'block'; }
+};
+
+window.supprimerContact = async function(id) {
+  const ok = await confirmer('Supprimer ce contact ?', 'Cette action est irréversible.', '🗑️');
+  if (!ok) return;
+  try {
+    await deleteDoc(doc(db, 'responsables', id));
+    await chargerResponsables();
+    toast('Contact supprimé.', 'success');
+  } catch(e) { toast('Erreur : ' + e.message, 'error'); }
+};
 
 // =====================================================================
 // MOT DE PASSE ADMIN
