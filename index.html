@@ -5180,11 +5180,13 @@ function afficherResponsables(ctx) {
         + '</div>';
     }
 
-    return '<div class="contact-card" style="flex-direction:column;">'
-      + '<div style="display:flex;gap:.75rem;">'
+    return '<div class="contact-card" style="flex-direction:column;justify-content:space-between;">'
+      + '<div style="display:flex;gap:.75rem;flex:1;">'
       + '<div class="contact-avatar" style="background:' + col + ';flex-shrink:0;">' + ini + '</div>'
-      + '<div class="contact-info">' + lignes + '</div>'
-      + '</div>' + btns + '</div>';
+      + '<div class="contact-info" style="flex:1;">' + lignes + '</div>'
+      + '</div>'
+      + btns
+      + '</div>';
   }).join('');
 }
 
