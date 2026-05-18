@@ -1287,7 +1287,7 @@ tr:hover td { background: var(--cream); }
         <!-- Responsables Atelier -->
         <div class="card" style="margin-bottom:1rem;">
           <div class="card-header"><h2>🏺 Responsables Atelier</h2></div>
-          <div id="responsables-list-adh" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(480px,1fr));gap:.75rem;">
+          <div id="responsables-list-adh" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:.75rem;">
             <p class="text-muted">Aucun responsable enregistré.</p>
           </div>
         </div>
@@ -1298,7 +1298,7 @@ tr:hover td { background: var(--cream); }
               style="width:180px;padding:.4rem .75rem;" oninput="filtrerContacts('adh')"></div>
           <div class="alert alert-info" style="margin-bottom:1rem;font-size:.85rem;">
             Ces informations sont partagées entre tous les membres de l'atelier Atelier Partagé.</div>
-          <div id="contacts-list-adh" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(480px,1fr));gap:.75rem;"></div>
+          <div id="contacts-list-adh" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:.75rem;"></div>
         </div>
       </div>
 
@@ -1572,7 +1572,7 @@ tr:hover td { background: var(--cream); }
             <h2>🏺 Responsables Atelier</h2>
             <button class="btn btn-primary btn-sm" onclick="ouvrirModalContact()">+ Créer un contact</button>
           </div>
-          <div id="responsables-list-admin" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(480px,1fr));gap:.75rem;">
+          <div id="responsables-list-admin" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:.75rem;">
             <p class="text-muted">Aucun responsable enregistré.</p>
           </div>
         </div>
@@ -1581,7 +1581,7 @@ tr:hover td { background: var(--cream); }
           <div class="card-header"><h2>📇 Contacts membres</h2>
             <input class="form-input" id="search-contacts-admin" type="search" placeholder="Rechercher…"
               style="width:180px;padding:.4rem .75rem;" oninput="filtrerContacts('admin')"></div>
-          <div id="contacts-list-admin" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(480px,1fr));gap:.75rem;"></div>
+          <div id="contacts-list-admin" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:.75rem;"></div>
         </div>
       </div>
       <!-- Paramètres admin -->
@@ -5108,7 +5108,7 @@ function afficherContacts(ctx) {
     const p = u.partages||{};
     const isAdmin = ctx==='admin';
     let lignes = '<div class="contact-nom">'+(u.prenom||u.pseudo)+(u.nom&&(isAdmin||p.nom)?' '+u.nom:'')+'</div>';
-    lignes += '<div class="contact-ligne"><span>👤</span><span style="font-size:.78rem;color:var(--clay-lt);">(Pseudo) '+u.pseudo+'</span></div>';
+    lignes += '<div class="contact-ligne"><span>👤</span><span style="font-size:.78rem;color:var(--clay-lt);">'+u.pseudo+' (Pseudo)</span></div>';
     if (isAdmin||p.email) lignes += '<div class="contact-ligne"><span>✉️</span><a href="mailto:'+u.email+'" class="contact-lien">'+u.email+'</a></div>';
     if (u.telephone&&(isAdmin||p.telephone)) lignes += '<div class="contact-ligne"><span>📞</span><a href="tel:'+u.telephone+'" class="contact-lien">'+formatTel(u.telephone)+'</a></div>';
     if (u.rue&&(isAdmin||p.rue)) lignes += '<div class="contact-ligne"><span>📍</span><span>'+u.rue+(u.codePostal?' '+u.codePostal:'')+(u.ville?' '+u.ville:'')+'</span></div>';
@@ -5154,7 +5154,7 @@ function afficherResponsables(ctx) {
     let lignes = '<div class="contact-nom">' + nomAffiche.trim() + '</div>';
 
     // Pseudo
-    if (c.pseudo) lignes += '<div class="contact-ligne"><span>👤</span><span style="font-size:.78rem;color:var(--clay-lt);">(Pseudo) ' + c.pseudo + '</span></div>';
+    if (c.pseudo) lignes += '<div class="contact-ligne"><span>👤</span><span style="font-size:.78rem;color:var(--clay-lt);">' + c.pseudo + ' (Pseudo)</span></div>';
 
     // Rôle
     if (c.role) lignes += '<div class="contact-ligne"><span>🏷️</span><span style="font-size:.82rem;color:var(--clay-lt);">' + c.role + '</span></div>';
@@ -5173,9 +5173,15 @@ function afficherResponsables(ctx) {
     if (isAdmin) {
       const ocMod = 'onclick="ouvrirModalContact(' + "'" + c.id + "'" + ')"';
       const ocSup = 'onclick="supprimerContact(' + "'" + c.id + "'" + ')"';
+      const trashSvg = "<svg xmlns='http://www.w3.org/2000/svg' width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'>"
+        + "<polyline points='3 6 5 6 21 6'/>"
+        + "<path d='M19 6l-1 14H6L5 6'/>"
+        + "<path d='M10 11v6'/><path d='M14 11v6'/>"
+        + "<path d='M9 6V4h6v2'/>"
+        + "</svg>";
       btns = '<div style="display:flex;gap:.5rem;margin-top:.75rem;">'
         + '<button class="btn btn-secondary btn-sm" ' + ocMod + '>✏️ Modifier</button>'
-        + '<button class="btn btn-sm" style="background:var(--error);color:#fff;" ' + ocSup + '>🗑️ Supprimer</button>'
+        + '<button class="btn btn-sm" style="background:var(--error);color:#fff;display:flex;align-items:center;gap:.35rem;" ' + ocSup + '>' + trashSvg + ' Supprimer</button>'
         + '</div>';
     }
 
